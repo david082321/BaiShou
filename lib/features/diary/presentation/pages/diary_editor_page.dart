@@ -302,7 +302,7 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
           onPressed: () => context.pop(),
         ),
         title: GestureDetector(
-          onTap: _showDateTimePicker,
+          onTap: _isSummaryMode ? null : _showDateTimePicker,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
