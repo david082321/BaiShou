@@ -1,5 +1,5 @@
 import 'package:baishou/core/theme/app_theme.dart';
-import 'package:baishou/features/summary/domain/entities/summary.dart';
+
 import 'package:baishou/features/summary/domain/services/missing_summary_detector.dart';
 import 'package:baishou/features/summary/domain/services/summary_generator_service.dart';
 import 'package:baishou/features/summary/data/repositories/summary_repository_impl.dart';

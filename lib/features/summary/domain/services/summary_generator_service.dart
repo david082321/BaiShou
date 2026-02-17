@@ -15,6 +15,8 @@ import 'package:http/http.dart' as http;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+part 'summary_generator_service.g.dart';
+
 class SummaryGeneratorService {
   final DiaryRepository _diaryRepo;
   final SummaryRepository _summaryRepo;
