@@ -74,10 +74,6 @@ class _SummaryDashboardViewState extends ConsumerState<SummaryDashboardView> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // 智能补全列表
-          const MissingSummaryList(),
-          const SizedBox(height: 16),
-
           // 仪表盘卡片
           _buildStatCard(context, '白守数据概览 (过去 $_months 个月)', [
             _StatItem('年度', stats.yearCount, Colors.orange),
@@ -109,6 +105,11 @@ class _SummaryDashboardViewState extends ConsumerState<SummaryDashboardView> {
               backgroundColor: AppTheme.primary,
             ),
           ),
+
+          const SizedBox(height: 32),
+
+          // 智能补全列表
+          const MissingSummaryList(),
         ],
       ),
     );
