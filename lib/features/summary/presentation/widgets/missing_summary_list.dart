@@ -5,11 +5,6 @@ import 'package:baishou/features/summary/data/repositories/summary_repository_im
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-/// 全局状态：AI 生成状态（key -> status消息）
-final generationStatusProvider = StateProvider<Map<String, String>>(
-  (ref) => {},
-);
-
 class MissingSummaryList extends ConsumerStatefulWidget {
   const MissingSummaryList({super.key});
 
@@ -18,6 +13,9 @@ class MissingSummaryList extends ConsumerStatefulWidget {
 }
 
 class _MissingSummaryListState extends ConsumerState<MissingSummaryList> {
+  // 本地状态: AI生成状态
+  final Map<String, String> _generationStatus = {};
+
   @override
   Widget build(BuildContext context) {
     // 1. 获取缺失的总结
@@ -97,8 +95,7 @@ class _MissingSummaryListState extends ConsumerState<MissingSummaryList> {
                   itemBuilder: (context, index) {
                     final item = missing[index];
                     final key = item.label;
-                    final statusMap = ref.watch(generationStatusProvider);
-                    final status = statusMap[key];
+                    final status = _generationStatus[key];
 
                     return ListTile(
                       contentPadding: EdgeInsets.zero,
@@ -149,10 +146,9 @@ class _MissingSummaryListState extends ConsumerState<MissingSummaryList> {
 
   Future<void> _generate(MissingSummary item) async {
     final key = item.label;
-    ref.read(generationStatusProvider.notifier).state = {
-      ...ref.read(generationStatusProvider),
-      key: '准备中...',
-    };
+    setState(() {
+      _generationStatus[key] = '准备中...';
+    });
 
     try {
       final stream = ref.read(summaryGeneratorServiceProvider).generate(item);
@@ -173,10 +169,9 @@ class _MissingSummaryListState extends ConsumerState<MissingSummaryList> {
           finalContent = status;
         } else {
           if (mounted) {
-            ref.read(generationStatusProvider.notifier).state = {
-              ...ref.read(generationStatusProvider),
-              key: status,
-            };
+            setState(() {
+              _generationStatus[key] = status;
+            });
           }
         }
       }
@@ -193,27 +188,22 @@ class _MissingSummaryListState extends ConsumerState<MissingSummaryList> {
             );
 
         if (mounted) {
-          final newMap = Map<String, String>.from(
-            ref.read(generationStatusProvider),
-          );
-          newMap.remove(key);
-          ref.read(generationStatusProvider.notifier).state = newMap;
-          setState(() {}); // 触发 FutureBuilder 刷新
+          setState(() {
+            _generationStatus.remove(key);
+          });
         }
       } else {
         if (mounted) {
-          ref.read(generationStatusProvider.notifier).state = {
-            ...ref.read(generationStatusProvider),
-            key: '生成内容为空',
-          };
+          setState(() {
+            _generationStatus[key] = '生成内容为空';
+          });
         }
       }
     } catch (e) {
       if (mounted) {
-        ref.read(generationStatusProvider.notifier).state = {
-          ...ref.read(generationStatusProvider),
-          key: '错误: $e',
-        };
+        setState(() {
+          _generationStatus[key] = '错误: $e';
+        });
       }
     }
   }
