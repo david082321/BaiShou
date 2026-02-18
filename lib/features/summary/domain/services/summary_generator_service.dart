@@ -10,7 +10,7 @@ import 'package:baishou/source/prompts/monthly_prompt.dart';
 import 'package:baishou/source/prompts/quarterly_prompt.dart';
 import 'package:baishou/source/prompts/weekly_prompt.dart';
 import 'package:baishou/source/prompts/yearly_prompt.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 import 'package:http/http.dart' as http;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -36,6 +36,10 @@ class SummaryGeneratorService {
   /// 4. 返回结果。
   Stream<String> generate(MissingSummary target) async* {
     yield 'STATUS:正在读取数据...';
+
+    // 获取当前配置的模型名称
+    final apiConfig = _ref.read(apiConfigServiceProvider);
+    final modelName = apiConfig.model.isEmpty ? 'AI' : apiConfig.model;
 
     String contextData = '';
     String promptTemplate = '';
@@ -77,7 +81,7 @@ class SummaryGeneratorService {
         return;
       }
 
-      yield 'STATUS:正在思考 (${dotenv.env['GEMINI_MODEL'] ?? 'AI'})...';
+      yield 'STATUS:正在思考 ($modelName)...';
 
       final generatedContent = await _callApi(promptTemplate, contextData);
 
@@ -105,10 +109,16 @@ class SummaryGeneratorService {
   }
 
   Future<String> _buildMonthlyContext(DateTime start, DateTime end) async {
-    // 获取此范围内的周记总结
-    final summaries = await _summaryRepo.getSummaries(start: start, end: end);
+    // 获取从指定开始日期之后的所有总结
+    // 注意：Repository 的 getSummaries(start, end) 是严格包含 (startDate >= start AND endDate <= end)
+    // 但周记可能跨月（例如1月30日-2月5日），根据 MissingSummaryDetector 的逻辑，它被分配给开始日期所在的月份。
+    // 因此，我们需要获取所有 startDate 在该月份内的周记。
+    final summaries = await _summaryRepo.getSummaries(start: start);
+
     final weeklies = summaries
         .where((s) => s.type == SummaryType.weekly)
+        // 内存过滤：只保留开始日期在范围内的周记
+        .where((s) => s.startDate.isBefore(end.add(const Duration(seconds: 1))))
         .toList();
 
     if (weeklies.isEmpty) return '';
@@ -125,9 +135,11 @@ class SummaryGeneratorService {
   }
 
   Future<String> _buildQuarterlyContext(DateTime start, DateTime end) async {
-    final summaries = await _summaryRepo.getSummaries(start: start, end: end);
+    // 同上，放宽结束日期限制
+    final summaries = await _summaryRepo.getSummaries(start: start);
     final monthlies = summaries
         .where((s) => s.type == SummaryType.monthly)
+        .where((s) => s.startDate.isBefore(end.add(const Duration(seconds: 1))))
         .toList();
 
     if (monthlies.isEmpty) return '';
@@ -142,21 +154,21 @@ class SummaryGeneratorService {
   }
 
   Future<String> _buildYearlyContext(DateTime start, DateTime end) async {
-    final summaries = await _summaryRepo.getSummaries(start: start, end: end);
-    // 优先使用季报，回退到月报？
-    // 让我们使用季报
+    // 同上
+    final summaries = await _summaryRepo.getSummaries(start: start);
+    // 优先使用季报
     final quarterlies = summaries
         .where((s) => s.type == SummaryType.quarterly)
+        .where((s) => s.startDate.isBefore(end.add(const Duration(seconds: 1))))
         .toList();
-
-    // 如果没有季报则回退？
-    // 如果季报为空，或许可以使用月报？
-    // 目前，让我们坚持层级结构：检查季报。
 
     if (quarterlies.isEmpty) {
       // 如果没有找到季报，则回退到月报
       final monthlies = summaries
           .where((s) => s.type == SummaryType.monthly)
+          .where(
+            (s) => s.startDate.isBefore(end.add(const Duration(seconds: 1))),
+          )
           .toList();
       if (monthlies.isNotEmpty) {
         final buffer = StringBuffer();
@@ -173,7 +185,6 @@ class SummaryGeneratorService {
     final buffer = StringBuffer();
     buffer.writeln('### 原始季度总结数据 (${start.year}年)');
     for (final s in quarterlies) {
-      // 估算季度
       final q = (s.startDate.month / 3).ceil();
       buffer.writeln('\n#### ${s.startDate.year} Q$q 总结');
       buffer.writeln(s.content);

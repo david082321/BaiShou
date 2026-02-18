@@ -106,7 +106,7 @@ class _MissingSummaryListState extends ConsumerState<MissingSummaryList> {
                             status != null &&
                             (status.startsWith('错误') ||
                                 status.startsWith('生成内容为空'));
-                        // Loading: status is set and not an error
+                        // 加载中：状态已设置且不是错误
                         final isLoading = status != null && !isError;
 
                         return ListTile(
@@ -171,11 +171,11 @@ class _MissingSummaryListState extends ConsumerState<MissingSummaryList> {
   Future<void> _generate(MissingSummary item) async {
     final key = item.label;
     final service = GenerationStateService();
-    // 提前获取 necessary services，避免跨 async gap 使用 ref
+    // 提前获取必要服务，避免跨 async gap 使用 ref
     final generator = ref.read(summaryGeneratorServiceProvider);
     final repository = ref.read(summaryRepositoryProvider);
 
-    // Check if already generating (but allow retry if error or empty)
+    // 检查是否正在生成（但允许在错误或为空时重试）
     final currentStatus = service.getStatus(key);
     if (currentStatus != null &&
         !currentStatus.startsWith('错误') &&
@@ -192,7 +192,7 @@ class _MissingSummaryListState extends ConsumerState<MissingSummaryList> {
       await for (final status in stream) {
         // 使用明确的前缀判断
         if (status.startsWith('STATUS:')) {
-          service.setStatus(key, status.substring(7)); // remove 'STATUS:'
+          service.setStatus(key, status.substring(7)); // 移除 'STATUS:'
         } else {
           // 没有前缀的被视为最终内容
           finalContent = status;
@@ -200,7 +200,7 @@ class _MissingSummaryListState extends ConsumerState<MissingSummaryList> {
       }
 
       if (finalContent.isNotEmpty) {
-        // Save to DB
+        // 保存到数据库
         await repository.addSummary(
           type: item.type,
           startDate: item.startDate,

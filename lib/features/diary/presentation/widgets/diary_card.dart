@@ -13,7 +13,7 @@ class DiaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Extract title (first line) and content (rest)
+    // 提取标题（第一行）和内容（其余部分）
     final lines = diary.content.split('\n');
     final String title = lines.isNotEmpty ? lines.first : '无标题';
     final String body = lines.length > 1
@@ -21,7 +21,7 @@ class DiaryCard extends StatelessWidget {
               .sublist(1)
               .take(3)
               .join('\n')
-              .trim() // Take max 3 lines for preview
+              .trim() // 最多预览 3 行
         : '';
 
     final timeStr = DateFormat('jm').format(diary.date); // e.g. 5:08 PM
@@ -36,7 +36,7 @@ class DiaryCard extends StatelessWidget {
       ),
       child: InkWell(
         onTap: () {
-          // Pass ID so editor fetches specific entry
+          // 传递 ID，以便编辑器获取特定条目
           context.push('/diary/edit?id=${diary.id}');
         },
         borderRadius: BorderRadius.circular(16),
@@ -45,7 +45,7 @@ class DiaryCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header: Time + Menu
+              // 头部：时间 + 菜单
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -92,7 +92,7 @@ class DiaryCard extends StatelessWidget {
 
               const SizedBox(height: 8),
 
-              // Title
+              // 标题
               Text(
                 title,
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
@@ -105,7 +105,7 @@ class DiaryCard extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
               ),
 
-              // Body Preview
+              // 内容预览
               if (body.isNotEmpty) ...[
                 const SizedBox(height: 8),
                 ShaderMask(
@@ -148,8 +148,7 @@ class DiaryCard extends StatelessWidget {
                 ),
               ],
 
-              // Tags
-              // Tags - only display if there are non-empty tags
+              // 标签 - 仅在有非空标签时显示
               if (diary.tags.where((t) => t.trim().isNotEmpty).isNotEmpty) ...[
                 const SizedBox(height: 16), // mt-4
                 Wrap(

@@ -27,11 +27,7 @@ class SummaryRepositoryImpl implements SummaryRepository {
       query.where((t) => t.startDate.isBiggerOrEqualValue(start));
     }
     if (end != null) {
-      // 筛选 startDate <= end (通常筛选范围是基于开始日期的？或者重叠？)
-      // 用户需求是"更改周记对应的时间范围"，"更改月报对应的月份"。
-      // 实际上用户想要的是"查看特定时间段的总结"。
-      // 暂时假设是筛选 startDate 在范围内。
-      // 或者，对于"月报对应的月份"，若选了2月，则 start=2.1, end=2.28。
+      // 筛选 startDate <= end
       query.where((t) => t.startDate.isSmallerOrEqualValue(end));
     }
 
@@ -110,7 +106,7 @@ class SummaryRepositoryImpl implements SummaryRepository {
     )..where((t) => t.id.equals(summary.id))).write(
       db.SummariesCompanion(
         content: Value(summary.content),
-        // 其他字段通常不会更新，但如果需要可以添加
+        // 其他字段通常不会更新
       ),
     );
   }

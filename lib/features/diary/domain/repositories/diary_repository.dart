@@ -8,7 +8,7 @@ abstract class DiaryRepository {
   Future<Diary?> getDiaryById(int id);
 
   // 保存日记 (新增或更新)
-  // 如果 provided id, 则更新; 否则新增
+  // 如果提供了 id，则更新；否则新增
   Future<void> saveDiary({
     int? id,
     required DateTime date,
@@ -19,10 +19,10 @@ abstract class DiaryRepository {
   // 删除日记
   Future<void> deleteDiary(int id);
   Future<List<Diary>> getDiariesByDateRange(DateTime start, DateTime end);
-  
-  /// Get all diaries (for analysis)
+
+  /// 获取所有日记（用于分析）
   Future<List<Diary>> getAllDiaries();
-  
-  /// Get diaries in range (alias for getDiariesByDateRange but maybe with different sorting if needed)
+
+  /// 获取指定日期范围内的日记
   Future<List<Diary>> getDiariesInRange(DateTime start, DateTime end);
 }
