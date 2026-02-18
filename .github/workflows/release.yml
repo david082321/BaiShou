@@ -35,9 +35,49 @@ jobs:
           name: android-apk
           path: build/app/outputs/flutter-apk/app-release.apk
 
-  # ── Windows EXE ──────────────────────────────────────────
+  # ── Linux ────────────────────────────────────────────────
+  build-linux:
+    name: Build Linux
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Linux dependencies
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y \
+            clang cmake ninja-build pkg-config \
+            libgtk-3-dev liblzma-dev libstdc++-12-dev \
+            libayatana-appindicator3-dev
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.41.1"
+          channel: "stable"
+
+      - name: Enable Linux desktop
+        run: flutter config --enable-linux-desktop
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Build Linux
+        run: flutter build linux --release
+
+      - name: Tar Linux build
+        run: |
+          cd build/linux/x64/release/bundle
+          tar -czf ${{ github.workspace }}/BaiShou-Linux.tar.gz .
+
+      - name: Upload Linux artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-tar
+          path: BaiShou-Linux.tar.gz
+
+  # ── Windows Installer ────────────────────────────────────
   build-windows:
-    name: Build Windows
+    name: Build Windows Installer
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -53,20 +93,60 @@ jobs:
       - name: Build Windows
         run: flutter build windows --release
 
-      - name: Zip Windows build
+      - name: Create Inno Setup script
+        shell: pwsh
         run: |
-          Compress-Archive -Path build/windows/x64/runner/Release/* -DestinationPath BaiShou-Windows.zip
+          $version = "${{ github.ref_name }}".TrimStart('v')
+          $iss = @"
+          [Setup]
+          AppName=白守
+          AppVersion=$version
+          AppPublisher=Anson-Trio
+          AppPublisherURL=https://github.com/Anson-Trio/BaiShou
+          DefaultDirName={autopf}\BaiShou
+          DefaultGroupName=白守
+          OutputDir=installer
+          OutputBaseFilename=BaiShou-${{ github.ref_name }}-Windows-Setup
+          Compression=lzma
+          SolidCompression=yes
+          ArchitecturesInstallIn64BitMode=x64compatible
+          SetupIconFile=windows\runner\resources\app_icon.ico
 
-      - name: Upload Windows artifact
+          [Languages]
+          Name: "chinesesimplified"; MessagesFile: "compiler:Languages\ChineseSimplified.isl"
+
+          [Tasks]
+          Name: "desktopicon"; Description: "创建桌面快捷方式"; GroupDescription: "附加任务:"; Flags: unchecked
+
+          [Files]
+          Source: "build\windows\x64\runner\Release\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+
+          [Icons]
+          Name: "{group}\白守"; Filename: "{app}\baishou.exe"
+          Name: "{group}\卸载白守"; Filename: "{uninstallexe}"
+          Name: "{autodesktop}\白守"; Filename: "{app}\baishou.exe"; Tasks: desktopicon
+
+          [Run]
+          Filename: "{app}\baishou.exe"; Description: "启动白守"; Flags: nowait postinstall skipifsilent
+          "@
+          $iss | Out-File -FilePath setup.iss -Encoding UTF8
+
+      - name: Build installer with Inno Setup
+        shell: pwsh
+        run: |
+          $innoPath = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+          & $innoPath setup.iss
+
+      - name: Upload Windows installer artifact
         uses: actions/upload-artifact@v4
         with:
-          name: windows-zip
-          path: BaiShou-Windows.zip
+          name: windows-installer
+          path: installer/*.exe
 
   # ── GitHub Release ────────────────────────────────────────
   release:
     name: Create GitHub Release
-    needs: [build-android, build-windows]
+    needs: [build-android, build-linux, build-windows]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -77,13 +157,19 @@ jobs:
           name: android-apk
           path: artifacts/
 
-      - name: Download Windows ZIP
+      - name: Download Linux tar
         uses: actions/download-artifact@v4
         with:
-          name: windows-zip
+          name: linux-tar
           path: artifacts/
 
-      - name: Rename artifacts
+      - name: Download Windows installer
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-installer
+          path: artifacts/
+
+      - name: Rename Android APK
         run: |
           mv artifacts/app-release.apk artifacts/BaiShou-${{ github.ref_name }}-Android.apk
 
@@ -97,13 +183,17 @@ jobs:
             以纯白誓约，守护彼此一生。
 
             ### 下载
-            - **Android**：下载 `.apk` 文件，允许安装未知来源后安装
-            - **Windows**：下载 `.zip` 文件，解压后运行 `baishou.exe`
+            | 平台 | 文件 | 说明 |
+            |------|------|------|
+            | Android | `.apk` | 允许安装未知来源后安装 |
+            | Windows | `-Setup.exe` | 双击运行安装向导 |
+            | Linux | `.tar.gz` | 解压后运行 `baishou` |
 
             ### 更新内容
             请查看 [提交记录](https://github.com/${{ github.repository }}/commits/${{ github.ref_name }})
           files: |
             artifacts/BaiShou-${{ github.ref_name }}-Android.apk
-            artifacts/BaiShou-Windows.zip
+            artifacts/BaiShou-Linux.tar.gz
+            artifacts/*.exe
           draft: false
           prerelease: false
