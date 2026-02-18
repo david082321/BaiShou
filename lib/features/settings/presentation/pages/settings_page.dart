@@ -134,6 +134,24 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   }
 
   Future<void> _pickAndCropImage() async {
+    // 桌面端不支持 ImageCropper，直接用 file_picker 选图
+    final isDesktop =
+        Platform.isWindows || Platform.isLinux || Platform.isMacOS;
+
+    if (isDesktop) {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.image,
+        allowMultiple: false,
+      );
+      if (result != null && result.files.single.path != null) {
+        await ref
+            .read(userProfileProvider.notifier)
+            .updateAvatar(File(result.files.single.path!));
+      }
+      return;
+    }
+
+    // 移动端：选图 + 裁剪
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(source: ImageSource.gallery);
 
