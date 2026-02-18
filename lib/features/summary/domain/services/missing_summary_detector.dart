@@ -4,7 +4,7 @@ import 'package:baishou/features/diary/domain/repositories/diary_repository.dart
 import 'package:baishou/features/summary/data/repositories/summary_repository_impl.dart';
 import 'package:baishou/features/summary/domain/entities/summary.dart';
 import 'package:baishou/features/summary/domain/repositories/summary_repository.dart';
-import 'package:flutter/material.dart'; // for DateTimeRange if needed, though usually core
+import 'package:flutter/material.dart'; // 用于 DateTimeRange
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -14,7 +14,7 @@ class MissingSummary {
   final SummaryType type;
   final DateTime startDate;
   final DateTime endDate;
-  final String label; // e.g., "2025年第42周", "2025年10月"
+  final String label; // 例如："2025年第42周", "2025年10月"
 
   const MissingSummary({
     required this.type,
@@ -287,7 +287,7 @@ class MissingSummaryDetector {
     return missing;
   }
 
-  // 获取周数的 Helper (ISO 8601 近似)
+  // 获取周数的辅助方法 (ISO 8601 近似)
   int _getWeekNumber(DateTime date) {
     int dayOfYear = int.parse(
       date.difference(DateTime(date.year, 1, 1)).inDays.toString(),
@@ -296,14 +296,7 @@ class MissingSummaryDetector {
   }
 }
 
-// 简单的 DateTimeRange 存根（如果需要），但 Flutter 有它。
-// 实际上领域逻辑不应该依赖于 Flutter 实现细节（如果可能的话），
-// 但 DateTimeRange 在 Material 中... 等等，DateTimeRange 是 UI？
-// 它在 'package:flutter/material.dart' 中。
-// 领域层不应该引入 material。
-// 我将定义一个简单的内部结构或仅在逻辑中使用 start/end 变量。
-// 上面的重构逻辑使用了内部循环变量，但返回类型使用 MissingSummary。
-
+// 简单的 DateTimeRange 结构
 class DateTimeRange {
   final DateTime start;
   final DateTime end;

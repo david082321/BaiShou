@@ -38,7 +38,7 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
   late TextEditingController _titleController;
   late TextEditingController _contentController;
 
-  // Tag management
+  // 标签管理
   final List<String> _tags = [];
   late TextEditingController _tagInputController;
   final FocusNode _tagFocusNode = FocusNode();
@@ -50,7 +50,7 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
   // 编辑模式：false=日记，true=总结
   bool get _isSummaryMode => widget.summaryId != null;
 
-  // Summary-specific state
+  // 总结特定状态
   SummaryType? _summaryType;
   DateTime? _summaryStartDate;
   DateTime? _summaryEndDate;
@@ -159,7 +159,7 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
     super.dispose();
   }
 
-  // ─── Tag Management ─────────────────────────────────
+  // ─── 标签管理 ─────────────────────────────────
   void _addTag(String text) {
     final tag = text.trim();
     if (tag.isNotEmpty && !_tags.contains(tag)) {
@@ -178,7 +178,7 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
     });
   }
 
-  // ─── Toolbar Actions ────────────────────────────────
+  // ─── 工具栏操作 ────────────────────────────────
   void _insertText(String prefix, [String suffix = '']) {
     final text = _contentController.text;
     final selection = _contentController.selection;
@@ -209,7 +209,7 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
     );
   }
 
-  // ─── Date & Time Pickers ────────────────────────────
+  // ─── 日期和时间选择器 ────────────────────────────
   Future<void> _showDateTimePicker() async {
     await showModalBottomSheet(
       context: context,
@@ -242,7 +242,7 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
     _selectedTime.minute,
   );
 
-  // ─── Save ───────────────────────────────────────────
+  // ─── 保存 ───────────────────────────────────────────
   Future<void> _save() async {
     final title = _titleController.text.trim();
     final body = _contentController.text.trim();
@@ -349,7 +349,7 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
                       vertical: 16,
                     ),
                     children: [
-                      // Title (日记模式才显示)
+                      // 标题（仅在日记模式下显示）
                       if (!_isSummaryMode) ...[
                         TextField(
                           controller: _titleController,
@@ -366,7 +366,7 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
                           textInputAction: TextInputAction.next,
                         ),
 
-                        // Tags (chip-based)
+                        // 标签（流式布局）
                         const SizedBox(height: 8),
                         TagInputWidget(
                           tags: _tags,
@@ -379,7 +379,7 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
 
                       const SizedBox(height: 16),
 
-                      // Content: toggle between editor and preview
+                      // 内容：在编辑和预览之间切换
                       if (_isPreview)
                         _contentController.text.trim().isEmpty
                             ? Padding(
@@ -491,7 +491,7 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
     );
   }
 
-  // ─── Summary Date Logic ─────────────────────────────
+  // ─── 总结日期逻辑 ─────────────────────────────
 
   Widget _buildAppBarTitle(BuildContext context) {
     if (_isSummaryMode && _summaryType != null) {
@@ -555,7 +555,7 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
       );
     }
 
-    // Default Diary Title
+    // 默认日记标题
     final dateStr = DateFormat('yyyy年MM月dd日').format(_selectedDate);
     final timeStr = _selectedTime.format(context);
     final weekDay = DateFormat('EEEE', 'zh_CN').format(_selectedDate);
@@ -634,7 +634,7 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
         break;
 
       case SummaryType.quarterly:
-        // Simple Quarter Picker Logic
+        // 简单的季度选择逻辑
         int year = _summaryStartDate?.year ?? now.year;
         int quarter = _summaryStartDate != null
             ? (_summaryStartDate!.month / 3).ceil()

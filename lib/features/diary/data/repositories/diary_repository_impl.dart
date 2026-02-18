@@ -29,11 +29,10 @@ class DiaryRepositoryImpl implements DiaryRepository {
                 .then((v) => v.length);
             if (count == 0) {
               await _seedInitialData();
-              // After seeding, we don't need to do anything, the stream will emit again
-              // because we are watching the table.
-              // However, watch() emits immediately, so we might need to handle the first empty emit
-              // or let the UI handle it.
-              // Here we just return empty list for the first emit, next one will have data.
+              // 播种完成后，我们不需要做任何事情，流会再次发射数据，因为我们正在监听表。
+              // 然而，watch() 会立即发射数据，所以我们可能需要处理第一次空的发射。
+              // 或者让 UI 来处理它。
+              // 这里我们只返回空列表作为第一次发射，下一次将会有数据。
               return <Diary>[];
             }
           }
@@ -88,12 +87,12 @@ class DiaryRepositoryImpl implements DiaryRepository {
 
     try {
       if (id != null) {
-        // Update existing
+        // 更新现有
         await (_db.update(
           _db.diaries,
         )..where((t) => t.id.equals(id))).write(companion);
       } else {
-        // Create new
+        // 创建新
         await _db.into(_db.diaries).insert(companion);
       }
     } catch (e) {

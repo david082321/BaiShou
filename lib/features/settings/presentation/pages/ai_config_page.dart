@@ -27,9 +27,9 @@ class _AiConfigPageState extends ConsumerState<AiConfigPage> {
     _provider = config.provider;
     _modelController.text = config.model;
 
-    _updateConfigFields(); // Load correct key and base URL
+    _updateConfigFields(); // 加载正确的 Key 和 Base URL
 
-    // Set default model if empty and using Gemini
+    // 如果为空且使用 Gemini，则设置默认模型
     if (_provider == AiProvider.gemini && _modelController.text.isEmpty) {
       _modelController.text = 'gemini-3-flash-preview';
     }
@@ -60,7 +60,7 @@ class _AiConfigPageState extends ConsumerState<AiConfigPage> {
       await config.setProvider(_provider);
       await config.setModel(_modelController.text.trim());
 
-      // Save Key and Base URL to specific slot based on current provider
+      // 根据当前提供商将 Key 和 Base URL 保存到特定位置
       if (_provider == AiProvider.gemini) {
         await config.setGeminiApiKey(_apiKeyController.text.trim());
         await config.setGeminiBaseUrl(_baseUrlController.text.trim());
@@ -73,7 +73,7 @@ class _AiConfigPageState extends ConsumerState<AiConfigPage> {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text('配置已保存')));
-        Navigator.pop(context); // Optional: go back after save
+        Navigator.pop(context); // 可选：保存后返回
       }
     }
   }
@@ -207,7 +207,7 @@ class _AiConfigPageState extends ConsumerState<AiConfigPage> {
             ),
             const SizedBox(height: 24),
 
-            // Provider Selection
+            // 提供商选择
             DropdownButtonFormField<AiProvider>(
               value: _provider,
               isExpanded: true,
@@ -236,15 +236,15 @@ class _AiConfigPageState extends ConsumerState<AiConfigPage> {
                 if (value != null) {
                   setState(() {
                     _provider = value;
-                    _updateConfigFields(); // Switch key and base url text
+                    _updateConfigFields(); // 切换 Key 和 Base URL 文本
 
-                    // Switch Model Text
+                    // 切换模型文本
                     if (_provider == AiProvider.gemini) {
                       if (_modelController.text.isEmpty) {
                         _modelController.text = 'gemini-3-flash-preview';
                       }
                     } else {
-                      // OpenAI: clear if it was default Gemini
+                      // OpenAI: 如果是默认 Gemini 则清除
                       if (_modelController.text == 'gemini-3-flash-preview') {
                         _modelController.text = '';
                       }
@@ -306,7 +306,7 @@ class _AiConfigPageState extends ConsumerState<AiConfigPage> {
             ),
             const SizedBox(height: 16),
 
-            // Model Name
+            // 模型名称
             TextFormField(
               controller: _modelController,
               decoration: InputDecoration(

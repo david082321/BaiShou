@@ -19,17 +19,17 @@ class ContextBuilder {
 
   Future<ContextResult> buildLifeBookContext({int months = 12}) async {
     final now = DateTime.now();
-    // Calculate start date: subtract months (approximate 30 days per month)
-    // Or use precise month subtraction logic
+    // 计算开始日期：减去月份（大约每月30天）
+    // 或者使用精确的月份减法逻辑
     final startDate = DateTime(now.year, now.month - months, 1);
 
-    // Fetch all data
-    // optimization: fetch distinct types if specific query is available,
-    // but here we fetch all summaries for simplicity of cascade logic
+    // 获取所有数据
+    // 优化：如果有特定查询可用，则获取不同类型，
+    // 但为了级联逻辑的简单性，这里获取所有总结
     final allSummaries = await _summaryRepo.getSummaries();
     final allDiaries = await _diaryRepo.getDiariesByDateRange(startDate, now);
 
-    // 2. Filter Summaries by Date (End date must be after start date to be relevant)
+    // 2. 按日期过滤总结（结束日期必须在开始日期之后才相关）
     final relevantSummaries = allSummaries
         .where((s) => s.endDate.isAfter(startDate))
         .toList();
@@ -47,71 +47,63 @@ class ContextBuilder {
         .where((s) => s.type == SummaryType.weekly)
         .toList();
 
-    // 3. Cascading Filter Logic
+    // 3. 级联过滤逻辑
 
-    // Set of "YYYYMM" that are covered by higher level summaries
+    // 被更高级别总结覆盖的 "YYYYMM" 集合
     final Set<String> coveredMonthKeys = {};
 
-    // Helper: Add months covered by summary to set
+    // 辅助方法：将总结覆盖的月份添加到集合
     void markMonthsCovered(Summary s) {
       DateTime current = DateTime(s.startDate.year, s.startDate.month);
-      // Iterate until end date's month
-      // Note: endDate is usually end of month/quarter.
-      // E.g. 2024-03-31. Month is 3.
+      // 迭代直到结束日期的月份
+      // 注意：endDate 通常是月末/季度末。
+
       final endMonthDate = DateTime(s.endDate.year, s.endDate.month);
 
       while (current.isBefore(endMonthDate) ||
           current.isAtSameMomentAs(endMonthDate)) {
         final key = DateFormat('yyyyMM').format(current);
         coveredMonthKeys.add(key);
-        // Add 1 month
+        // 增加 1 个月
         current = DateTime(current.year, current.month + 1);
       }
     }
 
-    // 3.1 Quarters cover Months
+    // 3.1 季度覆盖月份
     for (final q in qList) {
       markMonthsCovered(q);
     }
 
-    // 3.2 Filter visible Months (exclude if covered by Q)
+    // 3.2 过滤可见月份（如果被 Q 覆盖则排除）
     final visibleMonths = mList.where((m) {
       final key = DateFormat('yyyyMM').format(m.startDate);
-      // If month summary's month is in covered keys, skip it?
-      // Yes. Wait, mList items themselves cover 'key'.
-      // If 'key' is already in coveredMonthKeys (populated by Q), then this M is redundant.
+      // 如果总结的月份在覆盖键中，则跳过
       return !coveredMonthKeys.contains(key);
     }).toList();
 
-    // 3.3 Add visible Months to covered set (for Weeks/Dailies filtering)
+    // 3.3 将可见月份添加到覆盖集合（用于周/日记过滤）
     for (final m in visibleMonths) {
       markMonthsCovered(m);
     }
 
-    // Now coveredMonthKeys contains months covered by Q OR M.
+    // 现在 coveredMonthKeys 包含被 Q 或 M 覆盖的月份。
 
-    // 3.4 Filter visible Weeks
+    // 3.4 过滤可见周
     final visibleWeeks = wList.where((w) {
-      // Week covers a range. If that range falls into a covered month(s).
-      // Logic: If the week's end date's month is in covered keys?
-      // Usually week is assigned to the month of its end date or majority.
-      // Script: `visibleWeeks = wList.filter(w => !allCoveredMonths.has(w.monthKey))`
-      // `monthKey` for week in script was `wEnd.format("YYYYMM")`.
+      // 周覆盖一个范围。如果该范围落入覆盖的月份中。
+      // 逻辑：如果周的结束日期的月份在覆盖键中？
+      // 通常周被分配给其结束日期的月份或大多数时间所在的月份。
       final key = DateFormat('yyyyMM').format(w.endDate);
       return !coveredMonthKeys.contains(key);
     }).toList();
 
-    // 3.5 Filter visible Dailies
-    // Cutoff date: Max end date of visible weeks.
-    // Script: `if (wEndStr > cutoff) cutoff = wEndStr;`
-    // Diaries before cutoff are assumed to be covered by weeks (even if weeks are visible).
-    // Wait, if week is visible, then diaries IN that week should be hidden? Yes.
-    // If week is NOT visible (hidden by M/Q), then diaries IN that week are definitely hidden (by M/Q).
-    // So basically, if a date is covered by ANY visible higher level summary (or covered implicit summary), hide it.
+    // 3.5 过滤可见日记
+    // 截止日期：可见周的最大结束日期。
+    // 如果日期被任何可见的更高级别总结（或覆盖的隐式总结）覆盖，则隐藏它。
 
     DateTime? cutoffDate;
     if (visibleWeeks.isNotEmpty) {
-      // Find max end date
+      // 查找最大结束日期
       cutoffDate = visibleWeeks
           .map((w) => w.endDate)
           .reduce((a, b) => a.isAfter(b) ? a : b);
@@ -119,17 +111,12 @@ class ContextBuilder {
 
     final visibleDiaries = allDiaries.where((d) {
       final key = DateFormat('yyyyMM').format(d.date);
-      // 1. Check if month is covered by Q or M
+      // 1. 检查月份是否被 Q 或 M 覆盖
       if (coveredMonthKeys.contains(key)) return false;
 
-      // 2. Check if covered by Weekly summaries logic
-      // In script: if (d.date <= cutoff) return false;
-      // This implies that visibleWeeks cover all days up to the last visible week.
-      // Is this safe?
-      // Assuming visibleWeeks are continuous up to `cutoff`.
-      // If there is a gap in weeks, those diaries might be lost?
-      // But typically weekly summaries are generated continuously.
-      // If cutoff is available and d.date is before cutoff, skip.
+      // 2. 检查是否被周记覆盖
+      // 假设 visibleWeeks 连续到 `cutoff`。
+      // 如果有截止日期且 d.date 在截止日期之前，则跳过。
       if (cutoffDate != null &&
           (d.date.isBefore(cutoffDate) ||
               d.date.isAtSameMomentAs(cutoffDate))) {
@@ -138,17 +125,12 @@ class ContextBuilder {
       return true;
     }).toList();
 
-    // 4. Construct Markdown
+    // 4. 构建 Markdown
     final buffer = StringBuffer();
     buffer.writeln('# 共同的回忆 (过去 $months 个月 - 白守算法已折叠)');
     buffer.writeln();
 
-    // Sort all by date? Or group by type?
-    // Script: `yList`, `visibleQuarters`, `visibleMonths`... pushed to ioPromises.
-    // results sorted by path (usually date).
-    // Here we can output by hierarchy or date.
-    // Let's output by hierarchy for clarity in Context, or Date for chronological?
-    // Chronological is better for AI context.
+    // 最好按时间顺序输出以便于 AI 上下文。
 
     final allItems = <_ContextItem>[];
 
@@ -159,16 +141,16 @@ class ContextBuilder {
     for (var i in visibleWeeks)
       allItems.add(_ContextItem(i.startDate, i, '📆 周度'));
 
-    // Diaries
+    // 日记
     final diaryItems = visibleDiaries
         .map((d) => _ContextItem(d.date, d, '📝 日记'))
         .toList();
     allItems.addAll(diaryItems);
 
-    // Sort by date ASC
+    // 按日期升序排序
     allItems.sort((a, b) => a.date.compareTo(b.date));
 
-    // Render
+    // 渲染
     for (final item in allItems) {
       if (item.data is Summary) {
         buffer.writeln('## ${item.prefix} ${_formatDate(item.date)}');
@@ -176,17 +158,16 @@ class ContextBuilder {
       } else if (item.data is Diary) {
         final d = item.data as Diary;
         buffer.writeln('## ${item.prefix} ${_formatDate(d.date)}');
-        buffer.writeln(d.content); // Diary content
+        buffer.writeln(d.content); // 日记内容
       }
       buffer.writeln();
       buffer.writeln('---');
       buffer.writeln();
     }
 
-    // Append Meta to text?
-    // Usually meta is for debugging or dashboard.
-    // User context string might not need meta stats at the end if UI shows it.
-    // But keeping it in text is good for LLM to know context volume.
+    // 将元数据附加到文本？
+    // 通常元数据用于调试在仪表板。
+    // 保持在文本中以便 LLM 了解上下文量。
     buffer.writeln('__Meta Statistics__');
     buffer.writeln('- Yearly: ${yList.length}');
     buffer.writeln('- Quarterly: ${qList.length}');

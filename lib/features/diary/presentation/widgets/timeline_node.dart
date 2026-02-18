@@ -23,28 +23,28 @@ class TimelineNode extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Timeline Column
+          // 时间轴列
           SizedBox(
             width: 40,
             child: Stack(
               alignment: Alignment.topCenter,
               children: [
-                // The Line
+                // 线条
                 if (!isLast)
                   Positioned(
                     top: 0,
                     bottom: 0,
-                    left: 20, // Center of 40 width
+                    left: 20, // 40 宽度居中
                     child: Container(
                       width: 2,
                       color:
                           lineColor ?? AppTheme.backgroundDark.withOpacity(0.1),
                     ),
                   ),
-                // The Dot
+                // 圆点
                 Positioned(
-                  top: 24, // Align with card top content
-                  left: 15, // Center: 20 - (10/2) = 15
+                  top: 24, // 与卡片顶部内容对齐
+                  left: 15, // 居中: 20 - (10/2) = 15
                   child:
                       indicator ??
                       Container(
@@ -67,7 +67,7 @@ class TimelineNode extends StatelessWidget {
               ],
             ),
           ),
-          // Content
+          // 内容
           Expanded(child: child),
         ],
       ),

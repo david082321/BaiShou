@@ -34,7 +34,7 @@ class _DateTimePickerSheetState extends State<DateTimePickerSheet>
   final int _minYear = 2000;
   final int _maxYear = 2200;
 
-  // Cache widgets to improve performance
+  // 缓存组件以提高性能
   late List<Widget> _yearWidgets;
   late List<Widget> _monthWidgets;
 
@@ -46,7 +46,7 @@ class _DateTimePickerSheetState extends State<DateTimePickerSheet>
     _selectedMonth = widget.initialDate.month;
     _selectedDay = widget.initialDate.day;
 
-    // Clamp initial date to valid range just in case
+    // 限制初始日期在有效范围内，以防万一
     if (_selectedYear < _minYear) _selectedYear = _minYear;
     if (_selectedYear > _maxYear) _selectedYear = _maxYear;
 
@@ -58,7 +58,7 @@ class _DateTimePickerSheetState extends State<DateTimePickerSheet>
     );
     _dayController = FixedExtentScrollController(initialItem: _selectedDay - 1);
 
-    // Initialize cached widgets
+    // 初始化缓存组件
     _yearWidgets = List.generate(
       _maxYear - _minYear + 1,
       (index) => Center(

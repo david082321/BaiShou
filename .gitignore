@@ -60,3 +60,6 @@ ios/Flutter/Flutter.framework
 
 # Agent Artifacts (if any in repo)
 开发进度追踪/
+BaiShou.code-workspace
+scripts/
+DART_START_GUIDE.md
