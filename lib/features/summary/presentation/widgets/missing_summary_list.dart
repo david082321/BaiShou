@@ -1,4 +1,5 @@
 import 'package:baishou/core/theme/app_theme.dart';
+import 'package:baishou/core/services/data_refresh_notifier.dart';
 import 'package:baishou/features/summary/domain/services/missing_summary_detector.dart';
 import 'package:baishou/features/summary/domain/services/summary_generator_service.dart';
 import 'package:baishou/features/summary/data/repositories/summary_repository_impl.dart';
@@ -209,7 +210,10 @@ class _MissingSummaryListState extends ConsumerState<MissingSummaryList> {
         );
 
         service.removeStatus(key);
-        if (mounted) setState(() {}); // 触发 FutureBuilder 刷新列表
+        // 触发全局刷新，更新付表板数量统计
+        if (mounted) {
+          ref.read(dataRefreshProvider.notifier).refresh();
+        }
       } else {
         service.setStatus(key, '生成内容为空');
       }
