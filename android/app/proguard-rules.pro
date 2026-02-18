@@ -14,3 +14,6 @@
 # OkHttp (Used by uCrop)
 -dontwarn okhttp3.**
 -dontwarn okio.**
+
+# Google Play Services (Flutter Engine optional dependency)
+-dontwarn com.google.android.play.**
