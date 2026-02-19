@@ -1,6 +1,8 @@
 import 'package:baishou/features/diary/presentation/pages/diary_editor_page.dart';
 import 'package:baishou/features/diary/presentation/pages/diary_list_page.dart';
 import 'package:baishou/features/home/presentation/pages/main_scaffold.dart';
+import 'package:baishou/features/onboarding/data/providers/onboarding_provider.dart';
+import 'package:baishou/features/onboarding/presentation/pages/onboarding_page.dart';
 import 'package:baishou/features/settings/presentation/pages/settings_page.dart';
 import 'package:baishou/features/summary/presentation/pages/summary_page.dart';
 import 'package:flutter/material.dart';
@@ -41,12 +43,36 @@ class PlaceholderHomePage extends StatelessWidget {
 GoRouter goRouter(Ref ref) {
   final rootNavigatorKey = GlobalKey<NavigatorState>();
 
+  // Watch onboarding state
+  final onboardingCompleted = ref.watch(onboardingCompletedProvider);
+
   return GoRouter(
     navigatorKey: rootNavigatorKey,
     initialLocation: '/',
     debugLogDiagnostics: true,
+    redirect: (context, state) {
+      // If onboarding is not completed, redirect to /onboarding
+      // But only if we are not already there
+      final isGoingToOnboarding = state.matchedLocation == '/onboarding';
+
+      if (!onboardingCompleted && !isGoingToOnboarding) {
+        return '/onboarding';
+      }
+
+      // If completed and trying to go to onboarding, redirect to home
+      if (onboardingCompleted && isGoingToOnboarding) {
+        return '/';
+      }
+
+      return null;
+    },
     routes: [
+      GoRoute(
+        path: '/onboarding',
+        builder: (context, state) => const OnboardingPage(),
+      ),
       StatefulShellRoute.indexedStack(
+        // ... existing routes ...
         builder: (context, state, navigationShell) {
           return MainScaffold(navigationShell: navigationShell);
         },

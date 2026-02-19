@@ -6,7 +6,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:path/path.dart' as path;
 
-import '../../../../core/services/api_config_service.dart';
+import '../../../../core/providers/shared_preferences_provider.dart';
 
 class UserProfile {
   final String nickname;

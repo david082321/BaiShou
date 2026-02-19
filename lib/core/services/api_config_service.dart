@@ -1,3 +1,4 @@
+import 'package:baishou/core/providers/shared_preferences_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -91,10 +92,6 @@ class ApiConfigService {
     await _prefs.setString(_keyModel, value);
   }
 }
-
-final sharedPreferencesProvider = Provider<SharedPreferences>((ref) {
-  throw UnimplementedError();
-});
 
 final apiConfigServiceProvider = Provider<ApiConfigService>((ref) {
   final prefs = ref.watch(sharedPreferencesProvider);
