@@ -656,7 +656,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           ListTile(
             leading: const Icon(Icons.info_outline),
             title: const Text('关于白守'),
-            // subtitle: const Text('v0.0.1 (正式版)'),
             trailing: const Icon(Icons.chevron_right),
             onTap: () {
               Navigator.push(

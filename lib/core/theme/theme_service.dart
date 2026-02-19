@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../services/api_config_service.dart';
+import '../providers/shared_preferences_provider.dart';
 
 class AppThemeState {
   final ThemeMode mode;
