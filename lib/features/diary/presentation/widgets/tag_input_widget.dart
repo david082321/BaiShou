@@ -52,7 +52,7 @@ class TagInputWidget extends StatelessWidget {
             focusNode: focusNode,
             style: const TextStyle(fontSize: 13, color: AppTheme.primary),
             decoration: InputDecoration(
-              hintText: '添加标签...',
+              hintText: '新增標籤...',
               hintStyle: TextStyle(fontSize: 13, color: Colors.grey[400]),
               border: InputBorder.none,
               isDense: true,

@@ -167,7 +167,7 @@ class _DiaryListPageState extends ConsumerState<DiaryListPage> {
         children: [
           Text(
             _selectedMonth == null
-                ? '全部日记'
+                ? '全部日記'
                 : DateFormat('yyyy年MM月').format(_selectedMonth!),
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
               fontWeight: FontWeight.bold,
@@ -209,7 +209,7 @@ class _DiaryListPageState extends ConsumerState<DiaryListPage> {
                 ),
               ),
               Text(
-                '记录你的数字人生',
+                '記錄你的數字人生',
                 style: theme.textTheme.labelMedium?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
@@ -237,7 +237,7 @@ class _DiaryListPageState extends ConsumerState<DiaryListPage> {
                 Expanded(
                   child: TextField(
                     decoration: InputDecoration(
-                      hintText: '搜索记忆...',
+                      hintText: '搜尋記憶...',
                       hintStyle: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                       ),
@@ -279,7 +279,7 @@ class _DiaryListPageState extends ConsumerState<DiaryListPage> {
           ),
           const SizedBox(height: 16),
           Text(
-            _selectedMonth != null ? '本月还没有日记哦' : '还没有日记哦',
+            _selectedMonth != null ? '本月還沒有日記哦' : '還沒有日記哦',
             style: Theme.of(
               context,
             ).textTheme.titleMedium?.copyWith(color: Colors.grey),
@@ -358,8 +358,8 @@ class _DiaryListPageState extends ConsumerState<DiaryListPage> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('删除日记?'),
-        content: const Text('确认要删除这条日记吗？此操作无法撤销。'),
+        title: const Text('刪除日記?'),
+        content: const Text('確認要刪除這條日記嗎？此操作無法復原。'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
@@ -371,7 +371,7 @@ class _DiaryListPageState extends ConsumerState<DiaryListPage> {
               Navigator.pop(ctx);
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('删除'),
+            child: const Text('刪除'),
           ),
         ],
       ),
@@ -471,7 +471,7 @@ class _DateHeaderDelegate extends SliverPersistentHeaderDelegate {
     final monthStr = DateFormat('MM').format(date);
 
     // 手动计算星期几，避免本地化未就绪时的依赖
-    const weekdays = ['', '周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+    const weekdays = ['', '週一', '週二', '週三', '週四', '週五', '週六', '週日'];
     final weekdayStr = weekdays[date.weekday];
 
     return Container(

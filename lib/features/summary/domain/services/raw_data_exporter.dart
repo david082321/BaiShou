@@ -18,16 +18,16 @@ class RawDataExporter {
     final dateFormat = DateFormat('yyyy-MM-dd');
     final timeFormat = DateFormat('HH:mm');
 
-    buffer.writeln('# 原始数据导出');
+    buffer.writeln('# 原始資料匯出');
     buffer.writeln(
-      '范围: ${dateFormat.format(start)} ~ ${dateFormat.format(end)}',
+      '範圍: ${dateFormat.format(start)} ~ ${dateFormat.format(end)}',
     );
-    buffer.writeln('总计: ${diaries.length} 篇日记');
+    buffer.writeln('總計: ${diaries.length} 篇日記');
     buffer.writeln();
 
     for (final diary in diaries) {
       final dateStr = dateFormat.format(diary.date);
-      final weekDay = DateFormat('EEEE', 'zh_CN').format(diary.date);
+      final weekDay = DateFormat('EEEE', 'zh_TW').format(diary.date);
       final timeStr = timeFormat.format(diary.date);
 
       buffer.writeln('## $dateStr ($weekDay) $timeStr');

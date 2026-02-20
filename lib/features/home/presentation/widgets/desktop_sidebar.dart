@@ -74,7 +74,7 @@ class DesktopSidebar extends ConsumerWidget {
                       ),
                     ),
                     Text(
-                      '数据主权 & 记忆压缩',
+                      '資料主權 & 記憶壓縮',
                       style: theme.textTheme.labelSmall?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                         fontWeight: FontWeight.w500,
@@ -95,37 +95,37 @@ class DesktopSidebar extends ConsumerWidget {
               children: [
                 _NavMenuItem(
                   icon: Icons.timeline_rounded,
-                  label: '时间轴',
+                  label: '時間軸',
                   isSelected: navigationShell.currentIndex == 0,
                   onTap: () => _goBranch(0),
                 ),
                 _NavMenuItem(
                   icon: Icons.auto_stories_rounded,
-                  label: '多维总结',
+                  label: '多維總結',
                   isSelected: navigationShell.currentIndex == 1,
                   onTap: () => _goBranch(1),
                 ),
                 _NavMenuItem(
                   icon: Icons.label_outline_rounded,
-                  label: '标签管理',
+                  label: '標籤管理',
                   isSelected: false, // 暂未实现
                   onTap: () {},
                 ),
                 _NavMenuItem(
                   icon: Icons.science_outlined,
-                  label: 'AI 实验室',
+                  label: 'AI 實驗室',
                   isSelected: false, // 暂未实现
                   onTap: () {},
                 ),
                 _NavMenuItem(
                   icon: Icons.shield_moon_outlined,
-                  label: '数据安全',
+                  label: '資料安全',
                   isSelected: false, // 暂未实现
                   onTap: () {},
                 ),
                 _NavMenuItem(
                   icon: Icons.settings_outlined,
-                  label: '系统设置',
+                  label: '系統設定',
                   isSelected: navigationShell.currentIndex == 2,
                   onTap: () => _goBranch(2),
                 ),
@@ -164,7 +164,7 @@ class DesktopSidebar extends ConsumerWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    '本地加密存储',
+                    '本機加密儲存',
                     style: theme.textTheme.labelSmall?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                       fontWeight: FontWeight.bold,
@@ -233,7 +233,7 @@ class DesktopSidebar extends ConsumerWidget {
                     Text(
                       userProfile.nickname.isNotEmpty
                           ? userProfile.nickname
-                          : '未设置昵称',
+                          : '未設定暱稱',
                       style: theme.textTheme.bodyMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
@@ -241,7 +241,7 @@ class DesktopSidebar extends ConsumerWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                     Text(
-                      '专业版用户', // 或是根据逻辑显示
+                      '專業版用戶', // 或是根据逻辑显示
                       style: theme.textTheme.labelSmall?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                         fontSize: 10,

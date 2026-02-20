@@ -147,7 +147,7 @@ class ImportService {
       final parsedData = await compute(parseZipData, tempZipFile.path).timeout(
         const Duration(minutes: 2),
         onTimeout: () {
-          throw TimeoutException('解析备份文件超时，请检查文件是否过大');
+          throw TimeoutException('解析備份文件超時，請檢查文件是否過大');
         },
       );
       debugPrint('Import: ZIP parsed in ${stopwatch.elapsedMilliseconds}ms');
@@ -155,7 +155,7 @@ class ImportService {
       // 2. 验证版本
       final schemaVersion = parsedData.manifest['schema_version'] as int? ?? 0;
       if (schemaVersion > 1) {
-        return ImportResult(error: '备份版本过高 (v$schemaVersion)，请升级白守后再导入');
+        return ImportResult(error: '備份版本過高 (v$schemaVersion)，請升級白守後再匯入');
       }
 
       // 3. 创建导入前快照（用户可恢复到此节点）
@@ -167,7 +167,7 @@ class ImportService {
             .timeout(
               const Duration(minutes: 3),
               onTimeout: () {
-                throw TimeoutException('创建快照超时，跳过备份步骤');
+                throw TimeoutException('建立快照超時，跳過備份步驟');
               },
             );
         if (snapshotFile != null) {
@@ -226,9 +226,9 @@ class ImportService {
     } catch (e) {
       debugPrint('Import error: $e');
       if (e.toString().contains('manifest.json')) {
-        return ImportResult(error: '无效的备份文件：缺少 manifest.json');
+        return ImportResult(error: '無效的備份文件：缺少 manifest.json');
       }
-      return ImportResult(error: '导入失败: $e');
+      return ImportResult(error: '匯入失敗: $e');
     } finally {
       // 8. 彻底清理临时文件逻辑
       if (tempZipFile.existsSync()) {

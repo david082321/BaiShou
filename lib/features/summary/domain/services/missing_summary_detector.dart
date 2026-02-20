@@ -133,7 +133,7 @@ List<MissingSummary> _getMissingWeekly(
             type: SummaryType.weekly,
             startDate: currentStart,
             endDate: currentEnd,
-            label: '${currentStart.year}年第${_getWeekNumber(currentStart)}周',
+            label: '${currentStart.year}年第${_getWeekNumber(currentStart)}週',
           ),
         );
       }

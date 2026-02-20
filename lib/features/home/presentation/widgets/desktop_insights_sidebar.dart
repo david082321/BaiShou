@@ -49,8 +49,8 @@ class DesktopInsightsSidebar extends StatelessWidget {
           _buildInsightCard(
             context,
             color: Colors.indigo,
-            title: '工作与生活平衡',
-            content: '本周提到“疲惫”的次数是上个月的 3 倍。建议安排休息时间。',
+            title: '工作與生活平衡',
+            content: '本週提到「疲憊」的次數是上個月的 3 倍。建議安排休息時間。',
           ),
 
           const SizedBox(height: 12),
@@ -59,7 +59,7 @@ class DesktopInsightsSidebar extends StatelessWidget {
             context,
             color: Colors.green,
             title: '效率峰值',
-            content: '大部分高价值产出记录在周二上午 9 点至 11 点之间。',
+            content: '大部分高價值產出記錄在週二上午 9 點至 11 點之間。',
           ),
 
           const SizedBox(height: 32),
@@ -100,7 +100,7 @@ class DesktopInsightsSidebar extends StatelessWidget {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      '周回顾已就绪',
+                      '周回顧已就緒',
                       style: theme.textTheme.labelLarge?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
@@ -109,7 +109,7 @@ class DesktopInsightsSidebar extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  '您的 AI 助手已整理好上周的关键事件和情绪波动摘要。',
+                  '您的 AI 助手已整理好上週的關鍵事件和情緒波動摘要。',
                   style: theme.textTheme.labelSmall?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                     height: 1.5,
@@ -127,7 +127,7 @@ class DesktopInsightsSidebar extends StatelessWidget {
                       ),
                     ),
                     child: const Text(
-                      '生成报告',
+                      '生成報告',
                       style: TextStyle(fontWeight: FontWeight.bold),
                     ),
                   ),

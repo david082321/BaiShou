@@ -57,7 +57,7 @@ class _MissingSummaryListState extends ConsumerState<MissingSummaryList> {
                         ),
                         const SizedBox(width: 8),
                         const Text(
-                          'AI 建议补全',
+                          'AI 建議補全',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -84,7 +84,7 @@ class _MissingSummaryListState extends ConsumerState<MissingSummaryList> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
-                            '${missing.length}个',
+                            '${missing.length}個',
                             style: TextStyle(
                               fontSize: 12,
                               color: AppTheme.primary,
@@ -105,8 +105,8 @@ class _MissingSummaryListState extends ConsumerState<MissingSummaryList> {
                         final status = generationStatus[key];
                         final isError =
                             status != null &&
-                            (status.startsWith('错误') ||
-                                status.startsWith('生成内容为空'));
+                            (status.startsWith('錯誤') ||
+                                status.startsWith('生成內容為空'));
                         // 加载中：状态已设置且不是错误
                         final isLoading = status != null && !isError;
 
@@ -148,7 +148,7 @@ class _MissingSummaryListState extends ConsumerState<MissingSummaryList> {
                                         ? Colors.red
                                         : null,
                                   ),
-                                  child: Text(isError ? '重试' : '生成'),
+                                  child: Text(isError ? '重試' : '生成'),
                                 ),
                         );
                       },
@@ -179,12 +179,12 @@ class _MissingSummaryListState extends ConsumerState<MissingSummaryList> {
     // 检查是否正在生成（但允许在错误或为空时重试）
     final currentStatus = service.getStatus(key);
     if (currentStatus != null &&
-        !currentStatus.startsWith('错误') &&
-        !currentStatus.startsWith('生成内容为空')) {
+        !currentStatus.startsWith('錯誤') &&
+        !currentStatus.startsWith('生成內容為空')) {
       return;
     }
 
-    service.setStatus(key, '准备中...');
+    service.setStatus(key, '準備中...');
 
     try {
       final stream = generator.generate(item);
@@ -215,10 +215,10 @@ class _MissingSummaryListState extends ConsumerState<MissingSummaryList> {
           ref.read(dataRefreshProvider.notifier).refresh();
         }
       } else {
-        service.setStatus(key, '生成内容为空');
+        service.setStatus(key, '生成內容為空');
       }
     } catch (e) {
-      service.setStatus(key, '错误: $e');
+      service.setStatus(key, '錯誤: $e');
     }
   }
 }

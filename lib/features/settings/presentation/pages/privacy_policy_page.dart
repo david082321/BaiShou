@@ -6,7 +6,7 @@ class PrivacyPolicyPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('开发理念')),
+      appBar: AppBar(title: const Text('開發理念')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -14,22 +14,22 @@ class PrivacyPolicyPage extends StatelessWidget {
           children: [
             _buildSection(
               context,
-              title: '数据自主权',
+              title: '資料自主權',
               content:
-                  '我们不会对用户的数据做任何防止导出的措施，我们相信，数据是用户最宝贵的财产，并且为用户提供了多种数据导出和同步的方式。',
+                  '我們不會對用戶的資料做任何防止匯出的措施，我們相信，資料是用戶最寶貴的財產，並且為用戶提供了多種資料匯出和同步的方式。',
             ),
             const SizedBox(height: 24),
             _buildSection(
               context,
-              title: '隐私与安全',
-              content: '我们不会审查用户的日记。当云同步功能上线后，用户同步到云的数据会是加密的，确保您的隐私得到最大程度的保护。',
+              title: '隱私與安全',
+              content: '我們不會審查用戶的日記。當雲同步功能上線後，用戶同步到雲的資料會是加密的，確保您的隱私得到最大程度的保護。',
             ),
             const SizedBox(height: 24),
             _buildSection(
               context,
-              title: '本地优先',
+              title: '本機優先',
               content:
-                  '目前版本（MVP）的所有数据均存储在您的本地设备上。除非您主动分享或导出，否则这些数据不会通过网络传输到任何第三方服务器。',
+                  '目前版本（MVP）的所有資料均儲存在您的本機裝置上。除非您主動分享或匯出，否則這些資料不會透過網路傳輸到任何第三方伺服器。',
             ),
           ],
         ),

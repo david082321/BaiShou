@@ -21,12 +21,12 @@ class SummaryPage extends ConsumerWidget {
       length: 3,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('AI 总结'),
+          title: const Text('AI 總結'),
           bottom: const TabBar(
             tabs: [
-              Tab(text: '仪表盘'),
-              Tab(text: '原始数据'),
-              Tab(text: '历史归档'),
+              Tab(text: '儀錶板'),
+              Tab(text: '原始資料'),
+              Tab(text: '歷史歸檔'),
             ],
           ),
           actions: [
@@ -102,10 +102,10 @@ class _SummaryArchiveViewState extends State<_SummaryArchiveView>
                 dividerColor: Colors.transparent,
                 labelPadding: const EdgeInsets.symmetric(horizontal: 4),
                 tabs: const [
-                  Tab(text: '周记'),
-                  Tab(text: '月报'),
-                  Tab(text: '季报'),
-                  Tab(text: '年鉴'),
+                  Tab(text: '週記'),
+                  Tab(text: '月報'),
+                  Tab(text: '季報'),
+                  Tab(text: '年鑑'),
                 ],
               ),
             ),
@@ -300,16 +300,16 @@ class _SummaryArchiveViewState extends State<_SummaryArchiveView>
   String _getFilterText(int index) {
     switch (index) {
       case 0: // 周记
-        if (_weeklyStartDate == null) return '筛选月份';
+        if (_weeklyStartDate == null) return '篩選月份';
         return '${_weeklyStartDate!.year}年 ${_weeklyStartDate!.month}月';
       case 1: // 月报
-        if (_monthlyDate == null) return '筛选年份';
+        if (_monthlyDate == null) return '篩選年份';
         return '${_monthlyDate!.year}年';
       case 2: // 季报
-        if (_quarterlyDate == null) return '筛选年份';
+        if (_quarterlyDate == null) return '篩選年份';
         return '${_quarterlyDate!.year}年';
       case 3: // 年鉴
-        return '全部年鉴';
+        return '全部年鑑';
     }
     return '';
   }
@@ -462,7 +462,7 @@ class __AddSummaryDialogState extends ConsumerState<_AddSummaryDialog> {
   Future<void> _save() async {
     final content = _contentController.text.trim();
     if (content.isEmpty) {
-      AppToast.show(context, '请输入内容');
+      AppToast.show(context, '請輸入內容');
       return;
     }
 
@@ -478,11 +478,11 @@ class __AddSummaryDialogState extends ConsumerState<_AddSummaryDialog> {
           );
       if (mounted) {
         Navigator.pop(context);
-        AppToast.show(context, '已添加');
+        AppToast.show(context, '已新增');
       }
     } catch (e) {
       if (mounted) {
-        AppToast.show(context, '添加失败: $e');
+        AppToast.show(context, '新增失敗: $e');
         setState(() => _isLoading = false);
       }
     }
@@ -491,20 +491,20 @@ class __AddSummaryDialogState extends ConsumerState<_AddSummaryDialog> {
   String _getTypeLabel(SummaryType type) {
     switch (type) {
       case SummaryType.weekly:
-        return '周记';
+        return '週記';
       case SummaryType.monthly:
-        return '月报';
+        return '月報';
       case SummaryType.quarterly:
-        return '季报';
+        return '季報';
       case SummaryType.yearly:
-        return '年鉴';
+        return '年鑑';
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text('添加${_getTypeLabel(widget.fixedType)}'),
+      title: Text('新增${_getTypeLabel(widget.fixedType)}'),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -521,8 +521,8 @@ class __AddSummaryDialogState extends ConsumerState<_AddSummaryDialog> {
               maxLines: 10,
               minLines: 5,
               decoration: const InputDecoration(
-                labelText: '总结内容',
-                hintText: '在此粘贴 AI 生成的总结...',
+                labelText: '總結內容',
+                hintText: '在此貼上 AI 生成的總結...',
                 border: OutlineInputBorder(),
                 alignLabelWithHint: true,
               ),
@@ -543,7 +543,7 @@ class __AddSummaryDialogState extends ConsumerState<_AddSummaryDialog> {
                   height: 20,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
-              : const Text('保存'),
+              : const Text('儲存'),
         ),
       ],
     );
@@ -556,7 +556,7 @@ class __AddSummaryDialogState extends ConsumerState<_AddSummaryDialog> {
         borderRadius: BorderRadius.circular(4),
         child: InputDecorator(
           decoration: const InputDecoration(
-            labelText: '时间范围',
+            labelText: '時間範圍',
             border: OutlineInputBorder(),
             contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
           ),
@@ -585,7 +585,7 @@ class __AddSummaryDialogState extends ConsumerState<_AddSummaryDialog> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '选择时间',
+            '選擇時間',
             style: TextStyle(
               fontSize: 12,
               color: Theme.of(context).colorScheme.primary,

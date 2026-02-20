@@ -128,14 +128,14 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
           const Icon(Icons.auto_stories, size: 80, color: Colors.blueGrey),
           const SizedBox(height: 32),
           Text(
-            '你的灵魂备份',
+            '你的靈魂備份',
             style: Theme.of(
               context,
             ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 24),
           const Text(
-            '白守会全力为你守护重要的回忆。\n在这里，我们对抗遗忘。',
+            '白守會全力為你守護重要的回憶。\n在這裡，我們對抗遺忘。',
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 18, height: 1.5),
           ),
@@ -150,10 +150,10 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text('记忆压缩算法', style: Theme.of(context).textTheme.headlineSmall),
+          Text('記憶壓縮演算法', style: Theme.of(context).textTheme.headlineSmall),
           const SizedBox(height: 8),
           Text(
-            '年度不覆盖其他，层层递进',
+            '年度不覆蓋其他，層層遞進',
             style: Theme.of(
               context,
             ).textTheme.bodyMedium?.copyWith(color: Colors.grey),
@@ -177,7 +177,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
           Text('AI 助手配置', style: Theme.of(context).textTheme.headlineSmall),
           const SizedBox(height: 16),
           const Text(
-            '配置 Gemini API 后，可以直接调用 AI 模型来生成日记的总结。',
+            '配置 Gemini API 後，可以直接呼叫 AI 模型來生成日記的總結。',
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 24),
@@ -186,7 +186,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
             decoration: const InputDecoration(
               labelText: 'Gemini API Key',
               border: OutlineInputBorder(),
-              hintText: '可选，稍后在设置中配置',
+              hintText: '可選，稍後在設定中配置',
             ),
           ),
         ],
@@ -202,10 +202,10 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
         children: [
           const Icon(Icons.security, size: 80, color: Colors.green),
           const SizedBox(height: 32),
-          Text('数据完全掌控', style: Theme.of(context).textTheme.headlineSmall),
+          Text('資料完全掌控', style: Theme.of(context).textTheme.headlineSmall),
           const SizedBox(height: 24),
           const Text(
-            '所有的数据都是可以随意导出。\n并且提供局域网传输。\n让你能守护自己和爱人的回忆。',
+            '所有的資料都是可以隨意匯出。\n並且提供區域網路傳輸。\n讓你能守護自己和愛人的回憶。',
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 18, height: 1.5),
           ),
@@ -239,7 +239,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
           // Button
           FilledButton(
             onPressed: _nextPage,
-            child: Text(_currentPage == 4 ? '开始旅程' : '下一步'),
+            child: Text(_currentPage == 4 ? '開始旅程' : '下一步'),
           ),
         ],
       ),

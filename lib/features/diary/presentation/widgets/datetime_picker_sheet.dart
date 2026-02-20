@@ -147,7 +147,7 @@ class _DateTimePickerSheetState extends State<DateTimePickerSheet>
             unselectedLabelColor: Colors.grey,
             tabs: const [
               Tab(text: '日期'),
-              Tab(text: '时间'),
+              Tab(text: '時間'),
             ],
           ),
           Expanded(

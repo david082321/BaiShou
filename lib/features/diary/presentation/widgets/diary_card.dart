@@ -15,7 +15,7 @@ class DiaryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     // 提取标题（第一行）和内容（其余部分）
     final lines = diary.content.split('\n');
-    final String title = lines.isNotEmpty ? lines.first : '无标题';
+    final String title = lines.isNotEmpty ? lines.first : '無標題';
     final String body = lines.length > 1
         ? lines
               .sublist(1)
@@ -81,7 +81,7 @@ class DiaryCard extends StatelessWidget {
                               color: Colors.red,
                             ),
                             SizedBox(width: 8),
-                            Text('删除', style: TextStyle(color: Colors.red)),
+                            Text('刪除', style: TextStyle(color: Colors.red)),
                           ],
                         ),
                       ),

@@ -142,7 +142,7 @@ class LanTransferNotifier extends Notifier<LanTransferState> {
 
       state = state.copyWith(isBroadcasting: true);
     } catch (e) {
-      state = state.copyWith(error: '无法启动广播: $e');
+      state = state.copyWith(error: '無法啟動廣播: $e');
       await stopBroadcasting();
     }
   }
@@ -297,7 +297,7 @@ class LanTransferNotifier extends Notifier<LanTransferState> {
       await _discovery!.start();
       state = state.copyWith(isDiscovering: true);
     } catch (e) {
-      state = state.copyWith(error: '无法启动搜索: $e');
+      state = state.copyWith(error: '無法啟動搜尋: $e');
       await stopDiscovery();
     }
   }
@@ -316,7 +316,7 @@ class LanTransferNotifier extends Notifier<LanTransferState> {
       final exportService = ref.read(exportServiceProvider);
       // 1. 生成 Zip，不调用系统分享 (share: true 表示生成临时文件不弹窗)
       final zipFile = await exportService.exportToZip(share: true);
-      if (zipFile == null) throw Exception('无法生成备份文件');
+      if (zipFile == null) throw Exception('無法生成備份文件');
 
       // 2. 读取文件字节
       final bytes = await zipFile.readAsBytes();
@@ -336,10 +336,10 @@ class LanTransferNotifier extends Notifier<LanTransferState> {
       if (response.statusCode == 200) {
         return true;
       } else {
-        throw Exception('发送失败: ${response.statusCode} ${response.body}');
+        throw Exception('發送失敗: ${response.statusCode} ${response.body}');
       }
     } catch (e) {
-      state = state.copyWith(error: '文件发送失败: $e');
+      state = state.copyWith(error: '文件發送失敗: $e');
       return false;
     }
   }
@@ -375,7 +375,7 @@ class LanTransferNotifier extends Notifier<LanTransferState> {
         throw Exception('Download failed with status: ${response.statusCode}');
       }
     } catch (e) {
-      state = state.copyWith(error: '下载失败: $e');
+      state = state.copyWith(error: '下載失敗: $e');
       return null;
     }
   }
@@ -386,7 +386,7 @@ class LanTransferNotifier extends Notifier<LanTransferState> {
       final uri = Uri.parse(url);
       return downloadFile(uri.host, uri.port);
     } catch (e) {
-      state = state.copyWith(error: '无效的链接: $e');
+      state = state.copyWith(error: '無效的連結: $e');
       return null;
     }
   }

@@ -75,14 +75,14 @@ class SummaryListView extends ConsumerWidget {
           ),
           const SizedBox(height: 16),
           Text(
-            '暂无${_getTypeLabel(type)}',
+            '暫無${_getTypeLabel(type)}',
             style: Theme.of(
               context,
             ).textTheme.titleMedium?.copyWith(color: Colors.grey),
           ),
           const SizedBox(height: 8),
           const Text(
-            '点击右上角生成', // 按钮可能在别处
+            '點擊右上角生成', // 按钮可能在别处
             style: TextStyle(color: Colors.grey),
           ),
         ],
@@ -94,8 +94,8 @@ class SummaryListView extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('删除总结?'),
-        content: const Text('确认要删除这条总结吗？原始日记数据不会被删除。'),
+        title: const Text('刪除總結?'),
+        content: const Text('確認要刪除這條總結嗎？原始日記資料不會被刪除。'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
@@ -107,7 +107,7 @@ class SummaryListView extends ConsumerWidget {
               Navigator.pop(ctx);
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('删除'),
+            child: const Text('刪除'),
           ),
         ],
       ),
@@ -117,13 +117,13 @@ class SummaryListView extends ConsumerWidget {
   String _getTypeLabel(SummaryType type) {
     switch (type) {
       case SummaryType.weekly:
-        return '周记';
+        return '週記';
       case SummaryType.monthly:
-        return '月报';
+        return '月報';
       case SummaryType.quarterly:
-        return '季报';
+        return '季報';
       case SummaryType.yearly:
-        return '年鉴';
+        return '年鑑';
     }
   }
 }

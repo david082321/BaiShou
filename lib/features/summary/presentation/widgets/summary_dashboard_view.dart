@@ -43,7 +43,7 @@ class _SummaryDashboardViewState extends ConsumerState<SummaryDashboardView> {
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        AppToast.show(context, '加载失败: $e');
+        AppToast.show(context, '載入失敗: $e');
       }
     }
   }
@@ -52,7 +52,7 @@ class _SummaryDashboardViewState extends ConsumerState<SummaryDashboardView> {
     if (_result == null) return;
     await Clipboard.setData(ClipboardData(text: _result!.text));
     if (mounted) {
-      AppToast.show(context, '共同回忆已复制', icon: Icons.check);
+      AppToast.show(context, '共同回憶已複製', icon: Icons.check);
     }
   }
 
@@ -77,7 +77,7 @@ class _SummaryDashboardViewState extends ConsumerState<SummaryDashboardView> {
         child: FilledButton.icon(
           onPressed: _loadContext,
           icon: const Icon(Icons.refresh),
-          label: const Text('加载数据'),
+          label: const Text('載入資料'),
         ),
       );
     }
@@ -90,23 +90,23 @@ class _SummaryDashboardViewState extends ConsumerState<SummaryDashboardView> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // 仪表盘卡片
-          _buildStatCard(context, '白守数据概览 (过去 $_months 个月)', [
+          _buildStatCard(context, '白守資料概覽 (過去 $_months 個月)', [
             _StatItem('年度', stats.yearCount, Colors.orange),
             _StatItem('季度', stats.quarterCount, Colors.amber),
             _StatItem('月度', stats.monthCount, Colors.blue),
             _StatItem('周度', stats.weekCount, Colors.cyan),
-            _StatItem('日记', stats.diaryCount, Colors.green),
+            _StatItem('日記', stats.diaryCount, Colors.green),
           ]),
           const SizedBox(height: 24),
 
           // 操作按钮区域
           const Text(
-            '白守•共同回忆',
+            '白守•共同回憶',
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
           const Text(
-            '基于白守级联折叠算法，自动过滤冗余数据，构建我们共同的记忆脉络。',
+            '基於白守級聯摺疊演算法，自動過濾冗餘資料，構建我們共同的記憶脈絡。',
             style: TextStyle(color: Colors.grey, fontSize: 13),
           ),
           const SizedBox(height: 16),
@@ -114,7 +114,7 @@ class _SummaryDashboardViewState extends ConsumerState<SummaryDashboardView> {
           FilledButton.icon(
             onPressed: _copyContext,
             icon: const Icon(Icons.copy),
-            label: const Text('复制共同回忆'),
+            label: const Text('複製共同回憶'),
             style: FilledButton.styleFrom(
               padding: const EdgeInsets.all(16),
               backgroundColor: AppTheme.primary,

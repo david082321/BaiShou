@@ -14,7 +14,7 @@ class CompressionChart extends StatelessWidget {
             // Staircase part
             _buildStairStep(
               context,
-              '日报',
+              '日報',
               const Color(0xFF81D4FA), // Light Blue 200
               alignment: Alignment.centerRight,
               widthFactor: 0.25,
@@ -22,7 +22,7 @@ class CompressionChart extends StatelessWidget {
             _buildConnector(Alignment.centerRight, 0.25),
             _buildStairStep(
               context,
-              '周报',
+              '周報',
               const Color(0xFF4FC3F7), // Light Blue 300
               alignment: const Alignment(0.4, 0),
               widthFactor: 0.25,
@@ -30,7 +30,7 @@ class CompressionChart extends StatelessWidget {
             _buildConnector(const Alignment(0.4, 0), 0.25),
             _buildStairStep(
               context,
-              '月报',
+              '月報',
               const Color(0xFF29B6F6), // Light Blue 400
               alignment: const Alignment(-0.2, 0),
               widthFactor: 0.25,
@@ -38,7 +38,7 @@ class CompressionChart extends StatelessWidget {
             _buildConnector(const Alignment(-0.2, 0), 0.25),
             _buildStairStep(
               context,
-              '季报',
+              '季報',
               const Color(0xFFAED581), // Light Green 300
               alignment: Alignment.centerLeft,
               widthFactor: 0.35,
@@ -61,7 +61,7 @@ class CompressionChart extends StatelessWidget {
               ),
               alignment: Alignment.center,
               child: const Text(
-                '年鉴',
+                '年鑑',
                 style: TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,

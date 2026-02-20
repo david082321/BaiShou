@@ -35,7 +35,7 @@ class SummaryGeneratorService {
   /// 3. 调用 Gemini API。
   /// 4. 返回结果。
   Stream<String> generate(MissingSummary target) async* {
-    yield 'STATUS:正在读取数据...';
+    yield 'STATUS:正在讀取資料...';
 
     // 获取当前配置的模型名称
     final apiConfig = _ref.read(apiConfigServiceProvider);
@@ -77,7 +77,7 @@ class SummaryGeneratorService {
       }
 
       if (contextData.isEmpty) {
-        yield 'STATUS:没有足够的数据来生成总结。';
+        yield 'STATUS:沒有足夠的資料來生成總結。';
         return;
       }
 
@@ -88,7 +88,7 @@ class SummaryGeneratorService {
       yield generatedContent;
     } catch (e) {
       final msg = _sanitizeError(e);
-      yield 'STATUS:生成失败: $msg';
+      yield 'STATUS:生成失敗: $msg';
       // 重新抛出脱敏后的异常，以便上层逻辑（如UI）能显示处理后的信息
       throw Exception(msg);
     }
@@ -100,7 +100,7 @@ class SummaryGeneratorService {
 
     final buffer = StringBuffer();
     buffer.writeln(
-      '### 原始日记数据 (${start.year}-${start.month}-${start.day} ~ ${end.month}-${end.day})',
+      '### 原始日記資料 (${start.year}-${start.month}-${start.day} ~ ${end.month}-${end.day})',
     );
     for (final d in diaries) {
       buffer.writeln('\n#### ${d.date.year}-${d.date.month}-${d.date.day}');
@@ -126,10 +126,10 @@ class SummaryGeneratorService {
     if (weeklies.isEmpty) return '';
 
     final buffer = StringBuffer();
-    buffer.writeln('### 原始周记数据 (${start.year}-${start.month})');
+    buffer.writeln('### 原始週記資料 (${start.year}-${start.month})');
     for (final s in weeklies) {
       buffer.writeln(
-        '\n#### ${s.startDate.toString().split(' ')[0]} ~ ${s.endDate.toString().split(' ')[0]} 周记',
+        '\n#### ${s.startDate.toString().split(' ')[0]} ~ ${s.endDate.toString().split(' ')[0]} 週記',
       );
       buffer.writeln(s.content);
     }
@@ -147,9 +147,9 @@ class SummaryGeneratorService {
     if (monthlies.isEmpty) return '';
 
     final buffer = StringBuffer();
-    buffer.writeln('### 原始月报数据 (${start.year} Q${(start.month / 3).ceil()})');
+    buffer.writeln('### 原始月報資料 (${start.year} Q${(start.month / 3).ceil()})');
     for (final s in monthlies) {
-      buffer.writeln('\n#### ${s.startDate.year}-${s.startDate.month} 月报');
+      buffer.writeln('\n#### ${s.startDate.year}-${s.startDate.month} 月報');
       buffer.writeln(s.content);
     }
     return buffer.toString();
@@ -174,9 +174,9 @@ class SummaryGeneratorService {
           .toList();
       if (monthlies.isNotEmpty) {
         final buffer = StringBuffer();
-        buffer.writeln('### 原始月报数据 (${start.year}年 - 季度缺失，使用月报补全)');
+        buffer.writeln('### 原始月報資料 (${start.year}年 - 季度缺失，使用月報補全)');
         for (final s in monthlies) {
-          buffer.writeln('\n#### ${s.startDate.year}-${s.startDate.month} 月报');
+          buffer.writeln('\n#### ${s.startDate.year}-${s.startDate.month} 月報');
           buffer.writeln(s.content);
         }
         return buffer.toString();
@@ -185,10 +185,10 @@ class SummaryGeneratorService {
     }
 
     final buffer = StringBuffer();
-    buffer.writeln('### 原始季度总结数据 (${start.year}年)');
+    buffer.writeln('### 原始季度總結資料 (${start.year}年)');
     for (final s in quarterlies) {
       final q = (s.startDate.month / 3).ceil();
-      buffer.writeln('\n#### ${s.startDate.year} Q$q 总结');
+      buffer.writeln('\n#### ${s.startDate.year} Q$q 總結');
       buffer.writeln(s.content);
     }
     return buffer.toString();
@@ -203,7 +203,7 @@ class SummaryGeneratorService {
 
     // 如果未配置 Key，抛出异常
     if (apiKey.isEmpty || apiKey == 'YOUR_API_KEY_HERE') {
-      throw Exception('请先在"设置"中配置 API Key (Settings -> AI Config)');
+      throw Exception('請先在"設定"中配置 API Key (Settings -> AI Config)');
     }
 
     if (provider == AiProvider.gemini) {
@@ -243,9 +243,9 @@ class SummaryGeneratorService {
         errorMsg.contains('Connection refused') ||
         errorMsg.contains('Connection timed out') ||
         errorMsg.contains('信号灯超时')) {
-      errorMsg = '网络连接失败。请检查网络设置或配置国内可用的 API Base URL (反向代理)。\n原始错误: $errorMsg';
+      errorMsg = '網路連線失敗。請檢查網路設定或配置國內可用的 API Base URL (反向代理)。\n原始錯誤: $errorMsg';
     } else if (errorMsg.contains('HandshakeException')) {
-      errorMsg = 'SSL 握手失败。请检查网络或代理设置。\n原始错误: $errorMsg';
+      errorMsg = 'SSL 握手失敗。請檢查網路或代理設定。\n原始錯誤: $errorMsg';
     }
 
     return errorMsg;
@@ -259,7 +259,7 @@ class SummaryGeneratorService {
     final model = config.model;
     if (model.isEmpty) {
       throw Exception(
-        '未配置模型名称。请在"设置"中配置模型名称 (Settings -> AI Config -> Model Name)',
+        '未配置模型名稱。請在"設定"中配置模型名稱 (Settings -> AI Config -> Model Name)',
       );
     }
 
@@ -291,7 +291,7 @@ class SummaryGeneratorService {
         )
         .timeout(
           const Duration(seconds: 60),
-          onTimeout: () => throw Exception('请求超时，请检查网络'),
+          onTimeout: () => throw Exception('請求超時，請檢查網路'),
         );
 
     if (response.statusCode == 200) {
@@ -301,7 +301,7 @@ class SummaryGeneratorService {
         // Check for promptFeedback if available
         final feedback = json['promptFeedback'];
         throw Exception(
-          'Gemini 返回无法生成内容 (Candidates Empty). Feedback: $feedback',
+          'Gemini 返回無法生成內容 (Candidates Empty). Feedback: $feedback',
         );
       }
 
@@ -309,23 +309,23 @@ class SummaryGeneratorService {
       final finishReason = candidate['finishReason'];
 
       if (candidate['content'] == null) {
-        throw Exception('Gemini 生成内容为空. FinishReason: $finishReason');
+        throw Exception('Gemini 生成內容為空. FinishReason: $finishReason');
       }
 
       final parts = candidate['content']['parts'] as List?;
       if (parts == null || parts.isEmpty) {
-        throw Exception('Gemini 生成内容部分为空. FinishReason: $finishReason');
+        throw Exception('Gemini 生成內容部分為空. FinishReason: $finishReason');
       }
 
       final text = parts[0]['text'] as String?;
       if (text == null || text.isEmpty) {
-        throw Exception('Gemini 生成文本为空字符串. FinishReason: $finishReason');
+        throw Exception('Gemini 生成文字為空字串. FinishReason: $finishReason');
       }
 
       return text;
     } else {
       throw Exception(
-        'Gemini API 错误: ${response.statusCode} - ${response.body}',
+        'Gemini API 錯誤: ${response.statusCode} - ${response.body}',
       );
     }
   }

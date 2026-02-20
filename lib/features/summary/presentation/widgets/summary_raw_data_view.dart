@@ -26,9 +26,9 @@ class _SummaryRawDataViewState extends ConsumerState<SummaryRawDataView> {
       initialDateRange:
           _dateRange ??
           DateTimeRange(start: now.subtract(const Duration(days: 6)), end: now),
-      confirmText: '确定',
+      confirmText: '確定',
       cancelText: '取消',
-      saveText: '选择',
+      saveText: '選擇',
     );
 
     if (result != null) {
@@ -40,7 +40,7 @@ class _SummaryRawDataViewState extends ConsumerState<SummaryRawDataView> {
 
   Future<void> _exportData() async {
     if (_dateRange == null) {
-      AppToast.show(context, '请先选择日期范围');
+      AppToast.show(context, '請先選擇日期範圍');
       return;
     }
 
@@ -51,16 +51,16 @@ class _SummaryRawDataViewState extends ConsumerState<SummaryRawDataView> {
           .exportRawData(_dateRange!.start, _dateRange!.end);
 
       if (text.isEmpty) {
-        if (mounted) AppToast.show(context, '该范围内没有日记数据');
+        if (mounted) AppToast.show(context, '該範圍內沒有日記資料');
         return;
       }
 
       await Clipboard.setData(ClipboardData(text: text));
       if (mounted) {
-        AppToast.show(context, '原始数据已复制到剪贴板', icon: Icons.check);
+        AppToast.show(context, '原始資料已複製到剪貼簿', icon: Icons.check);
       }
     } catch (e) {
-      if (mounted) AppToast.show(context, '导出失败: $e');
+      if (mounted) AppToast.show(context, '匯出失敗: $e');
     } finally {
       if (mounted) setState(() => _isExporting = false);
     }
@@ -74,12 +74,12 @@ class _SummaryRawDataViewState extends ConsumerState<SummaryRawDataView> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const Text(
-            '原始数据导出 (Raw Data Export)',
+            '原始資料匯出 (Raw Data Export)',
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
           const Text(
-            '无损导出指定日期范围内的所有日记数据，包含元数据和标签。',
+            '無損匯出指定日期範圍內的所有日記資料，包含中繼資料和標籤。',
             style: TextStyle(color: Colors.grey, fontSize: 13),
           ),
           const SizedBox(height: 24),
@@ -101,7 +101,7 @@ class _SummaryRawDataViewState extends ConsumerState<SummaryRawDataView> {
                   Expanded(
                     child: Text(
                       _dateRange == null
-                          ? '点击选择日期范围'
+                          ? '點擊選擇日期範圍'
                           : '${DateFormat('yyyy-MM-dd').format(_dateRange!.start)}  至  ${DateFormat('yyyy-MM-dd').format(_dateRange!.end)}',
                       style: TextStyle(
                         fontSize: 16,
@@ -123,7 +123,7 @@ class _SummaryRawDataViewState extends ConsumerState<SummaryRawDataView> {
             FilledButton.icon(
               onPressed: _dateRange == null ? null : _exportData,
               icon: const Icon(Icons.file_download),
-              label: const Text('导出并复制'),
+              label: const Text('匯出並複製'),
               style: FilledButton.styleFrom(
                 padding: const EdgeInsets.all(16),
                 backgroundColor: AppTheme.primary,

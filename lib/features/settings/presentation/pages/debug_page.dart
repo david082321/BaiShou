@@ -22,14 +22,14 @@ class _DebugPageState extends ConsumerState<DebugPage> {
         if (mounted) {
           AppToast.show(
             context,
-            '✅ 演示数据已加载',
+            '✅ 示範資料已載入',
             duration: const Duration(seconds: 3),
           );
         }
       }
     } catch (e) {
       if (mounted) {
-        AppToast.show(context, '❌ 加载失败: $e', icon: Icons.error_outline);
+        AppToast.show(context, '❌ 載入失敗: $e', icon: Icons.error_outline);
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -39,7 +39,7 @@ class _DebugPageState extends ConsumerState<DebugPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('🛠 开发者调试')),
+      appBar: AppBar(title: const Text('🛠 開發者除錯')),
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [
@@ -51,12 +51,12 @@ class _DebugPageState extends ConsumerState<DebugPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    '数据管理',
+                    '資料管理',
                     style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 12),
                   const Text(
-                    '加载演示数据会向数据库写入一批示例日记，用于测试和展示。\n如果已有数据，会强制覆盖写入（不清空现有数据）。',
+                    '載入示範資料會向資料庫寫入一批範例日記，用於測試和展示。\n如果已有資料，會強制覆蓋寫入（不清空現有資料）。',
                     style: TextStyle(fontSize: 13),
                   ),
                   const SizedBox(height: 16),
@@ -74,7 +74,7 @@ class _DebugPageState extends ConsumerState<DebugPage> {
                               ),
                             )
                           : const Icon(Icons.science_outlined),
-                      label: Text(_isLoading ? '加载中...' : '加载演示数据'),
+                      label: Text(_isLoading ? '載入中...' : '載入示範資料'),
                     ),
                   ),
                 ],

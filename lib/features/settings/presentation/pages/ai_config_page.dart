@@ -71,7 +71,7 @@ class _AiConfigPageState extends ConsumerState<AiConfigPage> {
       }
 
       if (mounted) {
-        AppToast.show(context, '配置已保存');
+        AppToast.show(context, '配置已儲存');
         Navigator.pop(context); // 可选：保存后返回
       }
     }
@@ -79,7 +79,7 @@ class _AiConfigPageState extends ConsumerState<AiConfigPage> {
 
   Future<void> _testConnection() async {
     if (_apiKeyController.text.isEmpty) {
-      AppToast.show(context, '请先填写 API Key', icon: Icons.warning_amber_rounded);
+      AppToast.show(context, '請先填寫 API Key', icon: Icons.warning_amber_rounded);
       return;
     }
 
@@ -111,11 +111,11 @@ class _AiConfigPageState extends ConsumerState<AiConfigPage> {
       await ref.read(summaryGeneratorServiceProvider).testConnection(config);
 
       if (mounted) {
-        AppToast.show(context, '连接测试成功！🎉', icon: Icons.check_circle_outline);
+        AppToast.show(context, '連接測試成功！🎉', icon: Icons.check_circle_outline);
       }
     } catch (e) {
       if (mounted) {
-        AppToast.show(context, '连接失败: $e', icon: Icons.error_outline);
+        AppToast.show(context, '連線失敗: $e', icon: Icons.error_outline);
       }
     } finally {
       if (mounted) {
@@ -151,7 +151,7 @@ class _AiConfigPageState extends ConsumerState<AiConfigPage> {
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
                           : const Icon(Icons.wifi_tethering),
-                      label: const Text('测试连接'),
+                      label: const Text('測試連接'),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -159,7 +159,7 @@ class _AiConfigPageState extends ConsumerState<AiConfigPage> {
                     child: FilledButton.icon(
                       onPressed: _isTesting ? null : _saveConfig,
                       icon: const Icon(Icons.save),
-                      label: const Text('保存配置'),
+                      label: const Text('儲存配置'),
                     ),
                   ),
                 ],
@@ -191,7 +191,7 @@ class _AiConfigPageState extends ConsumerState<AiConfigPage> {
                 Icon(Icons.psychology, color: AppTheme.primary),
                 const SizedBox(width: 12),
                 Text(
-                  'AI 参数设置',
+                  'AI 參數設定',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
@@ -220,7 +220,7 @@ class _AiConfigPageState extends ConsumerState<AiConfigPage> {
                 DropdownMenuItem(
                   value: AiProvider.openai,
                   child: Text(
-                    'OpenAI 兼容 (DeepSeek/ChatGPT)',
+                    'OpenAI 相容 (DeepSeek/ChatGPT)',
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
@@ -254,18 +254,18 @@ class _AiConfigPageState extends ConsumerState<AiConfigPage> {
               decoration: InputDecoration(
                 labelText: 'API Base URL',
                 hintText: _provider == AiProvider.gemini
-                    ? '默认为空 (使用官方地址)'
+                    ? '預設為空 (使用官方地址)'
                     : 'https://api.openai.com/v1',
                 border: const OutlineInputBorder(),
                 helperText: _provider == AiProvider.gemini
-                    ? '通常不需要填写，除非使用代理'
-                    : 'OpenAI 兼容模式必填',
+                    ? '通常不需要填寫，除非使用代理'
+                    : 'OpenAI 相容模式必填',
                 helperMaxLines: 2,
               ),
               validator: (value) {
                 if (_provider == AiProvider.openai &&
                     (value == null || value.isEmpty)) {
-                  return 'OpenAI 模式下 Base URL 不能为空';
+                  return 'OpenAI 模式下 Base URL 不能為空';
                 }
                 return null;
               },
@@ -292,7 +292,7 @@ class _AiConfigPageState extends ConsumerState<AiConfigPage> {
               ),
               validator: (value) {
                 if (value == null || value.isEmpty) {
-                  return 'API Key 不能为空';
+                  return 'API Key 不能為空';
                 }
                 return null;
               },
@@ -303,19 +303,19 @@ class _AiConfigPageState extends ConsumerState<AiConfigPage> {
             TextFormField(
               controller: _modelController,
               decoration: InputDecoration(
-                labelText: '模型名称',
+                labelText: '模型名稱',
                 hintText: _provider == AiProvider.gemini
                     ? '例如: gemini-3-flash-preview'
                     : '例如: deepseek-chat',
                 border: const OutlineInputBorder(),
                 helperText: _provider == AiProvider.gemini
-                    ? '必填项 (推荐 gemini-3-flash-preview)'
-                    : '必填项 (如 deepseek-chat)',
+                    ? '必填項 (推薦 gemini-3-flash-preview)'
+                    : '必填項 (如 deepseek-chat)',
                 helperMaxLines: 2,
               ),
               validator: (value) {
                 if (value == null || value.isEmpty) {
-                  return '模型名称不能为空';
+                  return '模型名稱不能為空';
                 }
                 return null;
               },

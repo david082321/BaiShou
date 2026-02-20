@@ -91,7 +91,7 @@ class MarkdownToolbar extends StatelessWidget {
                       color: isPreview ? AppTheme.primary : Colors.grey,
                     ),
                     onPressed: onTogglePreview,
-                    tooltip: isPreview ? '编辑' : '预览',
+                    tooltip: isPreview ? '編輯' : '預覽',
                   ),
                   IconButton(
                     icon: const Icon(Icons.keyboard_hide),

@@ -31,7 +31,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('设置')),
+      appBar: AppBar(title: const Text('設定')),
       body: Stack(
         children: [
           ListView(
@@ -56,7 +56,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                       children: [
                         CircularProgressIndicator(),
                         SizedBox(width: 16),
-                        Text('正在导入...'),
+                        Text('正在匯入...'),
                       ],
                     ),
                   ),
@@ -119,7 +119,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     ],
                   ),
                   Text(
-                    '点击头像更换图片',
+                    '點擊大頭貼更換圖片',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
@@ -160,7 +160,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         sourcePath: pickedFile.path,
         uiSettings: [
           AndroidUiSettings(
-            toolbarTitle: '裁剪头像',
+            toolbarTitle: '裁剪大頭貼',
             toolbarColor: Theme.of(context).colorScheme.primary,
             toolbarWidgetColor: Colors.white,
             initAspectRatio: CropAspectRatioPreset.square,
@@ -168,7 +168,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             aspectRatioPresets: [CropAspectRatioPreset.square],
           ),
           IOSUiSettings(
-            title: '裁剪头像',
+            title: '裁剪大頭貼',
             aspectRatioPresets: [CropAspectRatioPreset.square],
           ),
         ],
@@ -187,10 +187,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     final newNickname = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('修改昵称'),
+        title: const Text('修改暱稱'),
         content: TextField(
           controller: controller,
-          decoration: const InputDecoration(labelText: '昵称'),
+          decoration: const InputDecoration(labelText: '暱稱'),
           autofocus: true,
         ),
         actions: [
@@ -200,7 +200,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, controller.text),
-            child: const Text('保存'),
+            child: const Text('儲存'),
           ),
         ],
       ),
@@ -226,7 +226,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         children: [
           ExpansionTile(
             leading: const Icon(Icons.palette_outlined),
-            title: const Text('外观设置'),
+            title: const Text('外觀設定'),
             subtitle: Text(_getThemeModeText(themeState.mode)),
             children: [
               Padding(
@@ -234,13 +234,13 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('主题模式'),
+                    const Text('主題模式'),
                     const SizedBox(height: 8),
                     SegmentedButton<ThemeMode>(
                       segments: const [
                         ButtonSegment(
                           value: ThemeMode.system,
-                          label: Text('跟随系统'),
+                          label: Text('跟隨系統'),
                           icon: Icon(Icons.brightness_auto),
                         ),
                         ButtonSegment(
@@ -262,7 +262,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                       },
                     ),
                     const SizedBox(height: 16),
-                    const Text('主题色'),
+                    const Text('主題色'),
                     const SizedBox(height: 8),
                     Wrap(
                       spacing: 12,
@@ -327,7 +327,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   String _getThemeModeText(ThemeMode mode) {
     switch (mode) {
       case ThemeMode.system:
-        return '跟随系统';
+        return '跟隨系統';
       case ThemeMode.light:
         return '亮色模式';
       case ThemeMode.dark:
@@ -348,8 +348,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         children: [
           ListTile(
             leading: const Icon(Icons.download_outlined),
-            title: const Text('导出数据'),
-            subtitle: const Text('导出完整备份（含日记、总结、配置）'),
+            title: const Text('匯出資料'),
+            subtitle: const Text('匯出完整備份（含日記、總結、配置）'),
             trailing: const Icon(Icons.chevron_right),
             onTap: () async {
               try {
@@ -359,11 +359,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     .exportToZip(share: false);
                 if (!mounted) return;
                 if (file != null) {
-                  AppToast.show(context, '导出成功');
+                  AppToast.show(context, '匯出成功');
                 }
               } catch (e) {
                 if (mounted) {
-                  AppToast.show(context, '导出失败: $e', icon: Icons.error_outline);
+                  AppToast.show(context, '匯出失敗: $e', icon: Icons.error_outline);
                 }
               }
             },
@@ -371,16 +371,16 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           const Divider(height: 1),
           ListTile(
             leading: const Icon(Icons.upload_outlined),
-            title: const Text('导入数据'),
-            subtitle: const Text('从备份 ZIP 恢复日记、总结和配置'),
+            title: const Text('匯入資料'),
+            subtitle: const Text('從備份 ZIP 復原日記、總結和配置'),
             trailing: const Icon(Icons.chevron_right),
             onTap: () => _importBackup(),
           ),
           const Divider(height: 1),
           ListTile(
             leading: const Icon(Icons.wifi_tethering_outlined),
-            title: const Text('局域网传输'),
-            subtitle: const Text('在同一网络下的设备间同步'),
+            title: const Text('區域網路傳輸'),
+            subtitle: const Text('在同一網路下的裝置間同步'),
             trailing: const Icon(Icons.chevron_right),
             onTap: () {
               Navigator.push(
@@ -394,8 +394,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           const Divider(height: 1),
           ListTile(
             leading: const Icon(Icons.restore_outlined),
-            title: const Text('恢复快照'),
-            subtitle: const Text('恢复到导入前的数据状态'),
+            title: const Text('復原快照'),
+            subtitle: const Text('復原到匯入前的資料狀態'),
             trailing: const Icon(Icons.chevron_right),
             onTap: () => _restoreFromSnapshot(),
           ),
@@ -409,7 +409,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['zip'],
-      dialogTitle: '选择备份文件',
+      dialogTitle: '選擇備份文件',
     );
 
     if (result == null || result.files.single.path == null) return;
@@ -421,9 +421,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('导入备份'),
+        title: const Text('匯入備份'),
         content: const Text(
-          '导入将覆盖当前所有数据并恢复配置（含 API Key、主题、头像）。\n\n导入前会自动创建快照，可用于恢复。\n\n确认继续？',
+          '匯入將覆蓋目前所有資料並復原配置（含 API Key、主題、大頭貼）。\n\n匯入前會自動建立快照，可用於復原。\n\n確認繼續？',
         ),
         actions: [
           TextButton(
@@ -432,7 +432,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('导入'),
+            child: const Text('匯入'),
           ),
         ],
       ),
@@ -465,23 +465,23 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         ref.read(dataRefreshProvider.notifier).refresh();
         AppToast.show(
           context,
-          '导入成功：${importResult.diariesImported} 条日记，'
-          '${importResult.summariesImported} 条总结'
-          '${importResult.profileRestored ? "，配置已恢复" : ""}'
-          '${importResult.snapshotPath != null ? "\n已创建恢复快照" : ""}',
+          '匯入成功：${importResult.diariesImported} 條日記，'
+          '${importResult.summariesImported} 條總結'
+          '${importResult.profileRestored ? "，配置已復原" : ""}'
+          '${importResult.snapshotPath != null ? "\n已建立復原快照" : ""}',
           duration: const Duration(seconds: 4),
         );
       } else {
         AppToast.show(
           context,
-          importResult.error ?? '导入失败',
+          importResult.error ?? '匯入失敗',
           icon: Icons.error_outline,
         );
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isImporting = false);
-        AppToast.show(context, '导入失败: $e', icon: Icons.error_outline);
+        AppToast.show(context, '匯入失敗: $e', icon: Icons.error_outline);
       }
     }
   }
@@ -493,7 +493,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
     if (!snapshotDir.existsSync()) {
       if (mounted) {
-        AppToast.show(context, '暂无可用快照', icon: Icons.info_outline);
+        AppToast.show(context, '暫無可用快照', icon: Icons.info_outline);
       }
       return;
     }
@@ -526,7 +526,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
     if (snapshots.isEmpty) {
       if (mounted) {
-        AppToast.show(context, '暂无可用快照', icon: Icons.info_outline);
+        AppToast.show(context, '暫無可用快照', icon: Icons.info_outline);
       }
       return;
     }
@@ -537,7 +537,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     final selected = await showDialog<File>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('选择要恢复的快照'),
+        title: const Text('選擇要復原的快照'),
         content: SizedBox(
           width: double.maxFinite,
           height: 300, // 限制高度，避免列表过长覆盖整个屏幕
@@ -585,8 +585,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('确认恢复'),
-        content: const Text('恢复快照将覆盖当前所有数据。\n\n确认继续？'),
+        title: const Text('確認復原'),
+        content: const Text('復原快照將覆蓋目前所有資料。\n\n確認繼續？'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
@@ -594,7 +594,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('恢复'),
+            child: const Text('復原'),
           ),
         ],
       ),
@@ -624,21 +624,21 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         ref.read(dataRefreshProvider.notifier).refresh();
         AppToast.show(
           context,
-          '快照恢复成功：${importResult.diariesImported} 条日记，'
-          '${importResult.summariesImported} 条总结',
+          '快照復原成功：${importResult.diariesImported} 條日記，'
+          '${importResult.summariesImported} 條總結',
           duration: const Duration(seconds: 4),
         );
       } else {
         AppToast.show(
           context,
-          importResult.error ?? '恢复失败',
+          importResult.error ?? '復原失敗',
           icon: Icons.error_outline,
         );
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isImporting = false);
-        AppToast.show(context, '恢复失败: $e', icon: Icons.error_outline);
+        AppToast.show(context, '復原失敗: $e', icon: Icons.error_outline);
       }
     }
   }
@@ -655,7 +655,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         children: [
           ListTile(
             leading: const Icon(Icons.info_outline),
-            title: const Text('关于白守'),
+            title: const Text('關於白守'),
             trailing: const Icon(Icons.chevron_right),
             onTap: () {
               Navigator.push(
@@ -667,7 +667,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           const Divider(height: 1),
           ListTile(
             leading: const Icon(Icons.privacy_tip_outlined),
-            title: const Text('开发理念'),
+            title: const Text('開發理念'),
             trailing: const Icon(Icons.chevron_right),
             onTap: () {
               Navigator.push(
@@ -681,7 +681,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           const Divider(height: 1),
           ListTile(
             leading: const Icon(Icons.bug_report_outlined),
-            title: const Text('反馈问题'),
+            title: const Text('回饋問題'),
             trailing: const Icon(Icons.chevron_right),
             onTap: () {
               launchUrl(

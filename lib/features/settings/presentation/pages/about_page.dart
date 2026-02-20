@@ -56,7 +56,7 @@ class _AboutPageState extends State<AboutPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('关于白守')),
+      appBar: AppBar(title: const Text('關於白守')),
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [
@@ -101,7 +101,7 @@ class _AboutPageState extends State<AboutPage> {
           ),
           const SizedBox(height: 48),
           const Text(
-            '开发者',
+            '開發者',
             style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
@@ -118,7 +118,7 @@ class _AboutPageState extends State<AboutPage> {
               _devLastTapTime = now;
 
               if (_devTapCount == 7) {
-                AppToast.show(context, '再点 3 次进入开发者模式');
+                AppToast.show(context, '再點 3 次進入開發者模式');
               } else if (_devTapCount >= 10) {
                 _devTapCount = 0;
                 Navigator.push(
@@ -136,7 +136,7 @@ class _AboutPageState extends State<AboutPage> {
           ),
           const SizedBox(height: 24),
           const Text(
-            '开源协议',
+            '開源協議',
             style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
@@ -160,7 +160,7 @@ class _AboutPageState extends State<AboutPage> {
               launchUrl(Uri.parse('https://github.com/Anson-Trio/BaiShou'));
             },
             icon: const Icon(Icons.code),
-            label: const Text('访问 GitHub 仓库'),
+            label: const Text('瀏覽 GitHub 倉庫'),
           ),
         ],
       ),

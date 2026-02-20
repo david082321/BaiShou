@@ -249,7 +249,7 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
     final combinedContent = '$title\n$body'.trim();
 
     if (combinedContent.isEmpty) {
-      AppToast.show(context, '写点什么吧...', icon: Icons.edit_outlined);
+      AppToast.show(context, '寫點什麼吧...', icon: Icons.edit_outlined);
       return;
     }
 
@@ -284,7 +284,7 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
 
       if (mounted) {
         setState(() => _isDirty = false);
-        AppToast.show(context, '已保存 ✨');
+        AppToast.show(context, '已儲存 ✨');
         context.pop();
       }
     } catch (e) {
@@ -292,7 +292,7 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
       if (mounted) {
         AppToast.show(
           context,
-          '保存失败',
+          '儲存失敗',
           icon: Icons.error_outline,
           backgroundColor: Colors.red[900],
         );
@@ -304,7 +304,7 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
   Widget build(BuildContext context) {
     final dateStr = DateFormat('yyyy年MM月dd日').format(_selectedDate);
     final timeStr = _selectedTime.format(context);
-    final weekDay = DateFormat('EEEE', 'zh_CN').format(_selectedDate);
+    final weekDay = DateFormat('EEEE', 'zh_TW').format(_selectedDate);
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -326,7 +326,7 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
                 shape: const StadiumBorder(),
                 padding: const EdgeInsets.symmetric(horizontal: 20),
               ),
-              child: const Text('保存'),
+              child: const Text('儲存'),
             ),
           ),
         ],
@@ -352,7 +352,7 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
                             height: 1.2,
                           ),
                           decoration: InputDecoration(
-                            hintText: '标题',
+                            hintText: '標題',
                             hintStyle: TextStyle(color: Colors.grey[400]),
                             border: InputBorder.none,
                           ),
@@ -379,7 +379,7 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
                                 padding: const EdgeInsets.only(top: 24),
                                 child: Center(
                                   child: Text(
-                                    '还没有内容可以预览',
+                                    '還沒有內容可以預覽',
                                     style: TextStyle(
                                       color: Colors.grey[400],
                                       fontSize: 14,
@@ -462,7 +462,7 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
                             color: Theme.of(context).textTheme.bodyLarge?.color,
                           ),
                           decoration: InputDecoration(
-                            hintText: '今天发生了什么？...',
+                            hintText: '今天發生了什麼事？...',
                             hintStyle: TextStyle(color: Colors.grey[400]),
                             border: InputBorder.none,
                           ),
@@ -493,28 +493,28 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
 
       switch (_summaryType!) {
         case SummaryType.weekly:
-          subText = '周记';
+          subText = '週記';
           if (_summaryStartDate != null && _summaryEndDate != null) {
             dateText =
                 '${_summaryStartDate!.month}.${_summaryStartDate!.day} - ${_summaryEndDate!.month}.${_summaryEndDate!.day}';
           }
           break;
         case SummaryType.monthly:
-          subText = '月报';
+          subText = '月報';
           if (_summaryStartDate != null) {
             dateText =
                 '${_summaryStartDate!.year}年 ${_summaryStartDate!.month}月';
           }
           break;
         case SummaryType.quarterly:
-          subText = '季报';
+          subText = '季報';
           if (_summaryStartDate != null) {
             final q = (_summaryStartDate!.month / 3).ceil();
             dateText = '${_summaryStartDate!.year}年 Q$q';
           }
           break;
         case SummaryType.yearly:
-          subText = '年鉴';
+          subText = '年鑑';
           if (_summaryStartDate != null) {
             dateText = '${_summaryStartDate!.year}年';
           }
@@ -551,7 +551,7 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
     // 默认日记标题
     final dateStr = DateFormat('yyyy年MM月dd日').format(_selectedDate);
     final timeStr = _selectedTime.format(context);
-    final weekDay = DateFormat('EEEE', 'zh_CN').format(_selectedDate);
+    final weekDay = DateFormat('EEEE', 'zh_TW').format(_selectedDate);
 
     return GestureDetector(
       onTap: _showDateTimePicker,
@@ -611,7 +611,7 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
           lastDate: DateTime(2030),
           initialDate: _summaryStartDate ?? now,
           initialDatePickerMode: DatePickerMode.year,
-          helpText: '选择月份',
+          helpText: '選擇月份',
         );
         if (date != null) {
           setState(() {
@@ -638,7 +638,7 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
           builder: (ctx) => StatefulBuilder(
             builder: (context, setDialogState) {
               return AlertDialog(
-                title: const Text('选择季度'),
+                title: const Text('選擇季度'),
                 content: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -691,7 +691,7 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
                       });
                       Navigator.pop(context);
                     },
-                    child: const Text('确定'),
+                    child: const Text('確定'),
                   ),
                 ],
               );
@@ -705,7 +705,7 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
           context: context,
           builder: (BuildContext context) {
             return AlertDialog(
-              title: const Text("选择年份"),
+              title: const Text("選擇年份"),
               content: SizedBox(
                 width: 300,
                 height: 300,

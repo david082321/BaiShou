@@ -28,19 +28,19 @@ class SummaryCard extends StatelessWidget {
       case SummaryType.weekly:
         // 如果需要则计算周数，或者使用格式化的日期范围
         title =
-            '周记 (${DateFormat('MM.dd').format(summary.startDate)} - ${DateFormat('MM.dd').format(summary.endDate)})';
+            '週記 (${DateFormat('MM.dd').format(summary.startDate)} - ${DateFormat('MM.dd').format(summary.endDate)})';
         break;
       case SummaryType.monthly:
-        title = '${DateFormat('yyyy年MM月').format(summary.startDate)} 月报';
+        title = '${DateFormat('yyyy年MM月').format(summary.startDate)} 月報';
         break;
       case SummaryType.quarterly:
         // 季度计算
         final month = summary.startDate.month;
         final q = (month / 3).ceil();
-        title = '${summary.startDate.year}年 Q$q 季度总结';
+        title = '${summary.startDate.year}年 Q$q 季度總結';
         break;
       case SummaryType.yearly:
-        title = '${summary.startDate.year} 年度总结';
+        title = '${summary.startDate.year} 年度總結';
         break;
     }
 
@@ -145,7 +145,7 @@ class SummaryCard extends StatelessWidget {
                       icon: const Icon(Icons.delete_outline, size: 20),
                       color: theme.disabledColor,
                       onPressed: onDelete,
-                      tooltip: '删除',
+                      tooltip: '刪除',
                     ),
                 ],
               ),
@@ -159,13 +159,13 @@ class SummaryCard extends StatelessWidget {
   String _getTypeLabel(SummaryType type) {
     switch (type) {
       case SummaryType.weekly:
-        return '周记';
+        return '週記';
       case SummaryType.monthly:
-        return '月报';
+        return '月報';
       case SummaryType.quarterly:
-        return '季报';
+        return '季報';
       case SummaryType.yearly:
-        return '年鉴';
+        return '年鑑';
     }
   }
 }

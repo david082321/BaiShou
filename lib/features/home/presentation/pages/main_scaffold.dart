@@ -73,17 +73,17 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
               NavigationDestination(
                 icon: Icon(Icons.timeline_outlined),
                 selectedIcon: Icon(Icons.timeline),
-                label: '时间轴',
+                label: '時間軸',
               ),
               NavigationDestination(
                 icon: Icon(Icons.auto_stories_outlined),
                 selectedIcon: Icon(Icons.auto_stories),
-                label: '总结',
+                label: '總結',
               ),
               NavigationDestination(
                 icon: Icon(Icons.settings_outlined),
                 selectedIcon: Icon(Icons.settings),
-                label: '设置',
+                label: '設定',
               ),
             ],
           ),

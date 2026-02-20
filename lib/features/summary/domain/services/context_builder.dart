@@ -156,7 +156,7 @@ Future<ContextResult> _processContextData(_ContextInput input) async {
 
   // 4. 构建 Markdown
   final buffer = StringBuffer();
-  buffer.writeln('# 共同的回忆 (过去 $months 个月 - 白守算法已折叠)');
+  buffer.writeln('# 共同的回憶 (過去 $months 個月 - 白守演算法已摺疊)');
   buffer.writeln();
 
   // 最好按时间顺序输出以便于 AI 上下文。
@@ -168,11 +168,11 @@ Future<ContextResult> _processContextData(_ContextInput input) async {
   for (var i in visibleMonths)
     allItems.add(_ContextItem(i.startDate, i, '🌙 月度'));
   for (var i in visibleWeeks)
-    allItems.add(_ContextItem(i.startDate, i, '📆 周度'));
+    allItems.add(_ContextItem(i.startDate, i, '📆 週度'));
 
   // 日记
   final diaryItems = visibleDiaries
-      .map((d) => _ContextItem(d.date, d, '📝 日记'))
+      .map((d) => _ContextItem(d.date, d, '📝 日記'))
       .toList();
   allItems.addAll(diaryItems);
 
