@@ -131,18 +131,18 @@ jobs:
           Name: "chinesesimplified"; MessagesFile: "compiler:Languages\ChineseSimplified.isl"
 
           [Tasks]
-          Name: "desktopicon"; Description: "创建桌面快捷方式"; GroupDescription: "附加任务:"; Flags: unchecked
+          Name: "desktopicon"; Description: "建立桌面捷徑"; GroupDescription: "附加任務:"; Flags: unchecked
 
           [Files]
           Source: "build\windows\x64\runner\Release\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
           [Icons]
           Name: "{group}\白守"; Filename: "{app}\baishou.exe"
-          Name: "{group}\卸载白守"; Filename: "{uninstallexe}"
+          Name: "{group}\移除白守"; Filename: "{uninstallexe}"
           Name: "{autodesktop}\白守"; Filename: "{app}\baishou.exe"; Tasks: desktopicon
 
           [Run]
-          Filename: "{app}\baishou.exe"; Description: "启动白守"; Flags: nowait postinstall skipifsilent
+          Filename: "{app}\baishou.exe"; Description: "啟動白守"; Flags: nowait postinstall skipifsilent
           "@
           $iss | Out-File -FilePath setup.iss -Encoding UTF8
 
@@ -195,17 +195,17 @@ jobs:
           body: |
             ## 白守 ${{ github.ref_name }}
 
-            以纯白誓约，守护彼此一生。
+            以純白誓約，守護彼此一生。
 
-            ### 下载
-            | 平台 | 文件 | 说明 |
+            ### 下載
+            | 平台 | 文件 | 說明 |
             |------|------|------|
-            | Android | `.apk` | 允许安装未知来源后安装 |
-            | Windows | `-Setup.exe` | 双击运行安装向导 |
-            | Linux | `.tar.gz` | 解压后运行 `baishou` |
+            | Android | `.apk` | 允許安裝未知來源後安裝 |
+            | Windows | `-Setup.exe` | 雙擊執行安裝嚮導 |
+            | Linux | `.tar.gz` | 解壓後執行 `baishou` |
 
-            ### 更新内容
-            请查看 [提交记录](https://github.com/${{ github.repository }}/commits/${{ github.ref_name }})
+            ### 更新內容
+            請查看 [提交記錄](https://github.com/${{ github.repository }}/commits/${{ github.ref_name }})
           files: |
             artifacts/BaiShou-${{ github.ref_name }}-Android.apk
             artifacts/BaiShou-Linux.tar.gz
