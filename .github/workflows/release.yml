@@ -7,9 +7,9 @@ on:
   workflow_dispatch:
     inputs:
       version_name:
-        description: '版本號 (例如: v1.0.0)'
+        description: '版本號 (例如: 1.0.0-tw)'
         required: true
-        default: 'v1.0.0'
+        default: '1.0.0-tw'
 
 jobs:
   # ── Android APK ──────────────────────────────────────────
@@ -18,6 +18,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: tw  # 強制切換到 tw 分支
 
       - uses: actions/setup-java@v4
         with:
@@ -50,6 +52,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: tw
 
       - name: Install Linux dependencies
         run: |
@@ -93,6 +97,8 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: tw
 
       - uses: subosito/flutter-action@v2
         with:
@@ -117,7 +123,11 @@ jobs:
       - name: Create Inno Setup script
         shell: pwsh
         run: |
-          $version = "${{ github.ref_name }}".TrimStart('v')
+          # 判斷版本號來源：手動輸入優先，其次是 Tag 名稱
+          $rawVersion = "${{ github.event.inputs.version_name }}"
+          if (-not $rawVersion) { $rawVersion = "${{ github.ref_name }}" }
+          $version = $rawVersion.TrimStart('v')
+          
           $iss = @"
           [Setup]
           AppName=白守
@@ -127,7 +137,7 @@ jobs:
           DefaultDirName={autopf}\BaiShou
           DefaultGroupName=白守
           OutputDir=installer
-          OutputBaseFilename=BaiShou-${{ github.ref_name }}-Windows-Setup
+          OutputBaseFilename=BaiShou-$rawVersion-Windows-Setup
           Compression=lzma
           SolidCompression=yes
           ArchitecturesInstallIn64BitMode=x64compatible
@@ -190,16 +200,25 @@ jobs:
           name: windows-installer
           path: artifacts/
 
+      - name: Set Release Tag Name
+        run: |
+          if [ -n "${{ github.event.inputs.version_name }}" ]; then
+            echo "REL_TAG=${{ github.event.inputs.version_name }}" >> $GITHUB_ENV
+          else
+            echo "REL_TAG=${{ github.ref_name }}" >> $GITHUB_ENV
+          fi
+
       - name: Rename Android APK
         run: |
-          mv artifacts/app-release.apk artifacts/BaiShou-${{ github.ref_name }}-Android.apk
+          mv artifacts/app-release.apk artifacts/BaiShou-${{ env.REL_TAG }}-Android.apk
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          name: 白守 ${{ github.ref_name }}
+          tag_name: ${{ env.REL_TAG }}
+          name: 白守 ${{ env.REL_TAG }}
           body: |
-            ## 白守 ${{ github.ref_name }}
+            ## 白守 ${{ env.REL_TAG }} (TW Branch)
 
             以純白誓約，守護彼此一生。
 
@@ -211,9 +230,9 @@ jobs:
             | Linux | `.tar.gz` | 解壓後執行 `baishou` |
 
             ### 更新內容
-            請查看 [提交記錄](https://github.com/${{ github.repository }}/commits/${{ github.ref_name }})
+            請查看 [提交記錄](https://github.com/${{ github.repository }}/commits/${{ env.REL_TAG }})
           files: |
-            artifacts/BaiShou-${{ github.ref_name }}-Android.apk
+            artifacts/BaiShou-${{ env.REL_TAG }}-Android.apk
             artifacts/BaiShou-Linux.tar.gz
             artifacts/*.exe
           draft: false
