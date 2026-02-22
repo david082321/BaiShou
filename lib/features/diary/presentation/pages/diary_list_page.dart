@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:baishou/core/theme/app_theme.dart';
 import 'package:baishou/core/widgets/year_month_picker_sheet.dart';
 import 'package:baishou/features/diary/data/repositories/diary_repository_impl.dart';
@@ -9,6 +10,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+/// 日记列表页面
+/// 使用 CustomScrollView 实现带有年份吸顶效果的高性能滚动列表。
 class DiaryListPage extends ConsumerStatefulWidget {
   const DiaryListPage({super.key});
 
@@ -18,142 +21,128 @@ class DiaryListPage extends ConsumerStatefulWidget {
 
 class _DiaryListPageState extends ConsumerState<DiaryListPage> {
   DateTime? _selectedMonth;
+  String _searchQuery = '';
+  bool _isSearching = false;
+  final _scrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final diaryStream = ref.watch(diaryRepositoryProvider).watchAllDiaries();
-    final bool isDesktop = MediaQuery.of(context).size.width >= 700;
 
-    return Scaffold(
-      backgroundColor: Colors.transparent, // 让底层 Scaffold 的颜色透上来
-      appBar: AppBar(
-        centerTitle: false,
-        backgroundColor: Colors.transparent,
-        surfaceTintColor: Colors.transparent,
-        elevation: 0,
-        title: isDesktop
-            ? _buildDesktopHeader(context)
-            : _buildMobileTitle(context),
-        actions: isDesktop
-            ? null
-            : [
-                IconButton(
-                  onPressed: () {}, // 搜索占位
-                  icon: const Icon(Icons.search),
-                ),
-              ],
-      ),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: BoxConstraints(
-            maxWidth: isDesktop ? 800 : double.infinity,
-          ),
-          child: StreamBuilder<List<Diary>>(
-            stream: diaryStream,
-            builder: (context, snapshot) {
-              if (snapshot.hasError) {
-                return Center(child: Text('Error: ${snapshot.error}'));
-              }
-              if (!snapshot.hasData) {
-                return const Center(child: CircularProgressIndicator());
-              }
+    bool isMobile = false;
+    try {
+      if (Platform.isAndroid || Platform.isIOS) {
+        isMobile = true;
+      }
+    } catch (e) {}
+    final bool isDesktop = !isMobile;
 
-              var diaries = snapshot.data!;
-
-              // 如果已选择月份，则按月份筛选
-              if (_selectedMonth != null) {
-                diaries = diaries.where((d) {
-                  return d.date.year == _selectedMonth!.year &&
-                      d.date.month == _selectedMonth!.month;
-                }).toList();
-              }
-
-              if (diaries.isEmpty) return _buildEmptyState(context);
-
-              // 按日期分组
-              final grouped = groupBy(diaries, (Diary d) {
-                return DateTime(d.date.year, d.date.month, d.date.day);
-              });
-
-              final sortedDates = grouped.keys.toList()
-                ..sort((a, b) => b.compareTo(a));
-
-              return CustomScrollView(
-                physics: const BouncingScrollPhysics(),
-                slivers: [
-                  const SliverToBoxAdapter(child: SizedBox(height: 10)),
-                  ...() {
-                    final List<Widget> slivers = [];
-                    int? lastYear;
-
-                    for (var date in sortedDates) {
-                      // 如果年份变化，插入年份分割线
-                      if (lastYear != null && date.year != lastYear) {
-                        slivers.add(
-                          SliverToBoxAdapter(
-                            child: _buildYearDivider(context, date.year),
-                          ),
-                        );
-                      }
-
-                      lastYear = date.year;
-
-                      final dayDiaries = grouped[date]!;
-                      slivers.add(
-                        SliverMainAxisGroup(
-                          slivers: [
-                            SliverPersistentHeader(
-                              pinned: true,
-                              delegate: _DateHeaderDelegate(
-                                date: date,
-                                isDesktop: isDesktop,
-                              ),
-                            ),
-                            SliverPadding(
-                              padding: EdgeInsets.only(
-                                left: isDesktop ? 40 : 20,
-                                bottom: 32,
-                              ),
-                              sliver: SliverList(
-                                delegate: SliverChildBuilderDelegate((
-                                  context,
-                                  index,
-                                ) {
-                                  final diary = dayDiaries[index];
-                                  return _buildTimelineItem(
-                                    context,
-                                    ref,
-                                    diary,
-                                    isDesktop,
-                                  );
-                                }, childCount: dayDiaries.length),
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    }
-                    return slivers;
-                  }(),
-                  const SliverToBoxAdapter(
-                    child: SizedBox(height: 80),
-                  ), // Fab 占位空间
+    return SafeArea(
+      top: isMobile,
+      bottom: false,
+      child: Scaffold(
+        backgroundColor: Colors.transparent, // 让底层 Scaffold 的颜色透上来
+        appBar: AppBar(
+          centerTitle: false,
+          backgroundColor: Colors.transparent,
+          surfaceTintColor: Colors.transparent,
+          elevation: 0,
+          title: _isSearching && !isDesktop
+              ? TextField(
+                  autofocus: true,
+                  decoration: const InputDecoration(
+                    hintText: '搜索记忆...',
+                    border: InputBorder.none,
+                  ),
+                  onChanged: (val) => setState(() => _searchQuery = val),
+                )
+              : isDesktop
+              ? _buildDesktopHeader(context)
+              : _buildMobileTitle(context),
+          actions: isDesktop
+              ? null
+              : [
+                  IconButton(
+                    onPressed: () {
+                      setState(() {
+                        _isSearching = !_isSearching;
+                        if (!_isSearching) _searchQuery = '';
+                      });
+                    },
+                    icon: Icon(_isSearching ? Icons.close : Icons.search),
+                  ),
                 ],
-              );
-            },
+        ),
+        body: Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: isDesktop ? 800 : double.infinity,
+            ),
+            child: StreamBuilder<List<Diary>>(
+              stream: diaryStream,
+              builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  return Center(child: Text('Error: ${snapshot.error}'));
+                }
+                if (!snapshot.hasData) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                final diaries = snapshot.data!;
+
+                // 性能优化：使用 helper 方法进行分组与筛选
+                final filteredDiaries = _getFilteredDiaries(diaries);
+                if (filteredDiaries.isEmpty) return _buildEmptyState(context);
+
+                final groupedData = _getGroupedDiaries(filteredDiaries);
+                final sortedDates = groupedData.keys.toList()
+                  ..sort((a, b) => b.compareTo(a));
+
+                return GestureDetector(
+                  behavior: HitTestBehavior.translucent,
+                  onDoubleTap: () {
+                    _scrollController.animateTo(
+                      0,
+                      duration: const Duration(milliseconds: 400),
+                      curve: Curves.easeOut,
+                    );
+                  },
+                  child: CustomScrollView(
+                    controller: _scrollController,
+                    physics: const BouncingScrollPhysics(),
+                    slivers: [
+                      const SliverToBoxAdapter(child: SizedBox(height: 10)),
+                      ..._buildSlivers(
+                        context,
+                        groupedData,
+                        sortedDates,
+                        isDesktop,
+                      ),
+                      const SliverToBoxAdapter(child: SizedBox(height: 80)),
+                    ],
+                  ),
+                );
+              },
+            ),
           ),
         ),
-      ),
-      floatingActionButton: isDesktop
-          ? null
-          : FloatingActionButton(
-              onPressed: () => context.push(
-                '/diary/edit?date=${DateTime.now().toIso8601String()}',
+        floatingActionButton: isDesktop
+            ? null
+            : FloatingActionButton(
+                onPressed: () => context.push(
+                  '/diary/edit?date=${DateTime.now().toIso8601String()}',
+                ),
+                backgroundColor: AppTheme.primary,
+                shape: const CircleBorder(),
+                child: const Icon(Icons.add, color: Colors.white, size: 32),
               ),
-              backgroundColor: AppTheme.primary,
-              shape: const CircleBorder(),
-              child: const Icon(Icons.add, color: Colors.white, size: 32),
-            ),
+      ),
     );
   }
 
@@ -161,6 +150,15 @@ class _DiaryListPageState extends ConsumerState<DiaryListPage> {
     return GestureDetector(
       onTap: () {
         _showMonthPicker(context);
+      },
+      onDoubleTap: () {
+        if (_scrollController.hasClients) {
+          _scrollController.animateTo(
+            0,
+            duration: const Duration(milliseconds: 400),
+            curve: Curves.easeOut,
+          );
+        }
       },
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -236,6 +234,7 @@ class _DiaryListPageState extends ConsumerState<DiaryListPage> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: TextField(
+                    onChanged: (val) => setState(() => _searchQuery = val),
                     decoration: InputDecoration(
                       hintText: '搜索记忆...',
                       hintStyle: theme.textTheme.bodySmall?.copyWith(
@@ -378,6 +377,7 @@ class _DiaryListPageState extends ConsumerState<DiaryListPage> {
     );
   }
 
+  /// 构建年份分割线
   Widget _buildYearDivider(BuildContext context, int year) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 24),
@@ -412,7 +412,7 @@ class _DiaryListPageState extends ConsumerState<DiaryListPage> {
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.bold,
-                color: AppTheme.textSecondaryLight,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
                 letterSpacing: 2,
               ),
             ),
@@ -452,8 +452,80 @@ class _DiaryListPageState extends ConsumerState<DiaryListPage> {
       });
     }
   }
+
+  List<Diary> _getFilteredDiaries(List<Diary> allDiaries) {
+    var diaries = allDiaries;
+    if (_selectedMonth != null) {
+      diaries = diaries.where((d) {
+        return d.date.year == _selectedMonth!.year &&
+            d.date.month == _selectedMonth!.month;
+      }).toList();
+    }
+
+    if (_searchQuery.trim().isNotEmpty) {
+      final q = _searchQuery.trim().toLowerCase();
+      diaries = diaries
+          .where((d) => d.content.toLowerCase().contains(q))
+          .toList();
+    }
+    return diaries;
+  }
+
+  Map<DateTime, List<Diary>> _getGroupedDiaries(List<Diary> diaries) {
+    return groupBy(diaries, (Diary d) {
+      return DateTime(d.date.year, d.date.month, d.date.day);
+    });
+  }
+
+  List<Widget> _buildSlivers(
+    BuildContext context,
+    Map<DateTime, List<Diary>> grouped,
+    List<DateTime> sortedDates,
+    bool isDesktop,
+  ) {
+    final List<Widget> slivers = [];
+    int? lastYear;
+
+    for (var date in sortedDates) {
+      if (lastYear != null && date.year != lastYear) {
+        slivers.add(
+          SliverToBoxAdapter(child: _buildYearDivider(context, date.year)),
+        );
+      }
+      lastYear = date.year;
+
+      final dayDiaries = grouped[date]!;
+      slivers.add(
+        SliverMainAxisGroup(
+          slivers: [
+            SliverPersistentHeader(
+              pinned: true,
+              delegate: _DateHeaderDelegate(date: date, isDesktop: isDesktop),
+            ),
+            SliverPadding(
+              padding: EdgeInsets.only(left: isDesktop ? 40 : 20, bottom: 32),
+              sliver: SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) => _buildTimelineItem(
+                    context,
+                    ref,
+                    dayDiaries[index],
+                    isDesktop,
+                  ),
+                  childCount: dayDiaries.length,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+    return slivers;
+  }
 }
 
+/// 日期吸顶头部委托
+/// 用于在 CustomScrollView 中显示吸顶的日期信息（月、日、星期）。
 class _DateHeaderDelegate extends SliverPersistentHeaderDelegate {
   final DateTime date;
   final bool isDesktop;
@@ -475,8 +547,8 @@ class _DateHeaderDelegate extends SliverPersistentHeaderDelegate {
     final weekdayStr = weekdays[date.weekday];
 
     return Container(
-      // 使用完全不透明的背景色，避免主题变更后渲染穿透
-      color: Theme.of(context).scaffoldBackgroundColor,
+      // 两端统一使用 surface 背景（移动端已包裹白色 Container）
+      color: Theme.of(context).colorScheme.surface,
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       alignment: Alignment.centerLeft,
       child: Row(
@@ -487,20 +559,32 @@ class _DateHeaderDelegate extends SliverPersistentHeaderDelegate {
             monthStr,
             style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w300),
           ),
-          const Text('月', style: TextStyle(fontSize: 16, color: Colors.grey)),
+          Text(
+            '月',
+            style: TextStyle(
+              fontSize: 16,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
           Text(
             dayStr,
             style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w300),
           ),
-          const Text('日', style: TextStyle(fontSize: 16, color: Colors.grey)),
+          Text(
+            '日',
+            style: TextStyle(
+              fontSize: 16,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
 
           const SizedBox(width: 8),
           Text(
             weekdayStr,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w500,
-              color: Colors.grey,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
 
@@ -535,7 +619,6 @@ class _DateHeaderDelegate extends SliverPersistentHeaderDelegate {
 
   @override
   bool shouldRebuild(covariant _DateHeaderDelegate oldDelegate) {
-    // 始终返回 true，确保主题变更时日期头会重新绘制（更新背景色）
-    return true;
+    return oldDelegate.date != date || oldDelegate.isDesktop != isDesktop;
   }
 }

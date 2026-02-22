@@ -3,7 +3,6 @@ import 'package:baishou/core/database/tables/summaries.dart';
 import 'package:baishou/features/diary/data/repositories/diary_repository_impl.dart';
 import 'package:baishou/features/diary/domain/repositories/diary_repository.dart';
 import 'package:baishou/features/summary/data/repositories/summary_repository_impl.dart';
-import 'package:baishou/features/summary/domain/entities/summary.dart';
 import 'package:baishou/features/summary/domain/repositories/summary_repository.dart';
 import 'package:baishou/features/summary/domain/services/missing_summary_detector.dart'; // 用于 MissingSummary
 import 'package:baishou/source/prompts/monthly_prompt.dart';
@@ -16,9 +15,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import 'package:baishou/core/services/api_config_service.dart';
+import 'package:baishou/core/models/ai_provider_model.dart';
 
 part 'summary_generator_service.g.dart';
 
+/// 总结生成服务
+/// 负责协调日记/总结仓库数据，并根据选定的 AI 供应商生成多维度的总结。
 class SummaryGeneratorService {
   final DiaryRepository _diaryRepo;
   final SummaryRepository _summaryRepo;
@@ -26,20 +28,16 @@ class SummaryGeneratorService {
 
   SummaryGeneratorService(this._diaryRepo, this._summaryRepo, this._ref);
 
-  /// 为给定的缺失项生成总结。
-  /// 返回状态消息/块的流，最后以最终的 Markdown 内容结束。
-  ///
-  /// 流程：
-  /// 1. 获取原始数据（周记用日记；月报/季报用总结）。
-  /// 2. 基于模板构建 Prompt。
-  /// 3. 调用 Gemini API。
-  /// 4. 返回结果。
+  /// 为特定的总结目标生成内容。
+  /// [target] 描述了要生成的总结类型和时间范围。
+  /// 返回一个字符串流，包含状态更新（以 "STATUS:" 开头）或最终生成的 Markdown。
   Stream<String> generate(MissingSummary target) async* {
     yield 'STATUS:正在读取数据...';
 
     // 获取当前配置的模型名称
     final apiConfig = _ref.read(apiConfigServiceProvider);
-    final modelName = apiConfig.model.isEmpty ? 'AI' : apiConfig.model;
+    final providerId = apiConfig.globalSummaryProviderId;
+    final modelName = apiConfig.globalSummaryModelId;
 
     String contextData = '';
     String promptTemplate = '';
@@ -83,7 +81,12 @@ class SummaryGeneratorService {
 
       yield 'STATUS:正在思考 ($modelName)...';
 
-      final generatedContent = await _callApi(promptTemplate, contextData);
+      final generatedContent = await _callApi(
+        providerId,
+        modelName,
+        promptTemplate,
+        contextData,
+      );
 
       yield generatedContent;
     } catch (e) {
@@ -94,6 +97,7 @@ class SummaryGeneratorService {
     }
   }
 
+  /// 构建周记所需的上下文数据（日记列表）
   Future<String> _buildWeeklyContext(DateTime start, DateTime end) async {
     final diaries = await _diaryRepo.getDiariesInRange(start, end);
     if (diaries.isEmpty) return '';
@@ -110,11 +114,10 @@ class SummaryGeneratorService {
     return buffer.toString();
   }
 
+  /// 构建月报所需的上下文数据（周记列表）
   Future<String> _buildMonthlyContext(DateTime start, DateTime end) async {
     // 获取从指定开始日期之后的所有总结
-    // 注意：Repository 的 getSummaries(start, end) 是严格包含 (startDate >= start AND endDate <= end)
-    // 但周记可能跨月（例如1月30日-2月5日），根据 MissingSummaryDetector 的逻辑，它被分配给开始日期所在的月份。
-    // 因此，我们需要获取所有 startDate 在该月份内的周记。
+    // 获取所有 startDate 在该月份内的周记。
     final summaries = await _summaryRepo.getSummaries(start: start);
 
     final weeklies = summaries
@@ -136,8 +139,9 @@ class SummaryGeneratorService {
     return buffer.toString();
   }
 
+  /// 构建季报所需的上下文数据（月报列表）
   Future<String> _buildQuarterlyContext(DateTime start, DateTime end) async {
-    // 同上，放宽结束日期限制
+    // 获取 startDate 在该季度内的所有月报
     final summaries = await _summaryRepo.getSummaries(start: start);
     final monthlies = summaries
         .where((s) => s.type == SummaryType.monthly)
@@ -155,8 +159,8 @@ class SummaryGeneratorService {
     return buffer.toString();
   }
 
+  /// 构建年鉴所需的上下文数据（优先使用季报，回退至月报）
   Future<String> _buildYearlyContext(DateTime start, DateTime end) async {
-    // 同上
     final summaries = await _summaryRepo.getSummaries(start: start);
     // 优先使用季报
     final quarterlies = summaries
@@ -196,38 +200,55 @@ class SummaryGeneratorService {
 
   // _getWeeklyPrompt 已移除，改为从 lib/source/prompts/weekly_prompt.dart 导入
 
-  Future<String> _callApi(String prompt, String data) async {
+  /// 统一的 API 调用入口
+  Future<String> _callApi(
+    String providerId,
+    String modelId,
+    String prompt,
+    String data,
+  ) async {
     final apiConfig = _ref.read(apiConfigServiceProvider);
-    final provider = apiConfig.provider;
-    final apiKey = apiConfig.apiKey;
+    final provider = apiConfig.getProvider(providerId);
+
+    if (provider == null) {
+      throw Exception('未找到对应的 AI 配置 ($providerId)。请在设置中重新选择全局模型。');
+    }
+
+    final apiKey = provider.apiKey;
 
     // 如果未配置 Key，抛出异常
     if (apiKey.isEmpty || apiKey == 'YOUR_API_KEY_HERE') {
       throw Exception('请先在"设置"中配置 API Key (Settings -> AI Config)');
     }
 
-    if (provider == AiProvider.gemini) {
-      return _callGemini(prompt, data, apiConfig);
+    if (provider.type == ProviderType.gemini) {
+      return _callGemini(prompt, data, provider, modelId);
     } else {
-      return _callOpenAi(prompt, data, apiConfig);
+      return _callOpenAi(prompt, data, provider, modelId);
     }
   }
 
-  Future<void> testConnection(ApiConfigService config) async {
+  /// 测试供应商连接
+  Future<void> testConnection(AiProviderModel provider) async {
     const testPrompt = '你好！';
     const testData = '';
+    final testModel = provider.models.isNotEmpty
+        ? provider.models.first
+        : 'test-model';
 
     try {
-      if (config.provider == AiProvider.gemini) {
-        await _callGemini(testPrompt, testData, config);
+      if (provider.type == ProviderType.gemini) {
+        await _callGemini(testPrompt, testData, provider, testModel);
       } else {
-        await _callOpenAi(testPrompt, testData, config);
+        await _callOpenAi(testPrompt, testData, provider, testModel);
       }
     } catch (e) {
       throw Exception(_sanitizeError(e));
     }
   }
 
+  /// 错误脱敏与汉化
+  /// 隐藏 API Key 并将常见的网络错误转换为用户友好的中文提示。
   String _sanitizeError(Object e) {
     var errorMsg = e.toString();
 
@@ -251,26 +272,25 @@ class SummaryGeneratorService {
     return errorMsg;
   }
 
+  /// 调用 Gemini API
   Future<String> _callGemini(
     String prompt,
     String data,
-    ApiConfigService config,
+    AiProviderModel provider,
+    String model,
   ) async {
-    final model = config.model;
     if (model.isEmpty) {
-      throw Exception(
-        '未配置模型名称。请在"设置"中配置模型名称 (Settings -> AI Config -> Model Name)',
-      );
+      throw Exception('未配置模型。请在"设置"中配置全局对话模型 (Settings -> AI Config -> 默认模型)');
     }
 
     // Gemini 允许 Base URL 为空，默认为官方 v1beta
     // 如果用户填了 Base URL（例如代理），则使用用户填的
-    final baseUrl = config.baseUrl.isNotEmpty
-        ? config.baseUrl
+    final baseUrl = provider.baseUrl.isNotEmpty
+        ? provider.baseUrl
         : 'https://generativelanguage.googleapis.com/v1beta';
 
     final uri = Uri.parse(
-      '$baseUrl/models/$model:generateContent?key=${config.apiKey}',
+      '$baseUrl/models/$model:generateContent?key=${provider.apiKey}',
     );
 
     final response = await http
@@ -282,11 +302,10 @@ class SummaryGeneratorService {
               {
                 'parts': [
                   {'text': prompt},
-                  {'text': data},
                 ],
               },
             ],
-            'generationConfig': {'temperature': 0.7, 'maxOutputTokens': 8192},
+            'generationConfig': {'maxOutputTokens': 8192},
           }),
         )
         .timeout(
@@ -298,7 +317,7 @@ class SummaryGeneratorService {
       final json = jsonDecode(response.body);
 
       if (json['candidates'] == null || (json['candidates'] as List).isEmpty) {
-        // Check for promptFeedback if available
+        // 尝试获取 promptFeedback（如果内容被屏蔽）
         final feedback = json['promptFeedback'];
         throw Exception(
           'Gemini 返回无法生成内容 (Candidates Empty). Feedback: $feedback',
@@ -330,19 +349,20 @@ class SummaryGeneratorService {
     }
   }
 
+  /// 调用 OpenAI 兼容接口
   Future<String> _callOpenAi(
     String prompt,
     String data,
-    ApiConfigService config,
+    AiProviderModel provider,
+    String model,
   ) async {
-    final model = config.model;
     if (model.isEmpty) {
       throw Exception(
-        '未配置模型名称。请在"设置"中配置模型名称 (Settings -> AI Config -> Model Name)',
+        '未配置模型。请在"设置"中配置全局对话模型 (Settings -> AI Config -> 默认对话模型)',
       );
     }
 
-    var baseUrl = config.baseUrl;
+    var baseUrl = provider.baseUrl;
     if (baseUrl.isEmpty) {
       throw Exception(
         '使用 OpenAI 兼容模式时，必须配置 Base URL (如 https://api.openai.com/v1)',
@@ -364,7 +384,7 @@ class SummaryGeneratorService {
           uri,
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': 'Bearer ${config.apiKey}',
+            'Authorization': 'Bearer ${provider.apiKey}',
           },
           body: jsonEncode({
             'model': model,
@@ -374,7 +394,6 @@ class SummaryGeneratorService {
                 'content': '$prompt\n\n$data', // 将 prompt 和 data 拼接
               },
             ],
-            'temperature': 0.7,
             'max_tokens': 8192,
           }),
         )

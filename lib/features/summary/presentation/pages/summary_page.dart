@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:baishou/core/database/tables/summaries.dart';
 import 'package:baishou/core/theme/app_theme.dart';
 import 'package:baishou/core/widgets/app_toast.dart';
@@ -5,48 +6,54 @@ import 'package:baishou/features/summary/data/repositories/summary_repository_im
 
 import 'package:baishou/core/widgets/year_month_picker_sheet.dart';
 import 'package:baishou/core/widgets/year_picker_sheet.dart';
-import 'package:baishou/features/settings/presentation/pages/ai_config_page.dart';
 import 'package:baishou/features/summary/presentation/widgets/summary_dashboard_view.dart';
 import 'package:baishou/features/summary/presentation/widgets/summary_list_view.dart';
 import 'package:baishou/features/summary/presentation/widgets/summary_raw_data_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+/// 总结主页面
+/// 聚合了数据仪表盘（各维度总结）与原始数据导出两个核心子视图。
 class SummaryPage extends ConsumerWidget {
   const SummaryPage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    bool isMobile = false;
+    try {
+      if (Platform.isAndroid || Platform.isIOS) {
+        isMobile = true;
+      }
+    } catch (e) {}
+
     return DefaultTabController(
       length: 3,
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('AI 总结'),
-          bottom: const TabBar(
-            tabs: [
-              Tab(text: '仪表盘'),
-              Tab(text: '原始数据'),
-              Tab(text: '历史归档'),
+      child: SafeArea(
+        top: isMobile,
+        bottom: false,
+        child: Scaffold(
+          backgroundColor: Colors.transparent,
+          appBar: AppBar(
+            title: const Text('AI 总结'),
+            centerTitle: false,
+            backgroundColor: Colors.transparent,
+            surfaceTintColor: Colors.transparent,
+            elevation: 0,
+            bottom: const TabBar(
+              tabs: [
+                Tab(text: '仪表盘'),
+                Tab(text: '原始数据'),
+                Tab(text: '历史归档'),
+              ],
+            ),
+          ),
+          body: const TabBarView(
+            children: [
+              SummaryDashboardView(),
+              SummaryRawDataView(),
+              _SummaryArchiveView(),
             ],
           ),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.settings_outlined),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const AiConfigPage()),
-                );
-              },
-            ),
-          ],
-        ),
-        body: const TabBarView(
-          children: [
-            SummaryDashboardView(),
-            SummaryRawDataView(),
-            _SummaryArchiveView(),
-          ],
         ),
       ),
     );
@@ -462,7 +469,7 @@ class __AddSummaryDialogState extends ConsumerState<_AddSummaryDialog> {
   Future<void> _save() async {
     final content = _contentController.text.trim();
     if (content.isEmpty) {
-      AppToast.show(context, '请输入内容');
+      AppToast.showSuccess(context, '请输入内容');
       return;
     }
 
@@ -478,11 +485,11 @@ class __AddSummaryDialogState extends ConsumerState<_AddSummaryDialog> {
           );
       if (mounted) {
         Navigator.pop(context);
-        AppToast.show(context, '已添加');
+        AppToast.showSuccess(context, '已添加');
       }
     } catch (e) {
       if (mounted) {
-        AppToast.show(context, '添加失败: $e');
+        AppToast.showError(context, '添加失败: $e');
         setState(() => _isLoading = false);
       }
     }

@@ -1,9 +1,13 @@
+import 'dart:io';
+
 import 'package:baishou/features/home/presentation/widgets/desktop_insights_sidebar.dart';
 import 'package:baishou/features/home/presentation/widgets/desktop_sidebar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+/// 主级架构视图
+/// 负责分发移动端（底部导航）与桌面端（侧边栏）布局，切换不同的功能分支。
 class MainScaffold extends ConsumerStatefulWidget {
   final StatefulNavigationShell navigationShell;
 
@@ -21,13 +25,31 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
     );
   }
 
+  /// 将 Shell Branch 索引映射为移动端底栏索引
+  /// Branch 0 → Nav 0 (时间轴), Branch 1 → Nav 1 (总结), Branch 3 → Nav 2 (设置)
+  int _getMobileNavIndex() {
+    final branchIndex = widget.navigationShell.currentIndex;
+    if (branchIndex == 3) return 2; // 设置
+    if (branchIndex <= 1) return branchIndex;
+    return 0; // 默认回到时间轴（branch 2 是桌面端专用的同步页）
+  }
+
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        // 响应式阈值
-        final bool isDesktop = constraints.maxWidth >= 700;
-        final bool showInsights = constraints.maxWidth >= 1100;
+        // 响应式与设备类型判断
+        // 逻辑：Windows/Linux/macOS 始终显示桌面版；
+        // Android/iOS 根据屏幕宽度判断（手机 vs Pad）。
+        final bool isDesktopOS =
+            Platform.isWindows || Platform.isLinux || Platform.isMacOS;
+        final bool isLargeScreen = constraints.maxWidth >= 700;
+        final bool isDesktop = isDesktopOS || isLargeScreen;
+
+        final bool showInsights =
+            isDesktop &&
+            constraints.maxWidth >= 1100 &&
+            widget.navigationShell.currentIndex == 0;
 
         if (isDesktop) {
           return Scaffold(
@@ -35,7 +57,10 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
             body: Row(
               children: [
                 // 左侧导航栏 (桌面端)
-                DesktopSidebar(navigationShell: widget.navigationShell),
+                DesktopSidebar(
+                  navigationShell: widget.navigationShell,
+                  onBranchChange: _goBranch,
+                ),
 
                 // 主内容区域
                 Expanded(
@@ -65,10 +90,20 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
 
         // 移动端布局
         return Scaffold(
-          body: widget.navigationShell,
+          body: Container(
+            color: Theme.of(context).colorScheme.surface,
+            child: widget.navigationShell,
+          ),
           bottomNavigationBar: NavigationBar(
-            selectedIndex: widget.navigationShell.currentIndex,
-            onDestinationSelected: _goBranch,
+            selectedIndex: _getMobileNavIndex(),
+            onDestinationSelected: (index) {
+              // 移动端映射：0=时间轴, 1=总结, 2=设置(branch 3)
+              if (index == 2) {
+                _goBranch(3); // 设置页面位于 branch 3
+              } else {
+                _goBranch(index);
+              }
+            },
             destinations: const [
               NavigationDestination(
                 icon: Icon(Icons.timeline_outlined),

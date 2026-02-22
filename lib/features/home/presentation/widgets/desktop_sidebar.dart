@@ -6,26 +6,27 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 /// 桌面端侧边栏组件
-/// 符合 "白守" 的数据主权与记忆压缩理念设计
+/// 实现多级导航、用户信息展示以及与应用核心理念（数据主权）一致的视觉风格。
 class DesktopSidebar extends ConsumerWidget {
-  final StatefulNavigationShell navigationShell;
+  final StatefulNavigationShell navigationShell; // 关联的 Shell 导航引用
+  /// 切换分支的回调
+  final void Function(int index) onBranchChange;
 
-  const DesktopSidebar({super.key, required this.navigationShell});
-
-  void _goBranch(int index) {
-    navigationShell.goBranch(
-      index,
-      initialLocation: index == navigationShell.currentIndex,
-    );
-  }
+  const DesktopSidebar({
+    super.key,
+    required this.navigationShell,
+    required this.onBranchChange,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final userProfile = ref.watch(userProfileProvider);
 
+    final isSystemSettings = navigationShell.currentIndex == 2;
+
     return Container(
-      width: 260,
+      width: 230,
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         border: Border(
@@ -42,24 +43,12 @@ class DesktopSidebar extends ConsumerWidget {
             padding: const EdgeInsets.all(24.0),
             child: Row(
               children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.primary,
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: theme.colorScheme.primary.withOpacity(0.3),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: const Icon(
-                    Icons.lock_person_rounded,
-                    color: Colors.white,
-                    size: 24,
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.asset(
+                    'assets/icon/icon.png',
+                    width: 40,
+                    height: 40,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -67,17 +56,17 @@ class DesktopSidebar extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '白守 BaiShou',
+                      '白守',
                       style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                         letterSpacing: -0.5,
                       ),
                     ),
                     Text(
-                      '数据主权 & 记忆压缩',
-                      style: theme.textTheme.labelSmall?.copyWith(
+                      '留下你的珍贵回忆',
+                      style: theme.textTheme.labelMedium?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
-                        fontWeight: FontWeight.w500,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ],
@@ -91,43 +80,37 @@ class DesktopSidebar extends ConsumerWidget {
           // 导航列表
           Expanded(
             child: ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 0),
               children: [
                 _NavMenuItem(
-                  icon: Icons.timeline_rounded,
+                  icon: Icons.timeline,
                   label: '时间轴',
                   isSelected: navigationShell.currentIndex == 0,
-                  onTap: () => _goBranch(0),
+                  onTap: () => onBranchChange(0),
                 ),
                 _NavMenuItem(
                   icon: Icons.auto_stories_rounded,
                   label: '多维总结',
                   isSelected: navigationShell.currentIndex == 1,
-                  onTap: () => _goBranch(1),
+                  onTap: () => onBranchChange(1),
                 ),
                 _NavMenuItem(
-                  icon: Icons.label_outline_rounded,
-                  label: '标签管理',
-                  isSelected: false, // 暂未实现
-                  onTap: () {},
+                  icon: Icons.sync_rounded,
+                  label: '数据同步',
+                  isSelected: navigationShell.currentIndex == 2,
+                  onTap: () => onBranchChange(2),
                 ),
-                _NavMenuItem(
-                  icon: Icons.science_outlined,
-                  label: 'AI 实验室',
-                  isSelected: false, // 暂未实现
-                  onTap: () {},
+                const SizedBox(height: 16),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16),
+                  child: Divider(),
                 ),
-                _NavMenuItem(
-                  icon: Icons.shield_moon_outlined,
-                  label: '数据安全',
-                  isSelected: false, // 暂未实现
-                  onTap: () {},
-                ),
+                const SizedBox(height: 16),
                 _NavMenuItem(
                   icon: Icons.settings_outlined,
-                  label: '系统设置',
-                  isSelected: navigationShell.currentIndex == 2,
-                  onTap: () => _goBranch(2),
+                  label: '全局设置',
+                  isSelected: false,
+                  onTap: () => context.push('/settings'),
                 ),
               ],
             ),
@@ -156,54 +139,6 @@ class DesktopSidebar extends ConsumerWidget {
       ),
       child: Column(
         children: [
-          // 存储进度条
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    '本地加密存储',
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Text(
-                    '65%',
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: theme.colorScheme.primary,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(4),
-                child: LinearProgressIndicator(
-                  value: 0.65,
-                  minHeight: 6,
-                  backgroundColor: theme.colorScheme.surfaceVariant,
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                    theme.colorScheme.primary,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                '12.5GB / 20GB (已加密)',
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                  fontSize: 10,
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 24),
-
           // 用户信息
           Row(
             children: [
@@ -240,13 +175,6 @@ class DesktopSidebar extends ConsumerWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    Text(
-                      '专业版用户', // 或是根据逻辑显示
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                        fontSize: 10,
-                      ),
-                    ),
                   ],
                 ),
               ),
@@ -258,6 +186,8 @@ class DesktopSidebar extends ConsumerWidget {
   }
 }
 
+/// 侧边栏导航菜单项组件
+/// 采用与系统设置页面一致的左侧边框指示器风格，消除点击闪烁。
 class _NavMenuItem extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -273,42 +203,48 @@ class _NavMenuItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
-      child: InkWell(
+      padding: const EdgeInsets.only(bottom: 2),
+      child: GestureDetector(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: BoxDecoration(
-            color: isSelected
-                ? theme.colorScheme.primaryContainer
-                : Colors.transparent,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Row(
-            children: [
-              Icon(
-                icon,
-                size: 22,
-                color: isSelected
-                    ? theme.colorScheme.onPrimaryContainer
-                    : theme.colorScheme.onSurfaceVariant,
-              ),
-              const SizedBox(width: 16),
-              Text(
-                label,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                  color: isSelected
-                      ? theme.colorScheme.onPrimaryContainer
-                      : theme.colorScheme.onSurfaceVariant,
+        child: MouseRegion(
+          cursor: SystemMouseCursors.click,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? colorScheme.primaryContainer.withOpacity(0.4)
+                  : Colors.transparent,
+              border: Border(
+                left: BorderSide(
+                  color: isSelected ? colorScheme.primary : Colors.transparent,
+                  width: 4,
                 ),
               ),
-            ],
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  icon,
+                  size: 20,
+                  color: isSelected
+                      ? colorScheme.primary
+                      : colorScheme.onSurfaceVariant,
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  label,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                    color: isSelected
+                        ? colorScheme.primary
+                        : colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

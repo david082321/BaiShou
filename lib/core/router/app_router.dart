@@ -3,6 +3,8 @@ import 'package:baishou/features/diary/presentation/pages/diary_list_page.dart';
 import 'package:baishou/features/home/presentation/pages/main_scaffold.dart';
 import 'package:baishou/features/onboarding/data/providers/onboarding_provider.dart';
 import 'package:baishou/features/onboarding/presentation/pages/onboarding_page.dart';
+
+import 'package:baishou/features/settings/presentation/pages/data_sync_page.dart';
 import 'package:baishou/features/settings/presentation/pages/settings_page.dart';
 import 'package:baishou/features/summary/presentation/pages/summary_page.dart';
 import 'package:flutter/material.dart';
@@ -19,7 +21,7 @@ class PlaceholderHomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('白守 BaiShou')),
+      appBar: AppBar(title: const Text('白守')),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -39,6 +41,8 @@ class PlaceholderHomePage extends StatelessWidget {
   }
 }
 
+/// 全局路由配置
+/// 使用 GoRouter 处理页面导航、重定向（如开启引导页）以及子路由嵌套。
 @riverpod
 GoRouter goRouter(Ref ref) {
   final rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -51,15 +55,12 @@ GoRouter goRouter(Ref ref) {
     initialLocation: '/',
     debugLogDiagnostics: true,
     redirect: (context, state) {
-      // If onboarding is not completed, redirect to /onboarding
-      // But only if we are not already there
       final isGoingToOnboarding = state.matchedLocation == '/onboarding';
 
       if (!onboardingCompleted && !isGoingToOnboarding) {
         return '/onboarding';
       }
 
-      // If completed and trying to go to onboarding, redirect to home
       if (onboardingCompleted && isGoingToOnboarding) {
         return '/';
       }
@@ -72,7 +73,6 @@ GoRouter goRouter(Ref ref) {
         builder: (context, state) => const OnboardingPage(),
       ),
       StatefulShellRoute.indexedStack(
-        // ... existing routes ...
         builder: (context, state, navigationShell) {
           return MainScaffold(navigationShell: navigationShell);
         },
@@ -96,14 +96,27 @@ GoRouter goRouter(Ref ref) {
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: '/settings',
+                path: '/sync',
+                builder: (context, state) => const DataSyncPage(),
+              ),
+            ],
+          ),
+          // Branch 3: 设置页（移动端用）
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/settings-mobile',
                 builder: (context, state) => const SettingsPage(),
               ),
             ],
           ),
         ],
       ),
-      // Fullscreen routes (outside shell)
+      GoRoute(
+        parentNavigatorKey: rootNavigatorKey,
+        path: '/settings',
+        builder: (context, state) => const SettingsPage(),
+      ),
       GoRoute(
         parentNavigatorKey: rootNavigatorKey,
         path: '/diary/edit',
