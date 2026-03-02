@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import 'package:baishou/core/localization/locale_service.dart';
 
 /// 日记 card 组件
 /// 在列表中展示单篇日记的摘要信息，适配瀑布流的圆角阴影卡片风格。

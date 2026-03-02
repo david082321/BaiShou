@@ -1,6 +1,8 @@
 import 'dart:io';
-
-import 'package:baishou/core/database/app_database.dart';
+import 'package:baishou/features/diary/data/initial_data.dart';
+import 'package:baishou/features/diary/data/repositories/diary_repository_impl.dart';
+import 'package:baishou/features/diary/domain/entities/diary.dart';
+import 'package:baishou/core/database/app_database.dart' hide Diary;
 import 'package:baishou/core/widgets/app_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -23,10 +25,32 @@ class _DeveloperOptionsViewState extends ConsumerState<DeveloperOptionsView> {
   Future<void> _loadDemoData() async {
     setState(() => _isLoadingDemo = true);
     try {
-      AppToast.showError(
-        context,
-        t.developer.load_demo_failed(e: 'Not supported'),
-      );
+      final repo = ref.read(diaryRepositoryProvider);
+      final now = DateTime.now();
+
+      // 将 initial_data.dart 中的 Map 列表转换为实体列表
+      final demoEntries = initialDiaries.asMap().entries.map((entry) {
+        final idx = entry.key;
+        final map = entry.value;
+        final date = DateTime.parse(map['date'] as String);
+
+        return Diary(
+          id: now.millisecondsSinceEpoch - (idx * 1000),
+          date: date,
+          content: map['content'] as String,
+          tags: List<String>.from(map['tags'] as List? ?? []),
+          createdAt: date,
+          updatedAt: date,
+          mood: map['mood'] as String?,
+          weather: map['weather'] as String?,
+        );
+      }).toList();
+
+      await repo.batchSaveDiaries(demoEntries);
+
+      if (mounted) {
+        AppToast.showSuccess(context, t.developer.load_demo_success);
+      }
     } catch (e) {
       if (mounted) {
         AppToast.showError(

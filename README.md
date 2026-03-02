@@ -9,8 +9,6 @@
 
 关于Latte的设定，请看[Latte/角色设定.md](https://github.com/Anson-Trio/BaiShou/blob/main/Latte/%E8%A7%92%E8%89%B2%E8%AE%BE%E5%AE%9A.md)
 
-
-
 #### 简介
 
 **白守 (BaiShou)** 不仅仅是一个日记应用，它是为了对抗遗忘而构建的"灵魂容器"。
@@ -98,9 +96,9 @@ flutter run
 
 #### 📄 开源协议 (License)
 
-本项目采用 **GPL v3** 协议开源。
+本项目采用 **AGPLv3** (GNU Affero General Public License v3.0) 协议开源。
 
 - 客户端代码完全开源，鼓励社区参与改进。
-- 请遵守 GPL v3 协议：如果您修改了本项目的代码并发布，您的修改版本也必须开源。
+- 请遵守 AGPLv3 协议：如果您修改了本项目的代码并在网络上提供服务，您的修改版本也必须开源。
 
 ---

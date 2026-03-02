@@ -146,14 +146,14 @@ class _AboutPageState extends State<AboutPage> {
           const SizedBox(height: 8),
           Card(
             child: ListTile(
-              title: const Text('GPL v3.0'),
+              title: const Text('AGPL v3.0'),
               subtitle: const Text(
                 'Copyright (C) 2026 Anson, Kasumiame Sakura & Tenkou Akatsuki',
               ),
               trailing: const Icon(Icons.arrow_outward, size: 16),
               onTap: () {
                 launchUrl(
-                  Uri.parse('https://www.gnu.org/licenses/gpl-3.0.html'),
+                  Uri.parse('https://www.gnu.org/licenses/agpl-3.0.html'),
                 );
               },
             ),
