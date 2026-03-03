@@ -127,11 +127,7 @@ class _DiaryCardState extends State<DiaryCard> {
                                         ),
                                       ),
                                       child: Text(
-                                        t.common.months[widget
-                                                .diary
-                                                .date
-                                                .month -
-                                            1],
+                                        '${widget.diary.date.year} · ${t.common.months[widget.diary.date.month - 1]}',
                                         style: TextStyle(
                                           fontSize: 10,
                                           fontWeight: FontWeight.w900,
