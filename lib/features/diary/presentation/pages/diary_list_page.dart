@@ -194,8 +194,14 @@ class _DiaryListPageState extends ConsumerState<DiaryListPage> {
                             }
                           }
 
-                          // 重新排序并更新状态
-                          resultList.sort((a, b) => b.date.compareTo(a.date));
+                          // 重新排序并更新状态：
+                          // 1. date DESC (逻辑日期优先)
+                          // 2. id DESC (物理 ID 兜底，确保导入数据顺序确定)
+                          resultList.sort((a, b) {
+                            int cmp = b.date.compareTo(a.date);
+                            if (cmp != 0) return cmp;
+                            return b.id.compareTo(a.id);
+                          });
                           _allDiaries = resultList;
                         }
                       }

@@ -101,7 +101,7 @@ class DiaryRepositoryImpl implements DiaryRepository {
       FROM journals_index i
       LEFT JOIN journals_fts f ON i.id = f.rowid
       ${where != null ? 'WHERE $where' : ''}
-      ORDER BY i.date DESC, i.created_at DESC
+      ORDER BY i.date DESC, i.id DESC
     ''';
 
     if (limit != null) {
@@ -340,8 +340,9 @@ class DiaryRepositoryImpl implements DiaryRepository {
     // 使用联合游标查询：
     // 1. 日期比游标早的
     // 2. 日期相同但 ID 比游标小的 (处理同日期多条)
-    final fmt = DateFormat('yyyy-MM-dd');
-    final dateStr = fmt.format(dateCursor);
+    // 【关键修复】：这里不能用 yyyy-MM-dd 截断，因为数据库里存的是完整的 ISO8601。
+    // 如果截断了，会导致相同日期的项在逻辑上被判定为“相等”或因格式不匹配而失效。
+    final dateStr = dateCursor.toIso8601String();
 
     return _queryDiaries(
       where: 'i.date < ? OR (i.date = ? AND i.id < ?)',
