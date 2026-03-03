@@ -67,7 +67,7 @@ class JournalFileService extends _$JournalFileService {
   /// 写入日记到物理文件（覆盖写入当天全部内容）
   /// 日记按天切分，一天对应一个 `yyyy-MM-dd.md` 文件。
   Future<String> writeJournal(Diary diary) async {
-    final file = await _resolveDateTargetFile(diary.createdAt);
+    final file = await _resolveDateTargetFile(diary.date);
     final isNewFile = !file.existsSync();
 
     Map<String, dynamic> existingMeta = {};
@@ -165,7 +165,7 @@ class JournalFileService extends _$JournalFileService {
         mediaPaths: meta['mediaPaths'] != null
             ? List<String>.from(meta['mediaPaths'] as Iterable)
             : const [],
-        date: date,
+        date: date, // 确保返回的实体日期与物理文件名（logical date）对齐
       );
     } catch (e) {
       // Yaml 抛出异常的防崩退逻辑

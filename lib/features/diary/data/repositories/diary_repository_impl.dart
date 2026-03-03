@@ -1,8 +1,11 @@
 import 'package:baishou/i18n/strings.g.dart';
 import 'dart:async';
 import 'package:intl/intl.dart';
+import 'package:path/path.dart' as p;
 
+import 'package:baishou/features/diary/data/vault_index_notifier.dart';
 import 'package:baishou/features/diary/domain/entities/diary.dart';
+import 'package:baishou/features/diary/domain/entities/diary_meta.dart';
 import 'package:baishou/features/diary/domain/repositories/diary_repository.dart';
 import 'package:baishou/features/index/data/shadow_index_database.dart';
 import 'package:baishou/features/index/data/shadow_index_sync_service.dart';
@@ -16,6 +19,7 @@ class DiaryRepositoryImpl implements DiaryRepository {
   final ShadowIndexDatabase _dbService;
   final JournalFileService _fileService;
   final ShadowIndexSyncService _syncService;
+  final VaultIndex _vaultIndex;
 
   // ==========================================
   // 响应式流处理部分 (Reactive Stream)
@@ -26,7 +30,12 @@ class DiaryRepositoryImpl implements DiaryRepository {
   // 订阅了这个流的 UI 界面（如日记列表页）就会自动接收到推送并完成重绘。
   final _streamController = StreamController<List<Diary>>.broadcast();
 
-  DiaryRepositoryImpl(this._dbService, this._fileService, this._syncService) {
+  DiaryRepositoryImpl(
+    this._dbService,
+    this._fileService,
+    this._syncService,
+    this._vaultIndex,
+  ) {
     // 仓库初始化时，立即执行一次全量扫描，确保物理文件和数据库影子索引一致（支持手动删除同步）
     _initRepositoryData();
   }
@@ -151,11 +160,11 @@ class DiaryRepositoryImpl implements DiaryRepository {
     if (rows.isEmpty) return null;
 
     final row = rows.first;
-    final createdAtStr = row['created_at'] as String;
-    final createTarget = DateTime.parse(createdAtStr);
+    final dateStr = row['date'] as String;
+    final logicalDate = DateTime.parse(dateStr);
 
-    // [关键边界]：为了获得完整的结构（含附件），使用物理文件直接解析以获取全真实例
-    final diary = await _fileService.readJournal(createTarget);
+    // [关键边界]：使用逻辑日期查找物理文件
+    final diary = await _fileService.readJournal(logicalDate);
     return diary;
   }
 
@@ -178,6 +187,7 @@ class DiaryRepositoryImpl implements DiaryRepository {
 
     // 如果是更新操作，需要检查日期是否发生变化，以便清理旧的物理文件
     DateTime? oldFileDate;
+    DateTime? existingCreatedAt;
     if (id != null) {
       final db = await _dbService.database;
       final rows = await db.query(
@@ -189,10 +199,13 @@ class DiaryRepositoryImpl implements DiaryRepository {
       if (rows.isNotEmpty) {
         final oldDateStr = rows.first['date'] as String;
         final oldCreatedAtStr = rows.first['created_at'] as String;
+        existingCreatedAt = DateTime.parse(oldCreatedAtStr);
+
         // 比较逻辑日期 YYYY-MM-DD
         final fmt = DateFormat('yyyy-MM-dd');
         if (oldDateStr != fmt.format(date)) {
-          oldFileDate = DateTime.parse(oldCreatedAtStr);
+          // 如果逻辑日期变了，我们需要记录旧日期以便删除旧文件
+          oldFileDate = DateTime.parse(oldDateStr);
         }
       }
     }
@@ -200,7 +213,7 @@ class DiaryRepositoryImpl implements DiaryRepository {
     final diary = Diary(
       id: targetId,
       date: date,
-      createdAt: id == null ? now : date, // 编辑模式下将 createdAt 对齐到目标 date 以移动文件
+      createdAt: existingCreatedAt ?? now, // 保持真实的创建时间
       updatedAt: now,
       content: content,
       tags: tags,
@@ -226,18 +239,31 @@ class DiaryRepositoryImpl implements DiaryRepository {
         }
       }
 
-      // 第二步：保存物理文件 (Markdown)
-      // 这是“数据主权”的物理载体。即使应用没了，这行代码产生的文件也是你永恒的记忆备份。
+      // 第二步：suppress watcher 并保存物理文件 (Markdown)
+      final filePath = p.join(
+        DateFormat('yyyy/MM').format(diary.date),
+        '${DateFormat('yyyy-MM-dd').format(diary.date)}.md',
+      );
+      _vaultIndex.suppressPath(filePath);
       await _fileService.writeJournal(diary);
 
-      // 第二步：将这次保存操作强同步给 SQLite 影子图谱
-      // 影子索引不存储正文（只存搜索分词），它是物理文件的镜像，用于支撑高性能的列表展示和全文搜索。
-      // 我们以 createdAt 为基准路径查找物理文件并进行索引同步。
-      await _syncService.syncJournal(diary.createdAt);
+      // 第三步：将这次保存操作强同步给 SQLite 影子图谱
+      await _syncService.syncJournal(diary.date);
 
-      // 第三步：刷新 UI 流
-      // 完成“双写”后，最后一步就是通过广播流通知所有正在展示日记列表的 UI：
-      // “喂，数据变了，赶紧重新加载并显示最新的一条吧！”
+      // 第四步：直接更新 VaultIndex（UI 立即响应）
+      _vaultIndex.upsert(
+        DiaryMeta(
+          id: diary.id,
+          date: diary.date,
+          preview: diary.content.length > 120
+              ? diary.content.substring(0, 120)
+              : diary.content,
+          tags: diary.tags,
+          updatedAt: diary.updatedAt,
+        ),
+      );
+
+      // 兼容旧流
       _emitAllDiaries();
 
       // --- 核心“双写”逻辑结束 ---
@@ -253,7 +279,7 @@ class DiaryRepositoryImpl implements DiaryRepository {
   Future<void> batchSaveDiaries(List<Diary> diaries) async {
     for (final d in diaries) {
       await _fileService.writeJournal(d);
-      await _syncService.syncJournal(d.createdAt);
+      await _syncService.syncJournal(d.date);
     }
     _emitAllDiaries();
   }
@@ -264,17 +290,22 @@ class DiaryRepositoryImpl implements DiaryRepository {
     // 1. 首先查询数据库，获取该日记的创建时间，以便定位物理文件
     final rows = await db.query(
       'journals_index',
-      columns: ['created_at'],
+      columns: ['date'],
       where: 'id = ?',
       whereArgs: [id],
     );
 
     if (rows.isNotEmpty) {
-      // 2. 尝试同步删除物理磁盘上的 Markdown 文件
-      final createdAtStr = rows.first['created_at'] as String;
+      // 2. suppress 路径，再尝试同步删除物理磁盘上的 Markdown 文件
+      final dateStr = rows.first['date'] as String;
       try {
-        final createdAt = DateTime.parse(createdAtStr);
-        await _fileService.deleteJournalFile(createdAt);
+        final logicalDate = DateTime.parse(dateStr);
+        final filePath = p.join(
+          DateFormat('yyyy/MM').format(logicalDate),
+          '${DateFormat('yyyy-MM-dd').format(logicalDate)}.md',
+        );
+        _vaultIndex.suppressPath(filePath);
+        await _fileService.deleteJournalFile(logicalDate);
       } catch (e) {
         // 物理删除失败后，我们依然继续删除索引，但需要把这个“部分失效”的信息传给 UI
         await _dbService.deleteJournalIndex(id);
@@ -286,7 +317,10 @@ class DiaryRepositoryImpl implements DiaryRepository {
     // 3. 删除影子索引表中的记录
     await _dbService.deleteJournalIndex(id);
 
-    // 4. 发送流通知，触发 UI 刷新
+    // 4. 直接从 VaultIndex 内存删除（UI 立即响应）
+    _vaultIndex.remove(id);
+
+    // 5. 兼容旧流
     _emitAllDiaries();
   }
 
@@ -357,8 +391,14 @@ DiaryRepository diaryRepository(Ref ref) {
   final dbService = ref.watch(shadowIndexDatabaseProvider.notifier);
   final fileService = ref.watch(journalFileServiceProvider.notifier);
   final syncService = ref.watch(shadowIndexSyncServiceProvider.notifier);
+  final vaultIndex = ref.watch(vaultIndexProvider.notifier);
 
-  final repo = DiaryRepositoryImpl(dbService, fileService, syncService);
+  final repo = DiaryRepositoryImpl(
+    dbService,
+    fileService,
+    syncService,
+    vaultIndex,
+  );
 
   ref.onDispose(() {
     repo.dispose();
