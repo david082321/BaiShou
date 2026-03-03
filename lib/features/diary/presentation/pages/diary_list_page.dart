@@ -4,7 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:baishou/core/theme/app_theme.dart';
 import 'package:baishou/core/widgets/year_month_picker_sheet.dart';
 import 'package:baishou/features/diary/data/repositories/diary_repository_impl.dart';
+import 'package:baishou/features/diary/data/vault_index_notifier.dart';
 import 'package:baishou/features/diary/domain/entities/diary.dart';
+import 'package:baishou/features/diary/domain/entities/diary_meta.dart';
 import 'package:baishou/features/diary/presentation/widgets/diary_card.dart';
 import 'package:collection/collection.dart';
 import 'package:go_router/go_router.dart';
@@ -14,7 +16,8 @@ import 'package:baishou/i18n/strings.g.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 
 /// 日记列表页面
-/// 使用 MasonryGridView 实现类似草稿纸变体3的瀑布流。
+/// 架构：UI 直接绑定内存 VaultIndex（Obsidian 模式），无游标分页，无 StreamSubscription。
+/// VaultIndex 全量持有元数据，CRUD 直接更新内存，watcher 只处理外部变化。
 class DiaryListPage extends ConsumerStatefulWidget {
   const DiaryListPage({super.key});
 
@@ -27,68 +30,6 @@ class _DiaryListPageState extends ConsumerState<DiaryListPage> {
   String _searchQuery = '';
   bool _isSearching = false;
   final _scrollController = ScrollController();
-  List<Diary> _allDiaries = [];
-  bool _isLoadingMore = false;
-  bool _hasMore = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _scrollController.addListener(_onScroll);
-  }
-
-  void _onScroll() {
-    if (_scrollController.position.pixels >=
-            _scrollController.position.maxScrollExtent - 200 &&
-        !_isLoadingMore &&
-        _hasMore) {
-      _loadMore();
-    }
-  }
-
-  Future<void> _loadMore() async {
-    if (_allDiaries.isEmpty) return;
-
-    setState(() {
-      _isLoadingMore = true;
-    });
-
-    try {
-      final lastDiary = _allDiaries.last;
-      final nextBatch = await ref
-          .read(diaryRepositoryProvider)
-          .getDiariesAfter(
-            dateCursor: lastDiary.date,
-            idCursor: lastDiary.id,
-            limit: 50,
-          );
-
-      if (mounted) {
-        setState(() {
-          if (nextBatch.isEmpty) {
-            _hasMore = false;
-          } else {
-            // 追加新数据，并去重（以防万一）
-            final existingIds = _allDiaries.map((e) => e.id).toSet();
-            final uniqueNext = nextBatch
-                .where((e) => !existingIds.contains(e.id))
-                .toList();
-            _allDiaries.addAll(uniqueNext);
-            if (nextBatch.length < 50) {
-              _hasMore = false;
-            }
-          }
-          _isLoadingMore = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isLoadingMore = false;
-        });
-      }
-    }
-  }
 
   @override
   void dispose() {
@@ -99,9 +40,9 @@ class _DiaryListPageState extends ConsumerState<DiaryListPage> {
   @override
   Widget build(BuildContext context) {
     ref.watch(localeProvider);
-    final diaryStream = ref
-        .watch(diaryRepositoryProvider)
-        .watchDiaries(limit: 50);
+
+    // 直接绑定内存 VaultIndex：增删改不重置列表，不闪烁，不丢失滚动位置
+    final allMeta = ref.watch(vaultIndexProvider);
 
     bool isMobile = false;
     try {
@@ -115,7 +56,7 @@ class _DiaryListPageState extends ConsumerState<DiaryListPage> {
       top: isMobile,
       bottom: false,
       child: Scaffold(
-        backgroundColor: Colors.transparent, // 让底层 Scaffold 的颜色透上来
+        backgroundColor: Colors.transparent,
         appBar: AppBar(
           centerTitle: false,
           backgroundColor: Theme.of(
@@ -145,10 +86,6 @@ class _DiaryListPageState extends ConsumerState<DiaryListPage> {
                     },
                     icon: Icon(_isSearching ? Icons.close : Icons.search),
                   ),
-                  IconButton(
-                    onPressed: () {},
-                    icon: const Icon(Icons.filter_list),
-                  ),
                 ],
         ),
         body: Stack(
@@ -156,59 +93,17 @@ class _DiaryListPageState extends ConsumerState<DiaryListPage> {
             Column(
               children: [
                 Expanded(
-                  child: StreamBuilder<List<Diary>>(
-                    stream: diaryStream,
-                    builder: (context, snapshot) {
-                      if (snapshot.hasError) {
-                        return Center(
-                          child: Text('${t.common.error}: ${snapshot.error}'),
-                        );
-                      }
-                      if (!snapshot.hasData && _allDiaries.isEmpty) {
+                  child: Builder(
+                    builder: (context) {
+                      // VaultIndex 初始为空列表（await loading），直接显示 loading
+                      if (allMeta.isEmpty &&
+                          ref.read(vaultIndexProvider).isEmpty) {
                         return const Center(child: CircularProgressIndicator());
                       }
 
-                      if (snapshot.hasData) {
-                        final firstPage = snapshot.data!;
-                        // 合并逻辑：
-                        // 如果 allDiaries 为空，则直接初始化
-                        // 如果不为空，则用首屏数据替换 allDiaries 的前部，保留之前 loadMore 加载的内容
-                        if (_allDiaries.isEmpty) {
-                          _allDiaries = List.from(firstPage);
-                        } else {
-                          // 这里采用简单的合并策略：
-                          // 如果首屏数据变化（可能有增删改），我们替换前 50 条。
-                          // 为了简单起见，如果首屏数据包含已有的后续内容，
-                          // 我们只需要保证 _allDiaries 整体有序且最新。
+                      final filteredMeta = _getFilteredMeta(allMeta);
 
-                          // 精细化合并：
-                          final resultList = List<Diary>.from(firstPage);
-                          final firstPageIds = firstPage
-                              .map((e) => e.id)
-                              .toSet();
-
-                          // 将原缓存中不在第一页的部分追加回来
-                          for (var d in _allDiaries) {
-                            if (!firstPageIds.contains(d.id)) {
-                              resultList.add(d);
-                            }
-                          }
-
-                          // 重新排序并更新状态：
-                          // 1. date DESC (逻辑日期优先)
-                          // 2. id DESC (物理 ID 兜底，确保导入数据顺序确定)
-                          resultList.sort((a, b) {
-                            int cmp = b.date.compareTo(a.date);
-                            if (cmp != 0) return cmp;
-                            return b.id.compareTo(a.id);
-                          });
-                          _allDiaries = resultList;
-                        }
-                      }
-
-                      final filteredDiaries = _getFilteredDiaries(_allDiaries);
-
-                      if (filteredDiaries.isEmpty) {
+                      if (filteredMeta.isEmpty) {
                         return _buildEmptyState(context);
                       }
 
@@ -223,37 +118,23 @@ class _DiaryListPageState extends ConsumerState<DiaryListPage> {
                             );
                           }
                         },
-                        child: MasonryGridView.builder(
+                        child: AlignedGridView.count(
                           controller: _scrollController,
                           physics: const BouncingScrollPhysics(),
                           padding: EdgeInsets.symmetric(
                             horizontal: isDesktop ? 32 : 16,
                             vertical: 24,
                           ),
-                          gridDelegate:
-                              SliverSimpleGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: _getCrossAxisCount(context),
-                              ),
+                          crossAxisCount: _getCrossAxisCount(context),
                           mainAxisSpacing: 24,
                           crossAxisSpacing: 24,
-                          itemCount:
-                              filteredDiaries.length + (_isLoadingMore ? 1 : 0),
+                          itemCount: filteredMeta.length,
                           itemBuilder: (context, index) {
-                            if (index == filteredDiaries.length) {
-                              return const Padding(
-                                padding: EdgeInsets.all(16.0),
-                                child: Center(
-                                  child: CircularProgressIndicator(),
-                                ),
-                              );
-                            }
-                            return DiaryCard(
-                              diary: filteredDiaries[index],
-                              onDelete: () => _confirmDelete(
-                                context,
-                                ref,
-                                filteredDiaries[index],
-                              ),
+                            final meta = filteredMeta[index];
+                            return _DiaryMetaCard(
+                              meta: meta,
+                              onDelete: () =>
+                                  _confirmDelete(context, ref, meta),
                             );
                           },
                         ),
@@ -264,12 +145,12 @@ class _DiaryListPageState extends ConsumerState<DiaryListPage> {
               ],
             ),
 
-            // Floating Action Buttons (Bottom Right for Desktop)
+            // Floating Action Buttons (Desktop)
             if (isDesktop)
               Positioned(
                 bottom: 32,
                 right: 32,
-                child: _buildDesktopFABs(context, diaryStream),
+                child: _buildDesktopFABs(context, allMeta),
               ),
           ],
         ),
@@ -289,92 +170,80 @@ class _DiaryListPageState extends ConsumerState<DiaryListPage> {
 
   int _getCrossAxisCount(BuildContext context) {
     double width = MediaQuery.of(context).size.width;
-    // 考虑左侧导航栏大约占 256px
-    if (width > 1200) return 3; // 变体3的三栏
-    if (width > 700) return 2; // 变体3的双栏
+    if (width > 1200) return 3;
+    if (width > 700) return 2;
     return 1;
   }
 
-  Widget _buildDesktopFABs(
-    BuildContext context,
-    Stream<List<Diary>> diaryStream,
-  ) {
-    return StreamBuilder<List<Diary>>(
-      stream: diaryStream,
-      builder: (context, snapshot) {
-        final diaries = snapshot.data ?? [];
-        final todayDiary = diaries.firstWhereOrNull(
-          (d) => DateUtils.isSameDay(d.date, DateTime.now()),
-        );
+  Widget _buildDesktopFABs(BuildContext context, List<DiaryMeta> allMeta) {
+    final todayMeta = allMeta.firstWhereOrNull(
+      (m) => DateUtils.isSameDay(m.date, DateTime.now()),
+    );
 
-        return Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            // Edit Today button (直接打开今天)
-            Material(
-              color: Theme.of(context).colorScheme.surface,
-              shape: const CircleBorder(),
-              elevation: 4,
-              shadowColor: Colors.black.withOpacity(0.15),
-              child: InkWell(
-                customBorder: const CircleBorder(),
-                onTap: () {
-                  if (todayDiary != null) {
-                    context.push('/diary/edit?id=${todayDiary.id}');
-                  } else {
-                    context.push(
-                      '/diary/edit?date=${DateTime.now().toIso8601String()}',
-                    );
-                  }
-                },
-                child: Container(
-                  width: 48,
-                  height: 48,
-                  alignment: Alignment.center,
-                  child: Icon(
-                    Icons.edit_note,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    size: 24,
-                  ),
-                ),
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        // Edit Today button
+        Material(
+          color: Theme.of(context).colorScheme.surface,
+          shape: const CircleBorder(),
+          elevation: 4,
+          shadowColor: Colors.black.withOpacity(0.15),
+          child: InkWell(
+            customBorder: const CircleBorder(),
+            onTap: () {
+              if (todayMeta != null) {
+                context.push('/diary/edit?id=${todayMeta.id}');
+              } else {
+                context.push(
+                  '/diary/edit?date=${DateTime.now().toIso8601String()}',
+                );
+              }
+            },
+            child: Container(
+              width: 48,
+              height: 48,
+              alignment: Alignment.center,
+              child: Icon(
+                Icons.edit_note,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                size: 24,
               ),
             ),
-            const SizedBox(height: 16),
-            // Add Entry button (始终触发新增逻辑块，利用 Editor 内容追加机制)
-            Material(
-              color: AppTheme.primary,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              elevation: 8,
-              shadowColor: AppTheme.primary.withOpacity(0.4),
-              child: InkWell(
-                borderRadius: BorderRadius.circular(16),
-                onTap: () {
-                  context.push(
-                    '/diary/edit?date=${DateTime.now().toIso8601String()}',
-                  );
-                },
-                child: Container(
-                  width: 64,
-                  height: 64,
-                  alignment: Alignment.center,
-                  child: const Icon(Icons.add, color: Colors.white, size: 32),
-                ),
-              ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        // Add Entry button
+        Material(
+          color: AppTheme.primary,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          elevation: 8,
+          shadowColor: AppTheme.primary.withOpacity(0.4),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: () {
+              context.push(
+                '/diary/edit?date=${DateTime.now().toIso8601String()}',
+              );
+            },
+            child: Container(
+              width: 64,
+              height: 64,
+              alignment: Alignment.center,
+              child: const Icon(Icons.add, color: Colors.white, size: 32),
             ),
-          ],
-        );
-      },
+          ),
+        ),
+      ],
     );
   }
 
   Widget _buildHeader(BuildContext context, bool isDesktop) {
     final theme = Theme.of(context);
     final isEn = LocaleSettings.instance.currentLocale == AppLocale.en;
-
-    // Header content: 年份/月份 selection
     final now = DateTime.now();
     final dateToDisplay = _selectedMonth ?? now;
 
@@ -383,7 +252,6 @@ class _DiaryListPageState extends ConsumerState<DiaryListPage> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // Left: Date filter
           GestureDetector(
             onTap: () => _showMonthPicker(context),
             child: Row(
@@ -398,22 +266,11 @@ class _DiaryListPageState extends ConsumerState<DiaryListPage> {
                   ),
                 ),
                 if (_selectedMonth != null) ...[
-                  Icon(
-                    Icons.arrow_drop_down,
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                  Text(
-                    ' / ',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant.withOpacity(
-                        0.5,
-                      ),
-                    ),
-                  ),
+                  const SizedBox(width: 4),
                   Text(
                     isEn
                         ? DateFormat('MMM').format(dateToDisplay)
-                        : '${dateToDisplay.month}${t.common.month_suffix}',
+                        : '${dateToDisplay.month}月',
                     style: theme.textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.bold,
                       color: theme.colorScheme.onSurface,
@@ -424,8 +281,6 @@ class _DiaryListPageState extends ConsumerState<DiaryListPage> {
               ],
             ),
           ),
-
-          // Right: Search and Filter (Desktop only)
           if (isDesktop)
             Row(
               children: [
@@ -464,17 +319,6 @@ class _DiaryListPageState extends ConsumerState<DiaryListPage> {
                     ],
                   ),
                 ),
-                const SizedBox(width: 16),
-                Container(width: 1, height: 24, color: theme.dividerColor),
-                const SizedBox(width: 8),
-                IconButton(
-                  onPressed: () {},
-                  icon: Icon(
-                    Icons.filter_list,
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                  tooltip: 'Filter',
-                ),
               ],
             ),
         ],
@@ -482,7 +326,7 @@ class _DiaryListPageState extends ConsumerState<DiaryListPage> {
     );
   }
 
-  void _confirmDelete(BuildContext context, WidgetRef ref, Diary diary) {
+  void _confirmDelete(BuildContext context, WidgetRef ref, DiaryMeta meta) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -495,7 +339,7 @@ class _DiaryListPageState extends ConsumerState<DiaryListPage> {
           ),
           TextButton(
             onPressed: () {
-              ref.read(diaryRepositoryProvider).deleteDiary(diary.id);
+              ref.read(diaryRepositoryProvider).deleteDiary(meta.id);
               Navigator.pop(ctx);
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),
@@ -516,7 +360,7 @@ class _DiaryListPageState extends ConsumerState<DiaryListPage> {
     if (result != null) {
       setState(() {
         if (result.year == 0) {
-          _selectedMonth = null; // 清除筛选
+          _selectedMonth = null;
         } else {
           _selectedMonth = result;
         }
@@ -524,22 +368,20 @@ class _DiaryListPageState extends ConsumerState<DiaryListPage> {
     }
   }
 
-  List<Diary> _getFilteredDiaries(List<Diary> allDiaries) {
-    var diaries = allDiaries;
+  List<DiaryMeta> _getFilteredMeta(List<DiaryMeta> allMeta) {
+    var metas = allMeta;
     if (_selectedMonth != null) {
-      diaries = diaries.where((d) {
-        return d.date.year == _selectedMonth!.year &&
-            d.date.month == _selectedMonth!.month;
+      metas = metas.where((m) {
+        return m.date.year == _selectedMonth!.year &&
+            m.date.month == _selectedMonth!.month;
       }).toList();
     }
 
     if (_searchQuery.trim().isNotEmpty) {
       final q = _searchQuery.trim().toLowerCase();
-      diaries = diaries
-          .where((d) => d.content.toLowerCase().contains(q))
-          .toList();
+      metas = metas.where((m) => m.preview.toLowerCase().contains(q)).toList();
     }
-    return diaries;
+    return metas;
   }
 
   Widget _buildEmptyState(BuildContext context) {
@@ -570,6 +412,35 @@ class _DiaryListPageState extends ConsumerState<DiaryListPage> {
           ],
         ],
       ),
+    );
+  }
+}
+
+/// 轻量卡片：直接接收 DiaryMeta，点击时去编辑（只加载内容）
+class _DiaryMetaCard extends ConsumerWidget {
+  final DiaryMeta meta;
+  final VoidCallback? onDelete;
+
+  const _DiaryMetaCard({required this.meta, this.onDelete});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    // 构造一个只有元数据（内容用 preview 代替）的 Diary 传给 DiaryCard
+    // 点击时会打开编辑器，编辑器会从 getDiaryById 读取完整内容
+    final diaryStub = Diary(
+      id: meta.id,
+      date: meta.date,
+      content: meta.preview,
+      tags: meta.tags,
+      createdAt: meta.updatedAt,
+      updatedAt: meta.updatedAt,
+    );
+
+    return DiaryCard(
+      diary: diaryStub,
+      onDelete: onDelete,
+      // 编辑后的原地更新：VaultIndex 由 repository 在 saveDiary 中调用 upsert 完成
+      // 这里不需要 onUpdated 回调（VaultIndex 直接触发整个列表重绘）
     );
   }
 }

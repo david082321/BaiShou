@@ -10,7 +10,6 @@ import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import 'package:baishou/features/diary/application/file_sync_service.dart';
 import 'package:baishou/i18n/strings.g.dart';
 import 'package:baishou/features/diary/domain/entities/diary.dart';
 
@@ -225,6 +224,8 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
       return;
     }
 
+    Diary? savedDiary; // 保存成功后要带回列表页的实体
+
     try {
       if (_isSummaryMode) {
         final summary = await ref
@@ -259,7 +260,8 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
               date: updated.date,
               tags: updated.tags,
             );
-            ref.read(fileSyncServiceProvider.notifier).syncDiaryToFile(updated);
+            // 内存直挺：把修改后的实体带回列表页
+            savedDiary = updated.copyWith(updatedAt: DateTime.now());
           }
         } else {
           // ── 新增模式：按日期查找，避免同一天出现两篇日记 ──
@@ -271,7 +273,6 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
 
           if (existingDiary != null) {
             // 该日期已有日记，执行追加（合并内容到已有日记）
-            // 先获取完整本体以确保内容完整
             final fullExisting =
                 await repo.getDiaryById(existingDiary.id) ?? existingDiary;
             final oldContent = fullExisting.content.trimRight();
@@ -288,13 +289,13 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
               date: _selectedDate,
               tags: mergedTags,
             );
-
-            final updated = fullExisting.copyWith(
+            // 内存直挺：带回当天已更新的实体
+            savedDiary = fullExisting.copyWith(
               content: finalContent,
-              tags: mergedTags,
               date: _selectedDate,
+              tags: mergedTags,
+              updatedAt: DateTime.now(),
             );
-            ref.read(fileSyncServiceProvider.notifier).syncDiaryToFile(updated);
           } else {
             // 该日期没有日记，执行新建
             final newId = DateTime.now().millisecondsSinceEpoch;
@@ -304,7 +305,8 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
               date: _selectedDate,
               tags: _tags,
             );
-            final newDiary = Diary(
+            // 内存直挺：构造实体带回列表页
+            savedDiary = Diary(
               id: newId,
               content: content,
               date: _selectedDate,
@@ -312,9 +314,6 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
               createdAt: DateTime.now(),
               updatedAt: DateTime.now(),
             );
-            ref
-                .read(fileSyncServiceProvider.notifier)
-                .syncDiaryToFile(newDiary);
           }
         }
       }
@@ -322,7 +321,8 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
       if (mounted) {
         setState(() => _isDirty = false);
         AppToast.showSuccess(context, t.diary.saved_toast);
-        context.pop(); // 保存成功后返回上一页
+        // 带回新建/更新的 Diary 实体，列表页直接内存插入
+        context.pop(savedDiary);
       }
     } catch (e) {
       debugPrint('Error saving: $e');

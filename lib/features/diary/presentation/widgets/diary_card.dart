@@ -11,8 +11,14 @@ import 'package:intl/intl.dart';
 class DiaryCard extends StatefulWidget {
   final Diary diary; // 日记实体数据
   final VoidCallback? onDelete; // 删除操作的回调
+  final void Function(Diary updated)? onUpdated; // 编辑成功后的回调（内存直挺）
 
-  const DiaryCard({super.key, required this.diary, this.onDelete});
+  const DiaryCard({
+    super.key,
+    required this.diary,
+    this.onDelete,
+    this.onUpdated,
+  });
 
   @override
   State<DiaryCard> createState() => _DiaryCardState();
@@ -64,8 +70,13 @@ class _DiaryCardState extends State<DiaryCard> {
           child: Material(
             color: Colors.transparent,
             child: InkWell(
-              onTap: () {
-                context.push('/diary/edit?id=${widget.diary.id}');
+              onTap: () async {
+                final result = await context.push<Diary?>(
+                  '/diary/edit?id=${widget.diary.id}',
+                );
+                if (result != null) {
+                  widget.onUpdated?.call(result);
+                }
               },
               child: Padding(
                 padding: const EdgeInsets.all(24),
@@ -320,10 +331,13 @@ class _DiaryCardState extends State<DiaryCard> {
                             mainAxisAlignment: MainAxisAlignment.end,
                             children: [
                               TextButton.icon(
-                                onPressed: () {
-                                  context.push(
+                                onPressed: () async {
+                                  final result = await context.push<Diary?>(
                                     '/diary/edit?id=${widget.diary.id}',
                                   );
+                                  if (result != null) {
+                                    widget.onUpdated?.call(result);
+                                  }
                                 },
                                 style: TextButton.styleFrom(
                                   foregroundColor:
