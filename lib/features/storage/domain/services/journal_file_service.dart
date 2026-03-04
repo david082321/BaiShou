@@ -51,6 +51,12 @@ class JournalFileService extends _$JournalFileService {
     return File(p.join(monthDir.path, fileName));
   }
 
+  /// 获取特定日期日志文件的绝对物理路径（通常供上层记录 watcher suppress 时使用）
+  Future<String> getExactFilePath(DateTime date) async {
+    final file = await _resolveDateTargetFile(date);
+    return file.path;
+  }
+
   /// 获取某个月份的附件目录 (`Year/Month/Assets`)
   Future<Directory> _resolveMonthAssetsDir(DateTime date) async {
     final baseDir = await _getSecureJournalsBaseDir();

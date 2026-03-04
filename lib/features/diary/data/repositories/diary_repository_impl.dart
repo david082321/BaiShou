@@ -1,7 +1,6 @@
 import 'package:baishou/i18n/strings.g.dart';
 import 'dart:async';
 import 'package:intl/intl.dart';
-import 'package:path/path.dart' as p;
 
 import 'package:baishou/features/diary/data/vault_index_notifier.dart';
 import 'package:baishou/features/diary/domain/entities/diary.dart';
@@ -240,10 +239,7 @@ class DiaryRepositoryImpl implements DiaryRepository {
       }
 
       // 第二步：suppress watcher 并保存物理文件 (Markdown)
-      final filePath = p.join(
-        DateFormat('yyyy/MM').format(diary.date),
-        '${DateFormat('yyyy-MM-dd').format(diary.date)}.md',
-      );
+      final filePath = await _fileService.getExactFilePath(diary.date);
       _vaultIndex.suppressPath(filePath);
       await _fileService.writeJournal(diary);
 
@@ -300,10 +296,7 @@ class DiaryRepositoryImpl implements DiaryRepository {
       final dateStr = rows.first['date'] as String;
       try {
         final logicalDate = DateTime.parse(dateStr);
-        final filePath = p.join(
-          DateFormat('yyyy/MM').format(logicalDate),
-          '${DateFormat('yyyy-MM-dd').format(logicalDate)}.md',
-        );
+        final filePath = await _fileService.getExactFilePath(logicalDate);
         _vaultIndex.suppressPath(filePath);
         await _fileService.deleteJournalFile(logicalDate);
       } catch (e) {

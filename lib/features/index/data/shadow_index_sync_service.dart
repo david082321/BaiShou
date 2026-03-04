@@ -15,7 +15,7 @@ part 'shadow_index_sync_service.g.dart';
 /// 负责扫描并建立/更新物理文件夹和 SQLite 数据之间的一致性
 @Riverpod(keepAlive: true)
 class ShadowIndexSyncService extends _$ShadowIndexSyncService {
-  StreamController<void>? _syncEventController;
+  StreamController<String>? _syncEventController;
   StreamSubscription<FileSystemEvent>? _watchSubscription;
 
   @override
@@ -28,9 +28,9 @@ class ShadowIndexSyncService extends _$ShadowIndexSyncService {
     });
   }
 
-  /// 对外暴露的同步事件流，用于通知 Repository 刷新 UI
-  Stream<void> get syncEvents {
-    _syncEventController ??= StreamController<void>.broadcast();
+  /// 对外暴露的同步事件流，用于通知 Repository 刷新 UI（参数为发生变更的文件绝对路径）
+  Stream<String> get syncEvents {
+    _syncEventController ??= StreamController<String>.broadcast();
     return _syncEventController!.stream;
   }
 
@@ -84,8 +84,8 @@ class ShadowIndexSyncService extends _$ShadowIndexSyncService {
           );
         }
 
-        // 触发 UI 刷新流
-        _syncEventController?.add(null);
+        // 触发 UI 刷新流，带上具体的路径
+        _syncEventController?.add(path);
       } catch (e) {
         debugPrint('ShadowIndexSyncService: Watch error - $e');
       }

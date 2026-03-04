@@ -18,7 +18,7 @@ part 'vault_index_notifier.g.dart';
 class VaultIndex extends _$VaultIndex {
   // suppress 路径 → 过期时间：在此时间前忽略同路径的 watcher 事件
   final Map<String, DateTime> _suppressedPaths = {};
-  StreamSubscription<void>? _syncSubscription;
+  StreamSubscription<String>? _syncSubscription;
 
   @override
   List<DiaryMeta> build() {
@@ -31,8 +31,8 @@ class VaultIndex extends _$VaultIndex {
     await _loadFromDb();
     // 订阅文件 Watcher 事件：只处理外部变化
     final syncService = ref.read(shadowIndexSyncServiceProvider.notifier);
-    _syncSubscription = syncService.syncEvents.listen((_) {
-      _onExternalChange();
+    _syncSubscription = syncService.syncEvents.listen((path) {
+      _onExternalChange(path);
     });
     ref.onDispose(() {
       _syncSubscription?.cancel();
@@ -74,19 +74,20 @@ class VaultIndex extends _$VaultIndex {
 
   /// 外部文件系统变化时重新从 DB 加载
   /// 通过 suppress 机制忽略 App 自身写入触发的 watcher 事件
-  void _onExternalChange() {
-    // 如果仍有 suppress 中的路径，说明是 App 内部写入触发的 watcher，忽略
+  void _onExternalChange(String changedPath) {
+    // 检查此特定路径是否正在被 suppress
     final now = DateTime.now();
-    final hasActiveSuppression = _suppressedPaths.values.any(
-      (expiry) => expiry.isAfter(now),
-    );
-    if (hasActiveSuppression) {
+    final expiry = _suppressedPaths[changedPath];
+
+    if (expiry != null && expiry.isAfter(now)) {
       debugPrint(
-        'VaultIndex: Ignoring watcher event (internal write suppressed)',
+        'VaultIndex: Ignoring watcher event for $changedPath (internal write suppressed)',
       );
       return;
     }
-    debugPrint('VaultIndex: External change detected, reloading from DB');
+    debugPrint(
+      'VaultIndex: External change detected on $changedPath, reloading from DB',
+    );
     _loadFromDb();
   }
 
