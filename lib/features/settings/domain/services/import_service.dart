@@ -294,11 +294,15 @@ class ImportService {
 
           for (int i = 0; i < list.length; i++) {
             final d = list[i];
-            buffer.writeln('*(${timeFormatter.format(d.createdAt)})*\n');
+
+            // 使用五级标题表示时间
+            buffer.writeln('##### ${timeFormatter.format(d.createdAt)}\n');
             buffer.writeln(d.content.trim());
+
             if (i < list.length - 1) {
               buffer.writeln('\n---\n');
             }
+
             mergedTags.addAll(d.tags);
             mergedMediaPaths.addAll(d.mediaPaths);
           }
