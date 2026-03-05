@@ -124,11 +124,18 @@ jobs:
       - name: Build Windows
         run: flutter build windows --release
 
-      - name: Download Inno Setup Chinese language pack
+      - name: Download Inno Setup Languages
         shell: pwsh
         run: |
-          $dest = "C:\Program Files (x86)\Inno Setup 6\Languages\ChineseTraditional.isl"
-          Invoke-WebRequest -Uri "https://raw.githubusercontent.com/jrsoftware/issrc/main/Files/Languages/Unofficial/ChineseTraditional.isl" -OutFile $dest
+          $langDir = "C:\Program Files (x86)\Inno Setup 6\Languages"
+          $baseUrl = "https://raw.githubusercontent.com/jrsoftware/issrc/main/Files/Languages"
+          
+          # 下载简体中文
+          Invoke-WebRequest -Uri "$baseUrl/Unofficial/ChineseSimplified.isl" -OutFile "$langDir\ChineseSimplified.isl"
+          # 下载繁体中文
+          Invoke-WebRequest -Uri "$baseUrl/Unofficial/ChineseTraditional.isl" -OutFile "$langDir\ChineseTraditional.isl"
+          # 下载日文
+          Invoke-WebRequest -Uri "$baseUrl/Japanese.isl" -OutFile "$langDir\Japanese.isl"
 
       - name: Create Inno Setup script
         shell: pwsh
@@ -153,21 +160,50 @@ jobs:
           SetupIconFile=windows\runner\resources\app_icon.ico
 
           [Languages]
-          Name: "chinesetraditional"; MessagesFile: "compiler:Languages\ChineseTraditional.isl"
+          Name: "en"; MessagesFile: "compiler:Default.isl"
+          Name: "zh_cn"; MessagesFile: "compiler:Languages\ChineseSimplified.isl"
+          Name: "zh_tw"; MessagesFile: "compiler:Languages\ChineseTraditional.isl"
+          Name: "ja"; MessagesFile: "compiler:Languages\Japanese.isl"
+
+          [CustomMessages]
+          en.AppName=BaiShou
+          zh_cn.CreateDesktopIcon=白守
+          zh_tw.CreateDesktopIcon=白守
+          ja.CreateDesktopIcon=白守
+
+          en.CreateDesktopIcon=Create a &desktop shortcut
+          zh_cn.CreateDesktopIcon=创建桌面快捷方式
+          zh_tw.CreateDesktopIcon=建立桌面捷徑
+          ja.CreateDesktopIcon=デスクトップにショートカットを作成する
+
+          en.LaunchApp=Launch BaiShou
+          zh_cn.LaunchApp=启动白守
+          zh_tw.LaunchApp=啟動白守
+          ja.LaunchApp=白守を起動する
+
+          en.UninstallApp=Uninstall BaiShou
+          zh_cn.UninstallApp=卸载白守
+          zh_tw.UninstallApp=移除白守
+          ja.UninstallApp=白守をアンインストールする
+
+          en.AdditionalTasks=Additional tasks:
+          zh_cn.AdditionalTasks=附加任务:
+          zh_tw.AdditionalTasks=附加任務:
+          ja.AdditionalTasks=追加タスク:
 
           [Tasks]
-          Name: "desktopicon"; Description: "建立桌面捷徑"; GroupDescription: "附加任務:"; Flags: unchecked
+          Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalTasks}:"; Flags: unchecked
 
           [Files]
           Source: "build\windows\x64\runner\Release\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
           [Icons]
-          Name: "{group}\白守"; Filename: "{app}\baishou.exe"
-          Name: "{group}\移除白守"; Filename: "{uninstallexe}"
-          Name: "{autodesktop}\白守"; Filename: "{app}\baishou.exe"; Tasks: desktopicon
+          Name: "{group}\{cm:AppName}"; Filename: "{app}\baishou.exe"
+          Name: "{group}\{cm:UninstallApp}"; Filename: "{uninstallexe}"
+          Name: "{autodesktop}\{cm:AppName}"; Filename: "{app}\baishou.exe"; Tasks: desktopicon
 
           [Run]
-          Filename: "{app}\baishou.exe"; Description: "啟動白守"; Flags: nowait postinstall skipifsilent
+          Filename: "{app}\baishou.exe"; Description: "{cm:LaunchApp}"; Flags: nowait postinstall skipifsilent
           "@
           $iss | Out-File -FilePath setup.iss -Encoding UTF8
 
