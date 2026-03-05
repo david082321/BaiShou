@@ -285,6 +285,8 @@ class DiaryRepositoryImpl implements DiaryRepository {
       await _fileService.writeJournal(d);
       await _syncService.syncJournal(d.date);
     }
+    // 批量写完后强制刷新 VaultIndex 内存（主页绑定此状态，_emitAllDiaries 无效）
+    await _vaultIndex.forceReload();
     _emitAllDiaries();
   }
 

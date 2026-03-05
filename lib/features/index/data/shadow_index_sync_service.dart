@@ -11,6 +11,7 @@ import 'package:path/path.dart' as p;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import 'package:baishou/features/storage/domain/services/file_state_scheduler.dart';
+import 'package:baishou/features/diary/data/vault_index_notifier.dart';
 
 part 'shadow_index_sync_service.g.dart';
 
@@ -36,6 +37,7 @@ class JournalSyncEvent {
 class ShadowIndexSyncService extends _$ShadowIndexSyncService {
   StreamController<JournalSyncEvent>? _syncEventController;
   StreamSubscription<String>? _schedulerSubscription;
+  StreamSubscription<void>? _dirDeleteSubscription;
 
   @override
   FutureOr<void> build() async {
@@ -59,7 +61,6 @@ class ShadowIndexSyncService extends _$ShadowIndexSyncService {
           debugPrint(
             'ShadowIndexSyncService: Sync successful for $dateStr, emitting event.',
           );
-          // 把处理结果直接发给上层，避免上层再次触发重复的 syncJournal (Hash 撞车)
           _syncEventController?.add(JournalSyncEvent(changedPath, result));
         } else {
           debugPrint(
@@ -71,8 +72,20 @@ class ShadowIndexSyncService extends _$ShadowIndexSyncService {
       }
     });
 
+    // 订阅目录删除信号：整个月份文件夹被删除时，执行全量扫描清理孤立索引
+    _dirDeleteSubscription = scheduler.dirDeleteEvents.listen((_) async {
+      debugPrint(
+        'ShadowIndexSyncService: Dir delete detected, triggering fullScanVault.',
+      );
+      await fullScanVault();
+      // 扫描完成后，强制刷新 VaultIndex 内存让 UI 同步
+      final vaultIndex = ref.read(vaultIndexProvider.notifier);
+      await vaultIndex.forceReload();
+    });
+
     ref.onDispose(() {
       _schedulerSubscription?.cancel();
+      _dirDeleteSubscription?.cancel();
       _syncEventController?.close();
     });
   }
@@ -204,21 +217,23 @@ class ShadowIndexSyncService extends _$ShadowIndexSyncService {
     if (activeVault == null) return;
 
     final journalsDir = Directory(p.join(activeVault.path, 'Journals'));
-    if (!journalsDir.existsSync()) return;
 
     // 1. 获取所有待同步的物理文件列表
     // 匹配 yyyy-MM-dd.md 格式
     final dateFileRegex = RegExp(r'^(\d{4}-\d{2}-\d{2})\.md$');
     final List<File> targetFiles = [];
 
-    await for (final entity in journalsDir.list(
-      recursive: true,
-      followLinks: false,
-    )) {
-      if (entity is File) {
-        final fileName = p.basename(entity.path);
-        if (dateFileRegex.hasMatch(fileName)) {
-          targetFiles.add(entity);
+    // 关键修复：如果目录不存在，不直接 return，而是跳过遍历，让空列表进入后续清理逻辑
+    if (journalsDir.existsSync()) {
+      await for (final entity in journalsDir.list(
+        recursive: true,
+        followLinks: false,
+      )) {
+        if (entity is File) {
+          final fileName = p.basename(entity.path);
+          if (dateFileRegex.hasMatch(fileName)) {
+            targetFiles.add(entity);
+          }
         }
       }
     }
