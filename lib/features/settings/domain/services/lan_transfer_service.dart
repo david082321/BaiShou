@@ -123,14 +123,17 @@ class LanTransferNotifier extends Notifier<LanTransferState> {
       // 2. 启动 mDNS 广播
       // 服务名称包含昵称和 UUID 前缀，防止冲突
       // 限制昵称长度，防止 mDNS 数据包过大导致解析错误 (EOFException)
-      String safeNickname = userProfile.nickname;
+      // 严格清洗：只保留字母、数字和中文字符，彻底移除空格和特殊符号，防止 Windows mDNS 线程解析异常
+      String rawNickname = userProfile.nickname;
+      String safeNickname = rawNickname.replaceAll(
+        RegExp(r'[^\w\u4e00-\u9fa5]'),
+        '',
+      );
+
+      if (safeNickname.isEmpty) safeNickname = 'User';
       if (safeNickname.length > 10) {
         safeNickname = safeNickname.substring(0, 10);
       }
-
-      // 替换掉可能破坏 mDNS 格式的特殊字符
-      safeNickname = safeNickname.replaceAll(RegExp(r'[^\w\u4e00-\u9fa5]'), '');
-      if (safeNickname.isEmpty) safeNickname = 'User';
 
       final serviceName =
           'BaiShou-$safeNickname-${const Uuid().v4().substring(0, 4)}';
@@ -147,7 +150,7 @@ class LanTransferNotifier extends Notifier<LanTransferState> {
         type: _serviceType,
         port: port,
         attributes: {
-          'nickname': userProfile.nickname,
+          'nickname': safeNickname, // 统一使用清洗后的昵称，不再保留原始可能含空格的昵称
           'ip': ipString,
           'device_type': deviceType,
         },
@@ -268,8 +271,14 @@ class LanTransferNotifier extends Notifier<LanTransferState> {
 
       _discovery!.eventStream!.listen((event) async {
         if (event is BonsoirDiscoveryServiceFoundEvent) {
-          // 发现服务，尝试解析
-          await _discovery!.serviceResolver.resolveService(event.service);
+          // 发现服务，尝试解析。
+          // 优化：如果该 Service 已经在列表中且属性完整，则跳过解析，减少 Native 线程通信压力。
+          final alreadyDiscovered = state.discoveredServices.any(
+            (s) => s.name == event.service.name,
+          );
+          if (!alreadyDiscovered) {
+            await _discovery!.serviceResolver.resolveService(event.service);
+          }
         } else if (event is BonsoirDiscoveryServiceResolvedEvent) {
           // 解析成功，获取设备的 IP 地址
           final service = event.service;

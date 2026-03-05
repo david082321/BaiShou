@@ -15,7 +15,7 @@ part 'data_archive_manager.g.dart';
 
 /// 全局数据归档管理器
 /// 统一收口导出、导入、快照操作。协调各底层服务的数据流转与状态同步。
-@riverpod
+@Riverpod(keepAlive: true)
 class DataArchiveManager extends _$DataArchiveManager {
   ImportService get _importService => ref.read(importServiceProvider);
   ExportService get _exportService => ref.read(exportServiceProvider);
@@ -43,6 +43,12 @@ class DataArchiveManager extends _$DataArchiveManager {
     File zipFile, {
     bool createSnapshotBefore = true,
   }) async {
+    // 异步 gap 前先行捕获依赖，防止 Await 之后 Notifier 被销毁导致 ref 失效
+    final importService = _importService;
+    final vaultIndex = _vaultIndex;
+    final shadowIndexSyncService = _shadowIndexSyncService;
+    final journalFileService = _journalFileService;
+
     try {
       String? snapshotPath;
       if (createSnapshotBefore) {
@@ -51,21 +57,21 @@ class DataArchiveManager extends _$DataArchiveManager {
       }
 
       // 1. 先清空 UI 内存，防止脏读并在视觉上快速切断
-      _vaultIndex.clear();
+      vaultIndex.clear();
 
       // 2. 清空物理文件
-      await _journalFileService.clearAllJournals();
+      await journalFileService.clearAllJournals();
 
       // 3. 执行核心导入逻辑 (内含 SQLite 日志索引清空及写入)
-      final result = await _importService.importFromZip(zipFile);
+      final result = await importService.importFromZip(zipFile);
 
       // 4. 重建索引、恢复配置并加载到 UI
       if (result.success) {
         if (result.configData != null) {
-          await _importService.restoreConfig(result.configData!);
+          await importService.restoreConfig(result.configData!);
         }
-        await _shadowIndexSyncService.fullScanVault();
-        await _vaultIndex.forceReload();
+        await shadowIndexSyncService.fullScanVault();
+        await vaultIndex.forceReload();
       }
 
       return ImportResult(
@@ -79,8 +85,10 @@ class DataArchiveManager extends _$DataArchiveManager {
     } catch (e) {
       debugPrint('DataArchiveManager Import Error: $e');
       // 即使发生异常也尽力去恢复并重建索引，避免状态进入死锁
-      await _shadowIndexSyncService.fullScanVault();
-      await _vaultIndex.forceReload();
+      try {
+        await shadowIndexSyncService.fullScanVault();
+        await vaultIndex.forceReload();
+      } catch (_) {}
       rethrow;
     }
   }
