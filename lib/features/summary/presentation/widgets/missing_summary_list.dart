@@ -264,13 +264,20 @@ class _MissingSummaryListState extends ConsumerState<MissingSummaryList> {
     final generator = ref.read(summaryGeneratorServiceProvider);
     final repository = ref.read(summaryRepositoryProvider);
 
+    // 可以重新生成的"终态"状态集合（失败 / 空内容 / 等待重试）
+    final retryableStatuses = {t.summary.tap_to_retry};
+    final retryablePrefix = [
+      t.summary.generation_failed,
+      t.summary.content_empty,
+    ];
+
     // 检查是否正在生成（允许在失败状态时重试）
     final currentStatus = service.getStatus(key);
-    if (currentStatus != null &&
-        !currentStatus.startsWith(t.summary.generation_failed) &&
-        !currentStatus.startsWith(t.summary.content_empty)) {
-      return;
-    }
+    final isRetryable =
+        currentStatus == null ||
+        retryableStatuses.contains(currentStatus) ||
+        retryablePrefix.any((p) => currentStatus.startsWith(p));
+    if (!isRetryable) return;
 
     service.setStatus(key, t.summary.preparing);
 

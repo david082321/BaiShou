@@ -101,7 +101,7 @@ class GeminiClient implements AiClient {
               },
             }),
           )
-          .timeout(const Duration(seconds: 30));
+          .timeout(const Duration(seconds: 120));
 
       if (response.statusCode == 200) {
         final decodedBody = utf8.decode(response.bodyBytes);

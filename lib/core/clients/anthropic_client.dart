@@ -79,7 +79,7 @@ class AnthropicClient implements AiClient {
               'max_tokens': 4096,
             }),
           )
-          .timeout(const Duration(seconds: 30));
+          .timeout(const Duration(seconds: 120));
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final decodedBody = utf8.decode(response.bodyBytes);
