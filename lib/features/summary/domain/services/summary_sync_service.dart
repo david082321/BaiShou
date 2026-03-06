@@ -26,7 +26,9 @@ class SummarySyncService extends _$SummarySyncService {
   FutureOr<void> build() async {
     // 1. 监听 Vault 变化，重连时全量扫描（兜底）
     ref.listen(vaultServiceProvider, (previous, next) {
-      if (next.hasValue && next.value?.name != previous?.value?.name) {
+      if (next.hasValue &&
+          (next.value?.name != previous?.value?.name ||
+              next.value?.path != previous?.value?.path)) {
         final vault = next.value;
         if (vault != null) {
           _handleVaultChanged(vault);
