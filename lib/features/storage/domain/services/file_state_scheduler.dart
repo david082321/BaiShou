@@ -42,7 +42,9 @@ class FileStateScheduler extends _$FileStateScheduler {
 
     // 监听 vault 变化重新绑定 watcher
     ref.listen(vaultServiceProvider, (previous, next) {
-      if (next.value != null && next.value?.name != previous?.value?.name) {
+      if (next.value != null &&
+          (next.value?.name != previous?.value?.name ||
+              next.value?.path != previous?.value?.path)) {
         startWatchingVault();
       }
     });
