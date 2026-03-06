@@ -126,19 +126,26 @@ class FileStateScheduler extends _$FileStateScheduler {
       final normalizedSource = sourcePath.replaceAll('\\', '/');
       final isJournalsScope = normalizedSource.contains('/Journals');
       final isJournalsDirItself = normalizedSource.endsWith('/Journals');
+      final isArchivesScope = normalizedSource.contains('/Archives');
+      final isArchivesDirItself = normalizedSource.endsWith('/Archives');
 
-      // 非 Journals 范畴内的事件，直接忽略
-      if (!isJournalsScope && !isJournalsDirItself) return;
+      // 非 Journals 且非 Archives 范畴内的事件，直接忽略
+      if (!isJournalsScope &&
+          !isJournalsDirItself &&
+          !isArchivesScope &&
+          !isArchivesDirItself) {
+        return;
+      }
 
       if (sourcePath.endsWith('.md') &&
-          dateFileRegex.hasMatch(p.basename(sourcePath))) {
-        // 普通日记文件变化：塞进防抖流
+          (dateFileRegex.hasMatch(p.basename(sourcePath)) || isArchivesScope)) {
+        // 普通日记文件或归档总结文件变化：塞进防抖流
         _rawEventSubject.add(sourcePath);
       } else if (!sourcePath.endsWith('.md') &&
           (event.type == FileSystemEvent.delete ||
               event.type == FileSystemEvent.create ||
               event.type == FileSystemEvent.move)) {
-        // 核心修复：目录层面的拓扑架构变动（包括：删除、恢复/创建、重命名/移动 整个月份或 Journals 根目录）
+        // 核心修复：目录层面的拓扑架构变动（包括：删除、恢复/创建、重命名/移动 整个月份、Journals 或 Archives 根目录）
         // 外部强行改变目录结构时，系统底层不会逐个文件发送事件，此时必须直接进行全量扫描！
         debugPrint(
           'FileStateScheduler: Directory topology change detected at $sourcePath (type: ${event.type}), requesting full scan.',
@@ -151,9 +158,11 @@ class FileStateScheduler extends _$FileStateScheduler {
         final String destPath = event.destination!;
         final normalizedDest = destPath.replaceAll('\\', '/');
 
-        if (normalizedDest.contains('/Journals') &&
+        if ((normalizedDest.contains('/Journals') ||
+                normalizedDest.contains('/Archives')) &&
             destPath.endsWith('.md') &&
-            dateFileRegex.hasMatch(p.basename(destPath))) {
+            (dateFileRegex.hasMatch(p.basename(destPath)) ||
+                normalizedDest.contains('/Archives'))) {
           _rawEventSubject.add(destPath);
         }
       }

@@ -131,6 +131,7 @@ class ExportService {
 
     // 6. 写入 markdown/ 目录（人类可读版本）
     _addMarkdownFiles(archive, diaries);
+    _addArchiveFiles(archive, summaries);
 
     // 7. 编码为 ZIP (移至 Isolate 避免主线程卡死)
     final zipData = await compute(_encodeZip, archive);
@@ -183,6 +184,34 @@ class ExportService {
 
       final bytes = utf8.encode(sb.toString());
       archive.addFile(ArchiveFile('markdown/$dateStr.md', bytes.length, bytes));
+    }
+  }
+
+  void _addArchiveFiles(Archive archive, List<Summary> summaries) {
+    for (final summary in summaries) {
+      final typeFolder =
+          summary.type.name[0].toUpperCase() + summary.type.name.substring(1);
+      final dateStr = DateFormat('yyyy-MM-dd').format(summary.startDate);
+
+      final sb = StringBuffer();
+      sb.writeln('---');
+      sb.writeln('id: ${summary.id}');
+      sb.writeln('type: ${summary.type.name}');
+      sb.writeln('startDate: ${summary.startDate.toIso8601String()}');
+      sb.writeln('endDate: ${summary.endDate.toIso8601String()}');
+      sb.writeln('generatedAt: ${summary.generatedAt.toIso8601String()}');
+      sb.writeln('---');
+      sb.writeln();
+      sb.writeln(summary.content.trim());
+
+      final bytes = utf8.encode(sb.toString());
+      archive.addFile(
+        ArchiveFile(
+          'markdown/Archives/$typeFolder/$dateStr.md',
+          bytes.length,
+          bytes,
+        ),
+      );
     }
   }
 

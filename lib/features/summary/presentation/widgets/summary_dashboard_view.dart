@@ -8,6 +8,7 @@ import 'package:baishou/i18n/strings.g.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:baishou/features/summary/presentation/providers/summary_filter_provider.dart';
+import 'package:baishou/core/storage/vault_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class SummaryDashboardView extends ConsumerStatefulWidget {
@@ -102,6 +103,18 @@ class _SummaryDashboardViewState extends ConsumerState<SummaryDashboardView> {
   Widget build(BuildContext context) {
     // 监听全局数据刷新信号
     final refreshVersion = ref.watch(dataRefreshProvider);
+
+    // 监听 Vault 切换，一旦切换立即重新初始化范围和加载数据
+    ref.listen(vaultServiceProvider, (previous, next) {
+      final prevVault = previous?.value;
+      final nextVault = next.value;
+      if (nextVault != null && nextVault.name != prevVault?.name) {
+        debugPrint(
+          'SummaryDashboardView: Vault changed to ${nextVault.name}, refreshing...',
+        );
+        _initRange();
+      }
+    });
     // 同时监听月份变化
     ref.listen(summaryFilterProvider.select((s) => s.lookbackMonths), (
       prev,
@@ -213,7 +226,7 @@ class _SummaryDashboardViewState extends ConsumerState<SummaryDashboardView> {
                     child: LinearProgressIndicator(
                       backgroundColor: Colors.transparent,
                       valueColor: AlwaysStoppedAnimation<Color>(
-                        AppTheme.primary.withOpacity(0.5),
+                        AppTheme.primary.withValues(alpha: 0.5),
                       ),
                     ),
                   ),

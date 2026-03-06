@@ -2,6 +2,9 @@ import 'package:baishou/core/database/app_database.dart' as db;
 import 'package:baishou/core/database/tables/summaries.dart';
 import 'package:baishou/features/summary/domain/entities/summary.dart';
 import 'package:baishou/features/summary/domain/repositories/summary_repository.dart';
+import 'package:baishou/features/storage/domain/services/summary_file_service.dart';
+import 'package:baishou/features/summary/domain/services/summary_sync_service.dart';
+import 'package:baishou/features/storage/domain/services/file_state_scheduler.dart';
 import 'package:drift/drift.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -9,8 +12,15 @@ part 'summary_repository_impl.g.dart';
 
 class SummaryRepositoryImpl implements SummaryRepository {
   final db.AppDatabase _db;
+  final SummaryFileService _fileService;
+  final Ref _ref;
 
-  SummaryRepositoryImpl(this._db);
+  SummaryRepositoryImpl(this._db, this._fileService, this._ref) {
+    // 延迟初始化同步，避免循环依赖
+    Future.microtask(
+      () => _ref.read(summarySyncServiceProvider.notifier).fullScanArchives(),
+    );
+  }
 
   @override
   Stream<List<Summary>> watchSummaries(
@@ -83,8 +93,20 @@ class SummaryRepositoryImpl implements SummaryRepository {
     required DateTime endDate,
     required String content,
     List<String> sourceIds = const [],
-  }) {
-    return _db
+  }) async {
+    final now = DateTime.now();
+    final summary = Summary(
+      id: 0, // 数据库生成
+      type: type,
+      startDate: startDate,
+      endDate: endDate,
+      content: content,
+      generatedAt: now,
+      sourceIds: sourceIds,
+    );
+
+    // 1. 写入数据库
+    final id = await _db
         .into(_db.summaries)
         .insert(
           db.SummariesCompanion(
@@ -93,9 +115,16 @@ class SummaryRepositoryImpl implements SummaryRepository {
             endDate: Value(endDate),
             content: Value(content),
             sourceIds: Value(sourceIds.join(',')),
-            generatedAt: Value(DateTime.now()),
+            generatedAt: Value(now),
           ),
         );
+
+    // 2. 写入物理文件
+    final filePath = await _fileService.getSummaryFilePath(type, startDate);
+    _ref.read(fileStateSchedulerProvider.notifier).suppressPath(filePath);
+    await _fileService.writeSummary(summary.copyWith(id: id));
+
+    return id;
   }
 
   @override
@@ -115,11 +144,21 @@ class SummaryRepositoryImpl implements SummaryRepository {
         );
       }
     });
+
+    // 批量写入物理文件
+    for (final s in summaries) {
+      final filePath = await _fileService.getSummaryFilePath(
+        s.type,
+        s.startDate,
+      );
+      _ref.read(fileStateSchedulerProvider.notifier).suppressPath(filePath);
+      await _fileService.writeSummary(s);
+    }
   }
 
   @override
-  Future<void> updateSummary(Summary summary) {
-    return (_db.update(
+  Future<void> updateSummary(Summary summary) async {
+    await (_db.update(
       _db.summaries,
     )..where((t) => t.id.equals(summary.id))).write(
       db.SummariesCompanion(
@@ -127,16 +166,28 @@ class SummaryRepositoryImpl implements SummaryRepository {
         // 其他字段通常不会更新
       ),
     );
+    // 更新物理文件
+    final filePath = await _fileService.getSummaryFilePath(
+      summary.type,
+      summary.startDate,
+    );
+    _ref.read(fileStateSchedulerProvider.notifier).suppressPath(filePath);
+    await _fileService.writeSummary(summary);
   }
 
   @override
-  Future<void> deleteSummary(int id) {
-    return (_db.delete(_db.summaries)..where((t) => t.id.equals(id))).go();
+  Future<void> deleteSummary(int id) async {
+    final summary = await getSummaryById(id);
+    if (summary != null) {
+      await _fileService.deleteSummaryFile(summary.type, summary.startDate);
+    }
+    await (_db.delete(_db.summaries)..where((t) => t.id.equals(id))).go();
   }
 
   @override
-  Future<void> deleteAllSummaries() {
-    return _db.delete(_db.summaries).go();
+  Future<void> deleteAllSummaries() async {
+    await _fileService.clearAllArchives();
+    await _db.delete(_db.summaries).go();
   }
 
   Summary _mapToEntity(db.Summary row) {
@@ -160,5 +211,6 @@ class SummaryRepositoryImpl implements SummaryRepository {
 @Riverpod(keepAlive: true)
 SummaryRepository summaryRepository(Ref ref) {
   final dbInstance = ref.watch(db.appDatabaseProvider);
-  return SummaryRepositoryImpl(dbInstance);
+  final fileService = ref.watch(summaryFileServiceProvider.notifier);
+  return SummaryRepositoryImpl(dbInstance, fileService, ref);
 }

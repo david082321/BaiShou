@@ -15,6 +15,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:baishou/core/widgets/app_toast.dart';
 import 'package:baishou/features/settings/presentation/pages/privacy_policy_page.dart';
 import 'package:baishou/core/localization/locale_service.dart';
+import 'package:baishou/core/storage/permission_service.dart';
 import 'package:baishou/i18n/strings.g.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -399,6 +400,28 @@ class _GeneralSettingsViewState extends ConsumerState<GeneralSettingsView> {
                 ),
                 trailing: TextButton(
                   onPressed: () async {
+                    // 移动端权限前置检查
+                    if (Platform.isAndroid) {
+                      final permissionSvc = ref.read(
+                        permissionServiceProvider.notifier,
+                      );
+                      final hasPermission = await permissionSvc
+                          .hasStoragePermission();
+                      if (!hasPermission) {
+                        final granted = await permissionSvc
+                            .requestStoragePermission();
+                        if (!granted) {
+                          if (mounted) {
+                            AppToast.showError(
+                              context,
+                              t.common.permission.storage_denied,
+                            );
+                          }
+                          return;
+                        }
+                      }
+                    }
+
                     String? selectedDirectory = await FilePicker.platform
                         .getDirectoryPath();
                     if (selectedDirectory == null || !mounted) return;

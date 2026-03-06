@@ -4,6 +4,7 @@ import 'package:baishou/features/diary/domain/entities/diary_meta.dart';
 import 'package:baishou/features/index/data/shadow_index_database.dart';
 import 'package:baishou/features/index/data/shadow_index_sync_service.dart';
 import 'package:flutter/foundation.dart';
+import 'package:baishou/core/storage/vault_service.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'vault_index_notifier.g.dart';
@@ -21,6 +22,9 @@ class VaultIndex extends _$VaultIndex {
 
   @override
   FutureOr<List<DiaryMeta>> build() async {
+    // 监听活跃 Vault 的变化
+    ref.watch(vaultServiceProvider);
+
     // 异步初始化：从 SQLite 加载所有元数据
     final metas = await _loadFromDb();
 

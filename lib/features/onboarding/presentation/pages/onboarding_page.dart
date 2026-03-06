@@ -3,10 +3,13 @@ import 'package:baishou/core/storage/storage_path_provider.dart';
 import 'package:baishou/features/onboarding/data/providers/onboarding_provider.dart';
 import 'package:baishou/features/onboarding/presentation/widgets/compression_chart.dart';
 import 'package:baishou/i18n/strings.g.dart';
+import 'package:baishou/core/storage/permission_service.dart';
+import 'package:baishou/core/widgets/app_toast.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'dart:io';
 
 /// 向用户介绍应用核心理念（灵魂备份、记忆压缩）并引导其完成基础配置（如 API Key）。
 class OnboardingPage extends ConsumerStatefulWidget {
@@ -179,6 +182,28 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
           const SizedBox(height: 24),
           FilledButton.icon(
             onPressed: () async {
+              // 移动端权限前置检查
+              if (Platform.isAndroid) {
+                final permissionSvc = ref.read(
+                  permissionServiceProvider.notifier,
+                );
+                final hasPermission = await permissionSvc
+                    .hasStoragePermission();
+                if (!hasPermission) {
+                  final granted = await permissionSvc
+                      .requestStoragePermission();
+                  if (!granted) {
+                    if (mounted) {
+                      AppToast.showError(
+                        context,
+                        t.common.permission.storage_denied,
+                      );
+                    }
+                    return;
+                  }
+                }
+              }
+
               String? selectedDirectory = await FilePicker.platform
                   .getDirectoryPath();
               if (selectedDirectory != null) {

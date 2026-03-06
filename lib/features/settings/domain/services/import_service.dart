@@ -281,43 +281,39 @@ class ImportService {
       int mergedCount = 0;
       for (final entry in groupedDiaries.entries) {
         final list = entry.value;
-        if (list.length == 1) {
-          await _journalFileService.writeJournal(list.first);
-          mergedCount++;
-        } else {
-          // 同一天有多篇日记，按创建时间自下而上升序排列
-          list.sort((a, b) => a.createdAt.compareTo(b.createdAt));
 
-          final buffer = StringBuffer();
-          final mergedTags = <String>{};
-          final mergedMediaPaths = <String>{};
+        // 统一按创建时间自下而上升序排列
+        list.sort((a, b) => a.createdAt.compareTo(b.createdAt));
 
-          for (int i = 0; i < list.length; i++) {
-            final d = list[i];
+        final buffer = StringBuffer();
+        final mergedTags = <String>{};
+        final mergedMediaPaths = <String>{};
 
-            // 使用五级标题表示时间
-            buffer.writeln('##### ${timeFormatter.format(d.createdAt)}\n');
-            buffer.writeln(d.content.trim());
+        for (int i = 0; i < list.length; i++) {
+          final d = list[i];
 
-            if (i < list.length - 1) {
-              buffer.writeln('\n---\n');
-            }
+          // 无论是一天一篇还是一天多篇，统一使用五级标题表示时间
+          buffer.writeln('##### ${timeFormatter.format(d.createdAt)}\n');
+          buffer.writeln(d.content.trim());
 
-            mergedTags.addAll(d.tags);
-            mergedMediaPaths.addAll(d.mediaPaths);
+          if (i < list.length - 1) {
+            buffer.writeln('\n---\n');
           }
 
-          // 以最新的一篇为母版，构建超级日记
-          final latestDiary = list.last;
-          final superDiary = latestDiary.copyWith(
-            content: buffer.toString(),
-            tags: mergedTags.toList(),
-            mediaPaths: mergedMediaPaths.toList(),
-          );
-
-          await _journalFileService.writeJournal(superDiary);
-          mergedCount++;
+          mergedTags.addAll(d.tags);
+          mergedMediaPaths.addAll(d.mediaPaths);
         }
+
+        // 构建合并后的日记实体（或单篇但也带时间戳标题的实体）
+        final latestDiary = list.last;
+        final superDiary = latestDiary.copyWith(
+          content: buffer.toString().trim(),
+          tags: mergedTags.toList(),
+          mediaPaths: mergedMediaPaths.toList(),
+        );
+
+        await _journalFileService.writeJournal(superDiary);
+        mergedCount++;
       }
       debugPrint('Import: Merged into $mergedCount physical daily files.');
     }
