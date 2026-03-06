@@ -18,24 +18,17 @@ class ShadowIndexDatabase extends _$ShadowIndexDatabase {
   @override
   FutureOr<void> build() async {
     // 监听活跃 Vault 的变化，一旦切换立刻执行重载逻辑
-    ref.listen(vaultServiceProvider, (previous, next) {
-      if (next.value != null && next.value?.name != previous?.value?.name) {
-        _reconnectDatabase(next.value!.name);
-      }
+    final vaultState = ref.watch(vaultServiceProvider);
+
+    // 如果是第一次加载或名字变了，执行初始化
+    if (vaultState.value != null) {
+      // 这里的逻辑会随着 provider 的重新构建而执行
+      await _initDatabase(vaultState.value!.name);
+    }
+
+    ref.onDispose(() async {
+      await close();
     });
-
-    final activeVault = await ref.read(vaultServiceProvider.future);
-    if (activeVault != null) {
-      await _initDatabase(activeVault.name);
-    }
-  }
-
-  Future<void> _reconnectDatabase(String vaultName) async {
-    if (_db != null && _db!.isOpen) {
-      await _db!.close();
-      _db = null;
-    }
-    await _initDatabase(vaultName);
   }
 
   Future<void> _initDatabase(String vaultName) async {

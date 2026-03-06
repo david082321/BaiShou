@@ -117,6 +117,16 @@ class StoragePathService {
     }
     return journalsDir;
   }
+
+  /// 获取特定 Vault 下归档（总结）存放的物理基础路径 (`<Vault>/Archives`)
+  Future<Directory> getArchivesBaseDirectory(String vaultName) async {
+    final vaultDir = await getVaultDirectory(vaultName);
+    final archivesDir = Directory(p.join(vaultDir.path, 'Archives'));
+    if (!archivesDir.existsSync()) {
+      await archivesDir.create(recursive: true);
+    }
+    return archivesDir;
+  }
 }
 
 @Riverpod(keepAlive: true)
