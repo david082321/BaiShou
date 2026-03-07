@@ -183,7 +183,10 @@ class ImportService {
         debugPrint(
           'Import: Starting batch save for ${parsedData.diaries!.length} diaries...',
         );
-        diariesImported = await _importDiaries(parsedData.diaries!);
+        diariesImported = await _importDiaries(
+          parsedData.diaries!,
+          schemaVersion,
+        );
         debugPrint('Import: Diaries batch save complete');
       }
 
@@ -229,7 +232,10 @@ class ImportService {
 
   // --- 私有方法 ---
 
-  Future<int> _importDiaries(List<dynamic> diariesJson) async {
+  Future<int> _importDiaries(
+    List<dynamic> diariesJson,
+    int schemaVersion,
+  ) async {
     // 1. 解析所有日记对象
     final parsedDiaries = <Diary>[];
     for (final item in diariesJson) {
@@ -292,12 +298,20 @@ class ImportService {
         for (int i = 0; i < list.length; i++) {
           final d = list[i];
 
-          // 无论是一天一篇还是一天多篇，统一使用五级标题表示时间
-          buffer.writeln('##### ${timeFormatter.format(d.createdAt)}\n');
+          // 核心逻辑修复：
+          // 如果是 v1 (schema_version < 1) 以下的备份，它是一天散落多条日记的结构，需要拼装标题。
+          // 如果是 v2 (schema_version >= 1) 及以上的备份，导出的 content 已经是合并完成的物理 markdown 原文（自带了标题），无需画蛇添足。
+          if (schemaVersion < 1) {
+            buffer.writeln('##### ${timeFormatter.format(d.createdAt)}\n');
+          }
           buffer.writeln(d.content.trim());
 
           if (i < list.length - 1) {
-            buffer.writeln('\n---\n');
+            if (schemaVersion < 1) {
+              buffer.writeln('\n---\n');
+            } else {
+              buffer.writeln();
+            }
           }
 
           mergedTags.addAll(d.tags);
