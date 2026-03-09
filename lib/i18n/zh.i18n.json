@@ -35,6 +35,7 @@
     "loading": "加载中...",
     "success": "操作成功",
     "ok": "好的",
+    "saving": "保存中...",
     "retry": "重试",
     "today": "今天",
     "select": "选择",
