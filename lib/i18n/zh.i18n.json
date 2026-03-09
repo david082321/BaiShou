@@ -412,7 +412,10 @@
     "tag_input_hint": "使用换行添加标签哦...",
     "file_sync_label": "标签: ",
     "tag_label": "标签",
-    "error_dual_edit": "不能同时编辑日记和总结"
+    "error_dual_edit": "不能同时编辑日记和总结",
+    "exit_without_saving": "离开且不保存？",
+    "exit_confirmation_hint": "当前内容有未保存的修改，离开将丢失这些更改哦。",
+    "exit_without_saving_confirm": "不保存并离开"
   },
   "summary": {
     "dashboard_title": "回忆",

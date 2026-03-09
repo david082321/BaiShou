@@ -412,7 +412,10 @@
     "tag_input_hint": "改行でタグを追加...",
     "file_sync_label": "タグ: ",
     "tag_label": "タグ",
-    "error_dual_edit": "日記と要約を同時に編集することはできません"
+    "error_dual_edit": "日記と要約を同時に編集することはできません",
+    "exit_without_saving": "保存せずに終了しますか？",
+    "exit_confirmation_hint": "保存されていない変更があります。移動するとこれらの変更は失われます。",
+    "exit_without_saving_confirm": "保存せずに終了"
   },
   "summary": {
     "dashboard_title": "思い出",

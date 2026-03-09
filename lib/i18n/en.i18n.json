@@ -412,7 +412,10 @@
     "tag_input_hint": "Add tags with NewLine...",
     "file_sync_label": "Tags: ",
     "tag_label": "Tags",
-    "error_dual_edit": "Cannot edit diary and summary at the same time"
+    "error_dual_edit": "Cannot edit diary and summary at the same time",
+    "exit_without_saving": "Exit without saving?",
+    "exit_confirmation_hint": "You have unsaved changes. Leaving will discard them.",
+    "exit_without_saving_confirm": "Exit without saving"
   },
   "summary": {
     "dashboard_title": "Memories",
