@@ -15,7 +15,7 @@ void main() async {
 
   await initializeDateFormatting();
 
-  if (!kIsWeb && (Platform.isWindows || Platform.isLinux)) {
+  if (!kIsWeb) {
     sqfliteFfiInit();
     databaseFactory = databaseFactoryFfi;
   }
