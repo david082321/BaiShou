@@ -139,6 +139,9 @@ class ShadowIndexSyncService extends _$ShadowIndexSyncService {
     final journalService = ref.read(journalFileServiceProvider.notifier);
     final dbService = ref.read(shadowIndexDatabaseProvider.notifier);
 
+    debugPrint(
+      'ShadowIndexSyncService: syncJournal requested for ${date.toIso8601String()}',
+    );
     // 1. 获取物理文件对象
     final file = await journalService
         .getExactFilePath(date)
@@ -186,10 +189,16 @@ class ShadowIndexSyncService extends _$ShadowIndexSyncService {
     if (existingRows.isNotEmpty) {
       final oldHash = existingRows.first['content_hash'] as String;
       if (oldHash == currentHash) {
-        // 数据一致，无需任何操作
+        debugPrint(
+          'ShadowIndexSyncService: Hash match (no change) for ${date.toIso8601String()}',
+        );
         return JournalSyncResult(isChanged: false);
       }
     }
+
+    debugPrint(
+      'ShadowIndexSyncService: Hash mismatch or new, performing full parse and upsert for ${date.toIso8601String()}',
+    );
 
     // 4. 有变动（新增或修改），执行完整解析
     final diary = await journalService.readJournal(date);
@@ -222,6 +231,8 @@ class ShadowIndexSyncService extends _$ShadowIndexSyncService {
       rawContent: diary.content,
       tags: diary.tags.join(','),
     );
+
+    debugPrint('ShadowIndexSyncService: Upsert complete for ID ${diary.id}');
 
     // 返回最新的元数据，方便上层更新内存状态
     final content = diary.content;

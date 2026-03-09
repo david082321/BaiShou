@@ -67,17 +67,24 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
           final navState = activeKey?.currentState;
           final bool canPopNested = navState?.canPop() ?? false;
 
+          // 核心逻辑：
+          // 1. 如果有内嵌页面，允许内部弹出 (canPop: true)
+          // 2. 否则，如果用户是在首页（时间轴），拦截返回 (canPop: false)。
+          // 3. 否则如果在其他 Tab，依然拦截返回并在微任务中切回首页。
+          final bool shouldPopRoute = canPopNested;
+
           content = PopScope(
-            canPop: canPopNested,
+            canPop: shouldPopRoute,
             onPopInvokedWithResult: (didPop, result) {
               if (didPop) return;
 
+              // 如果当前不在首个标签页（时间轴），则切回到时间轴
               if (currentIndex != 0) {
-                // 延后执行以避免与系统返回预测发生短时堆栈争夺
                 Future.microtask(() => _goBranch(0));
                 return;
               }
 
+              // 在首页时，双击退出逻辑
               final now = DateTime.now();
               if (_lastBackPress == null ||
                   now.difference(_lastBackPress!) >
@@ -89,6 +96,9 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
                 return;
               }
 
+              // 2秒内连续按返回，则退出应用
+              // 注意：直接使用 SystemNavigator.pop() 可能会抛弃部分上下文，
+              // 但对于根部退出来说是目前最可靠的方法。
               SystemNavigator.pop();
             },
             child: widget.navigationShell,

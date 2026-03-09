@@ -174,12 +174,12 @@ class DiaryRepositoryImpl implements DiaryRepository {
   }
 
   @override
-  Future<void> saveDiary({
+  @override
+  Future<Diary> saveDiary({
     int? id,
     required DateTime date,
     required String content,
     List<String> tags = const [],
-    // 扩展字段可以通过可选参数传，这里暂时保持和原 Repository 接口一致以防外部调用报错
     String? weather,
     String? mood,
     String? location,
@@ -206,10 +206,8 @@ class DiaryRepositoryImpl implements DiaryRepository {
         final oldCreatedAtStr = rows.first['created_at'] as String;
         existingCreatedAt = DateTime.parse(oldCreatedAtStr);
 
-        // 比较逻辑日期 YYYY-MM-DD
         final fmt = DateFormat('yyyy-MM-dd');
         if (oldDateStr != fmt.format(date)) {
-          // 如果逻辑日期变了，我们需要记录旧日期以便删除旧文件
           oldFileDate = DateTime.parse(oldDateStr);
         }
       }
@@ -218,7 +216,7 @@ class DiaryRepositoryImpl implements DiaryRepository {
     final diary = Diary(
       id: targetId,
       date: date,
-      createdAt: existingCreatedAt ?? now, // 保持真实的创建时间
+      createdAt: existingCreatedAt ?? now,
       updatedAt: now,
       content: content,
       tags: tags,
@@ -231,50 +229,43 @@ class DiaryRepositoryImpl implements DiaryRepository {
     );
 
     try {
-      // --- 核心"双写"逻辑开始 ---
+      // --- 核心逻辑开始 ---
 
-      // 第一步：如果日期发生变化，先行清理旧物理文件
       if (oldFileDate != null) {
         try {
           await _fileService.deleteJournalFile(oldFileDate);
         } catch (e) {
-          debugPrint(
-            'DiaryRepository: Failed to delete old file during move: $e',
-          );
+          debugPrint('DiaryRepository: Failed to delete old file: $e');
         }
       }
 
-      // 第二步：给调度器发送 suppress 信号，防止 Watcher 回声
-      final filePath = await _fileService.getExactFilePath(diary.date);
-      _fileStateScheduler.suppressPath(filePath);
+      // 1. 物理写入（内部会根据物理文件是否存在来锁定 ID）
+      debugPrint('DiaryRepository: Writing journal file...');
+      final savedDiary = await _fileService.writeJournal(diary);
 
-      // 第三步：保存物理文件 (Markdown)
-      await _fileService.writeJournal(diary);
+      // 2. 强同步 SQLite
+      debugPrint('DiaryRepository: Syncing to SQLite...');
+      await _syncService.syncJournal(savedDiary.date);
 
-      // 第三步：将这次保存操作强同步给 SQLite 影子图谱
-      await _syncService.syncJournal(diary.date);
-
-      // 第四步：直接更新 VaultIndex（UI 立即响应）
+      // 3. 更新内存索引 (确保使用的是 savedDiary.id，即物理磁盘上的真实 ID)
+      // 注意：syncJournal 也会触发事件更新 VaultIndex，这里手动呼叫 upsert 是为了 UI 响应更及时
       _vaultIndex.upsert(
         DiaryMeta(
-          id: diary.id,
-          date: diary.date,
-          preview: diary.content.length > 120
-              ? diary.content.substring(0, 120)
-              : diary.content,
-          tags: diary.tags,
-          updatedAt: diary.updatedAt,
+          id: savedDiary.id,
+          date: savedDiary.date,
+          preview: savedDiary.content.length > 120
+              ? savedDiary.content.substring(0, 120)
+              : savedDiary.content,
+          tags: savedDiary.tags,
+          updatedAt: savedDiary.updatedAt,
         ),
       );
 
-      // 兼容旧流
       _emitAllDiaries();
 
-      // --- 核心“双写”逻辑结束 ---
+      return savedDiary;
     } catch (e) {
-      debugPrint(
-        'DiaryRepository: Failed to save diary (hybrid mode). Error: $e',
-      );
+      debugPrint('DiaryRepository: Critical error during saveDiary: $e');
       rethrow;
     }
   }

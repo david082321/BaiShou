@@ -72,7 +72,8 @@ class JournalFileService extends _$JournalFileService {
 
   /// 写入日记到物理文件（覆盖写入当天全部内容）
   /// 日记按天切分，一天对应一个 `yyyy-MM-dd.md` 文件。
-  Future<String> writeJournal(Diary diary) async {
+  /// 返回写入后的最终实体（包含可能纠偏后的 ID）
+  Future<Diary> writeJournal(Diary diary) async {
     final file = await _resolveDateTargetFile(diary.date);
     final isNewFile = !file.existsSync();
 
@@ -91,9 +92,10 @@ class JournalFileService extends _$JournalFileService {
       }
     }
 
+    final finalId = isNewFile ? diary.id : existingMeta['id'] ?? diary.id;
     final yamlWriter = YamlWriter();
     final metaData = {
-      'id': isNewFile ? diary.id : existingMeta['id'] ?? diary.id,
+      'id': finalId,
       'createdAt': isNewFile
           ? diary.createdAt.toIso8601String()
           : existingMeta['createdAt'] ?? diary.createdAt.toIso8601String(),
@@ -119,7 +121,11 @@ class JournalFileService extends _$JournalFileService {
     buffer.write(diary.content.trim());
 
     await file.writeAsString(buffer.toString(), flush: true);
-    return file.path;
+
+    return diary.copyWith(
+      id: finalId,
+      updatedAt: DateTime.parse(metaData['updatedAt'] as String),
+    );
   }
 
   /// 从物理物理文件读取日记实体

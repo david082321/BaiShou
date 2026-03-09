@@ -12,6 +12,8 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:baishou/i18n/strings.g.dart';
 import 'package:baishou/features/diary/domain/entities/diary.dart';
+import 'package:baishou/features/diary/data/vault_index_notifier.dart';
+import 'package:collection/collection.dart';
 
 /// 日记/总结编辑器页面
 /// 支持日记记录（标题、内容、标签）以及对 AI 生成总结的查看与编辑。
@@ -44,6 +46,7 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
   final FocusNode _tagFocusNode = FocusNode();
 
   bool _isDirty = false; // 标记内容是否有未保存的更改
+  bool _isSaving = false; // 是否正在保存
   bool _isLoading = false; // 标记数据加载状态
   bool _isTransitioning = true; // 标记是否处于路由转场期间（防止 Markdown 阻塞动画）
   bool _isPreview = false; // 标记是否处于 Markdown 预览模式
@@ -256,6 +259,8 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
 
     Diary? savedDiary; // 保存成功后要带回列表页的实体
 
+    setState(() => _isSaving = true);
+
     try {
       if (_isSummaryMode) {
         final summary = await ref
@@ -275,83 +280,56 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
       } else {
         final repo = ref.read(diaryRepositoryProvider);
 
-        if (widget.diaryId != null) {
-          // ── 编辑模式：直接用原始 ID 更新，允许用户修改日期 ──
-          final diary = await repo.getDiaryById(widget.diaryId!);
+        // 优先使用内存索引 (VaultIndex) 查找当天的日记，这比通过 Repository 查询 SQLite 更快且更可靠
+        final metas = ref.read(vaultIndexProvider).value ?? [];
+        final existingMeta = metas.firstWhereOrNull(
+          (m) => DateUtils.isSameDay(m.date, _selectedDate),
+        );
+
+        if (widget.diaryId != null ||
+            _currentDiaryId != null ||
+            existingMeta != null) {
+          // ── 编辑/追加模式 ──
+          final targetId =
+              widget.diaryId ?? _currentDiaryId ?? existingMeta!.id;
+          final diary = await repo.getDiaryById(targetId);
+
           if (diary != null) {
-            final updated = diary.copyWith(
-              content: content,
-              tags: _tags,
+            String finalContent = content;
+            List<String> finalTags = _tags;
+
+            // 如果是通过 existingMeta 发现的（但当前页面还没绑定过这个 ID），则执行追加合并
+            if (widget.diaryId == null && _currentDiaryId == null) {
+              final oldContent = diary.content.trimRight();
+              finalContent = oldContent.isEmpty
+                  ? content
+                  : '$oldContent\n\n$content';
+              finalTags = {...diary.tags, ..._tags}.toList();
+            }
+
+            savedDiary = await repo.saveDiary(
+              id: diary.id,
+              content: finalContent,
               date: _selectedDate,
+              tags: finalTags,
             );
-            await repo.saveDiary(
-              id: updated.id,
-              content: updated.content,
-              date: updated.date,
-              tags: updated.tags,
-            );
-            // 内存直挺：把修改后的实体带回列表页
-            savedDiary = updated.copyWith(updatedAt: DateTime.now());
           }
         } else {
-          // ── 新增模式：按日期查找，避免同一天出现两篇日记 ──
-          final dateStr = DateFormat('yyyy-MM-dd').format(_selectedDate);
-          final allDiaries = await repo.getAllDiaries();
-          final existingDiary = allDiaries
-              .where((d) => DateFormat('yyyy-MM-dd').format(d.date) == dateStr)
-              .firstOrNull;
-
-          if (existingDiary != null) {
-            // 该日期已有日记，执行追加（合并内容到已有日记）
-            final fullExisting =
-                await repo.getDiaryById(existingDiary.id) ?? existingDiary;
-            final oldContent = fullExisting.content.trimRight();
-            final finalContent = oldContent.isEmpty
-                ? content
-                : '$oldContent\n\n$content';
-
-            // 合并标签
-            final mergedTags = {...fullExisting.tags, ..._tags}.toList();
-
-            await repo.saveDiary(
-              id: fullExisting.id,
-              content: finalContent,
-              date: _selectedDate,
-              tags: mergedTags,
-            );
-            // 内存直挺：带回当天已更新的实体
-            savedDiary = fullExisting.copyWith(
-              content: finalContent,
-              date: _selectedDate,
-              tags: mergedTags,
-              updatedAt: DateTime.now(),
-            );
-          } else {
-            // 该日期没有日记，执行新建
-            final newId = DateTime.now().millisecondsSinceEpoch;
-            await repo.saveDiary(
-              id: newId,
-              content: content,
-              date: _selectedDate,
-              tags: _tags,
-            );
-            // 内存直挺：构造实体带回列表页
-            savedDiary = Diary(
-              id: newId,
-              content: content,
-              date: _selectedDate,
-              tags: _tags,
-              createdAt: DateTime.now(),
-              updatedAt: DateTime.now(),
-            );
-          }
+          // ── 纯新增模式 ──
+          savedDiary = await repo.saveDiary(
+            content: content,
+            date: _selectedDate,
+            tags: _tags,
+          );
         }
+
+        // 保存成功后，更新当前页面的追踪 ID，防止短时间内再次点击产生 ID 冲突
+        _currentDiaryId = savedDiary?.id;
       }
 
       if (mounted) {
         setState(() => _isDirty = false);
         AppToast.showSuccess(context, t.diary.saved_toast);
-        // 带回新建/更新的 Diary 实体，列表页直接内存插入
         context.pop(savedDiary);
       }
     } catch (e) {
@@ -363,185 +341,228 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
           backgroundColor: Colors.red[900],
         );
       }
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      canPop: !_isDirty,
+      canPop: !_isDirty && !_isSaving,
       onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
+
+        if (_isSaving) {
+          AppToast.show(context, t.common.saving);
+          return;
+        }
 
         final shouldPop = await _showExitConfirmation();
         if (shouldPop && mounted) {
           context.pop();
         }
       },
-      child: Scaffold(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        appBar: AppBar(
-          centerTitle: true,
-          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back_ios_new),
-            onPressed: () => Navigator.maybePop(context),
-          ),
-          title: _buildAppBarTitle(context),
-          actions: [
-            Padding(
-              padding: const EdgeInsets.only(left: 8, right: 16),
-              child: FilledButton(
-                onPressed: _save,
-                style: FilledButton.styleFrom(
-                  backgroundColor: AppTheme.primary,
-                  shape: const StadiumBorder(),
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                ),
-                child: Text(t.common.save),
+      child: Stack(
+        children: [
+          Scaffold(
+            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+            appBar: AppBar(
+              centerTitle: true,
+              backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back_ios_new),
+                onPressed: () => Navigator.maybePop(context),
               ),
+              title: _buildAppBarTitle(context),
+              actions: [
+                Padding(
+                  padding: const EdgeInsets.only(left: 8, right: 16),
+                  child: FilledButton(
+                    onPressed: _save,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppTheme.primary,
+                      shape: const StadiumBorder(),
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                    ),
+                    child: Text(t.common.save),
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
-        body: (_isLoading || _isTransitioning)
-            ? const Center(child: CircularProgressIndicator())
-            : Column(
-                children: [
-                  Expanded(
-                    child: ListView(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 16,
-                      ),
-                      children: [
-                        // 标签（仅日记模式）
-                        if (!_isSummaryMode) ...[
-                          const SizedBox(height: 8),
-                          TagInputWidget(
-                            tags: _tags,
-                            controller: _tagInputController,
-                            focusNode: _tagFocusNode,
-                            onAddTag: _addTag,
-                            onRemoveTag: _removeTag,
+            body: (_isLoading || _isTransitioning)
+                ? const Center(child: CircularProgressIndicator())
+                : Column(
+                    children: [
+                      Expanded(
+                        child: ListView(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 16,
                           ),
-                        ],
+                          children: [
+                            // 标签（仅日记模式）
+                            if (!_isSummaryMode) ...[
+                              const SizedBox(height: 8),
+                              TagInputWidget(
+                                tags: _tags,
+                                controller: _tagInputController,
+                                focusNode: _tagFocusNode,
+                                onAddTag: _addTag,
+                                onRemoveTag: _removeTag,
+                              ),
+                            ],
 
-                        const SizedBox(height: 16),
+                            const SizedBox(height: 16),
 
-                        // 内容：在编辑和预览之间切换
-                        if (_isPreview)
-                          _contentController.text.trim().isEmpty
-                              ? Padding(
-                                  padding: const EdgeInsets.only(top: 24),
-                                  child: Center(
-                                    child: Text(
-                                      t.diary.no_content_preview,
-                                      style: TextStyle(
-                                        color: Colors.grey[400],
-                                        fontSize: 14,
-                                      ),
-                                    ),
-                                  ),
-                                )
-                              : MarkdownBody(
-                                  data: _contentController.text,
-                                  selectable: true,
-                                  styleSheet: MarkdownStyleSheet(
-                                    p: TextStyle(
-                                      fontSize: 16,
-                                      height: 1.6,
-                                      color: Theme.of(
-                                        context,
-                                      ).textTheme.bodyLarge?.color,
-                                    ),
-                                    h1: TextStyle(
-                                      fontSize: 24,
-                                      fontWeight: FontWeight.bold,
-                                      color: Theme.of(
-                                        context,
-                                      ).textTheme.bodyLarge?.color,
-                                    ),
-                                    h2: TextStyle(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.bold,
-                                      color: Theme.of(
-                                        context,
-                                      ).textTheme.bodyLarge?.color,
-                                    ),
-                                    h3: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w600,
-                                      color: Theme.of(
-                                        context,
-                                      ).textTheme.bodyLarge?.color,
-                                    ),
-                                    code: TextStyle(
-                                      fontSize: 14,
-                                      backgroundColor: Theme.of(
-                                        context,
-                                      ).colorScheme.surfaceContainerHighest,
-                                      color: AppTheme.primary,
-                                    ),
-                                    codeblockDecoration: BoxDecoration(
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.surfaceContainerHighest,
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    blockquoteDecoration: BoxDecoration(
-                                      border: Border(
-                                        left: BorderSide(
-                                          color: AppTheme.primary.withOpacity(
-                                            0.5,
+                            // 内容：在编辑和预览之间切换
+                            if (_isPreview)
+                              _contentController.text.trim().isEmpty
+                                  ? Padding(
+                                      padding: const EdgeInsets.only(top: 24),
+                                      child: Center(
+                                        child: Text(
+                                          t.diary.no_content_preview,
+                                          style: TextStyle(
+                                            color: Colors.grey[400],
+                                            fontSize: 14,
                                           ),
-                                          width: 3,
                                         ),
                                       ),
-                                    ),
-                                    listBullet: TextStyle(
-                                      fontSize: 16,
-                                      color: Theme.of(
-                                        context,
-                                      ).textTheme.bodyLarge?.color,
-                                    ),
-                                    checkbox: TextStyle(
-                                      color: AppTheme.primary,
-                                    ),
-                                  ),
-                                )
-                        else
-                          TextField(
-                            controller: _contentController,
-                            maxLines: null,
-                            minLines: 10,
-                            style: TextStyle(
-                              fontSize: 16,
-                              height: 1.6,
-                              color: Theme.of(
-                                context,
-                              ).textTheme.bodyLarge?.color,
-                            ),
-                            decoration: InputDecoration(
-                              hintText: t.diary.editor_hint,
-                              hintStyle: TextStyle(color: Colors.grey[400]),
-                              border: InputBorder.none,
-                            ),
-                          ),
+                                    )
+                                  : MarkdownBody(
+                                      data: _contentController.text,
+                                      selectable: true,
+                                      styleSheet: MarkdownStyleSheet(
+                                        p: TextStyle(
+                                          fontSize: 16,
+                                          height: 1.6,
+                                          color: Theme.of(
+                                            context,
+                                          ).textTheme.bodyLarge?.color,
+                                        ),
+                                        h1: TextStyle(
+                                          fontSize: 24,
+                                          fontWeight: FontWeight.bold,
+                                          color: Theme.of(
+                                            context,
+                                          ).textTheme.bodyLarge?.color,
+                                        ),
+                                        h2: TextStyle(
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.bold,
+                                          color: Theme.of(
+                                            context,
+                                          ).textTheme.bodyLarge?.color,
+                                        ),
+                                        h3: TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.w600,
+                                          color: Theme.of(
+                                            context,
+                                          ).textTheme.bodyLarge?.color,
+                                        ),
+                                        code: TextStyle(
+                                          fontSize: 14,
+                                          backgroundColor: Theme.of(
+                                            context,
+                                          ).colorScheme.surfaceContainerHighest,
+                                          color: AppTheme.primary,
+                                        ),
+                                        codeblockDecoration: BoxDecoration(
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.surfaceContainerHighest,
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
+                                        ),
+                                        blockquoteDecoration: BoxDecoration(
+                                          border: Border(
+                                            left: BorderSide(
+                                              color: AppTheme.primary
+                                                  .withOpacity(0.5),
+                                              width: 3,
+                                            ),
+                                          ),
+                                        ),
+                                        listBullet: TextStyle(
+                                          fontSize: 16,
+                                          color: Theme.of(
+                                            context,
+                                          ).textTheme.bodyLarge?.color,
+                                        ),
+                                        checkbox: TextStyle(
+                                          color: AppTheme.primary,
+                                        ),
+                                      ),
+                                    )
+                            else
+                              TextField(
+                                controller: _contentController,
+                                maxLines: null,
+                                minLines: 10,
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  height: 1.6,
+                                  color: Theme.of(
+                                    context,
+                                  ).textTheme.bodyLarge?.color,
+                                ),
+                                decoration: InputDecoration(
+                                  hintText: t.diary.editor_hint,
+                                  hintStyle: TextStyle(color: Colors.grey[400]),
+                                  border: InputBorder.none,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                      // Markdown 格式化工具栏
+                      MarkdownToolbar(
+                        isPreview: _isPreview,
+                        onTogglePreview: () {
+                          setState(() => _isPreview = !_isPreview);
+                          if (_isPreview) FocusScope.of(context).unfocus();
+                        },
+                        onHideKeyboard: () => FocusScope.of(context).unfocus(),
+                        onInsertText: _insertText,
+                      ),
+                    ],
+                  ),
+          ),
+          if (_isSaving)
+            Container(
+              color: Colors.black26,
+              child: Center(
+                child: Card(
+                  elevation: 4,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 16,
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const CircularProgressIndicator(),
+                        const SizedBox(height: 16),
+                        Text(
+                          t.common.saving,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
                       ],
                     ),
                   ),
-                  // Markdown 格式化工具栏
-                  MarkdownToolbar(
-                    isPreview: _isPreview,
-                    onTogglePreview: () {
-                      setState(() => _isPreview = !_isPreview);
-                      if (_isPreview) FocusScope.of(context).unfocus();
-                    },
-                    onHideKeyboard: () => FocusScope.of(context).unfocus(),
-                    onInsertText: _insertText,
-                  ),
-                ],
+                ),
               ),
+            ),
+        ],
       ),
     );
   }

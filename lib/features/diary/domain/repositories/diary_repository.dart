@@ -12,11 +12,18 @@ abstract class DiaryRepository {
 
   // 保存日记 (新增或更新)
   // 如果提供了 id，则更新；否则新增
-  Future<void> saveDiary({
+  /// 保存日记，返回最终保存的实体
+  Future<Diary> saveDiary({
     int? id,
     required DateTime date,
     required String content,
     List<String> tags = const [],
+    String? weather,
+    String? mood,
+    String? location,
+    String? locationDetail,
+    bool isFavorite = false,
+    List<String> mediaPaths = const [],
   });
 
   /// 批量保存日记
