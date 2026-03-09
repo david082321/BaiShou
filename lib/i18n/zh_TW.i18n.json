@@ -413,7 +413,10 @@
     "tag_input_hint": "使用換行新增標籤哦...",
     "file_sync_label": "標籤：",
     "tag_label": "標籤",
-    "error_dual_edit": "不能同時編輯日記和總結"
+    "error_dual_edit": "不能同時編輯日記和總結",
+    "exit_without_saving": "離開且不儲存？",
+    "exit_confirmation_hint": "目前內容有未儲存的修改，離開將遺失這些更改喔。",
+    "exit_without_saving_confirm": "不儲存並離開"
   },
   "summary": {
     "dashboard_title": "白守資料概覽",

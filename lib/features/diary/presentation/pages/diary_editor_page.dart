@@ -368,166 +368,181 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppBar(
-        centerTitle: true,
+    return PopScope(
+      canPop: !_isDirty,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+
+        final shouldPop = await _showExitConfirmation();
+        if (shouldPop && mounted) {
+          context.pop();
+        }
+      },
+      child: Scaffold(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new),
-          onPressed: () => context.pop(),
-        ),
-        title: _buildAppBarTitle(context),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(left: 8, right: 16),
-            child: FilledButton(
-              onPressed: _save,
-              style: FilledButton.styleFrom(
-                backgroundColor: AppTheme.primary,
-                shape: const StadiumBorder(),
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-              ),
-              child: Text(t.common.save),
-            ),
+        appBar: AppBar(
+          centerTitle: true,
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios_new),
+            onPressed: () => Navigator.maybePop(context),
           ),
-        ],
-      ),
-      body: (_isLoading || _isTransitioning)
-          ? const Center(child: CircularProgressIndicator())
-          : Column(
-              children: [
-                Expanded(
-                  child: ListView(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 24,
-                      vertical: 16,
-                    ),
-                    children: [
-                      // 标签（仅日记模式）
-                      if (!_isSummaryMode) ...[
-                        const SizedBox(height: 8),
-                        TagInputWidget(
-                          tags: _tags,
-                          controller: _tagInputController,
-                          focusNode: _tagFocusNode,
-                          onAddTag: _addTag,
-                          onRemoveTag: _removeTag,
-                        ),
-                      ],
+          title: _buildAppBarTitle(context),
+          actions: [
+            Padding(
+              padding: const EdgeInsets.only(left: 8, right: 16),
+              child: FilledButton(
+                onPressed: _save,
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppTheme.primary,
+                  shape: const StadiumBorder(),
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                ),
+                child: Text(t.common.save),
+              ),
+            ),
+          ],
+        ),
+        body: (_isLoading || _isTransitioning)
+            ? const Center(child: CircularProgressIndicator())
+            : Column(
+                children: [
+                  Expanded(
+                    child: ListView(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 16,
+                      ),
+                      children: [
+                        // 标签（仅日记模式）
+                        if (!_isSummaryMode) ...[
+                          const SizedBox(height: 8),
+                          TagInputWidget(
+                            tags: _tags,
+                            controller: _tagInputController,
+                            focusNode: _tagFocusNode,
+                            onAddTag: _addTag,
+                            onRemoveTag: _removeTag,
+                          ),
+                        ],
 
-                      const SizedBox(height: 16),
+                        const SizedBox(height: 16),
 
-                      // 内容：在编辑和预览之间切换
-                      if (_isPreview)
-                        _contentController.text.trim().isEmpty
-                            ? Padding(
-                                padding: const EdgeInsets.only(top: 24),
-                                child: Center(
-                                  child: Text(
-                                    t.diary.no_content_preview,
-                                    style: TextStyle(
-                                      color: Colors.grey[400],
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                ),
-                              )
-                            : MarkdownBody(
-                                data: _contentController.text,
-                                selectable: true,
-                                styleSheet: MarkdownStyleSheet(
-                                  p: TextStyle(
-                                    fontSize: 16,
-                                    height: 1.6,
-                                    color: Theme.of(
-                                      context,
-                                    ).textTheme.bodyLarge?.color,
-                                  ),
-                                  h1: TextStyle(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.bold,
-                                    color: Theme.of(
-                                      context,
-                                    ).textTheme.bodyLarge?.color,
-                                  ),
-                                  h2: TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold,
-                                    color: Theme.of(
-                                      context,
-                                    ).textTheme.bodyLarge?.color,
-                                  ),
-                                  h3: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w600,
-                                    color: Theme.of(
-                                      context,
-                                    ).textTheme.bodyLarge?.color,
-                                  ),
-                                  code: TextStyle(
-                                    fontSize: 14,
-                                    backgroundColor: Theme.of(
-                                      context,
-                                    ).colorScheme.surfaceContainerHighest,
-                                    color: AppTheme.primary,
-                                  ),
-                                  codeblockDecoration: BoxDecoration(
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.surfaceContainerHighest,
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  blockquoteDecoration: BoxDecoration(
-                                    border: Border(
-                                      left: BorderSide(
-                                        color: AppTheme.primary.withOpacity(
-                                          0.5,
-                                        ),
-                                        width: 3,
+                        // 内容：在编辑和预览之间切换
+                        if (_isPreview)
+                          _contentController.text.trim().isEmpty
+                              ? Padding(
+                                  padding: const EdgeInsets.only(top: 24),
+                                  child: Center(
+                                    child: Text(
+                                      t.diary.no_content_preview,
+                                      style: TextStyle(
+                                        color: Colors.grey[400],
+                                        fontSize: 14,
                                       ),
                                     ),
                                   ),
-                                  listBullet: TextStyle(
-                                    fontSize: 16,
-                                    color: Theme.of(
-                                      context,
-                                    ).textTheme.bodyLarge?.color,
+                                )
+                              : MarkdownBody(
+                                  data: _contentController.text,
+                                  selectable: true,
+                                  styleSheet: MarkdownStyleSheet(
+                                    p: TextStyle(
+                                      fontSize: 16,
+                                      height: 1.6,
+                                      color: Theme.of(
+                                        context,
+                                      ).textTheme.bodyLarge?.color,
+                                    ),
+                                    h1: TextStyle(
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.bold,
+                                      color: Theme.of(
+                                        context,
+                                      ).textTheme.bodyLarge?.color,
+                                    ),
+                                    h2: TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                      color: Theme.of(
+                                        context,
+                                      ).textTheme.bodyLarge?.color,
+                                    ),
+                                    h3: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w600,
+                                      color: Theme.of(
+                                        context,
+                                      ).textTheme.bodyLarge?.color,
+                                    ),
+                                    code: TextStyle(
+                                      fontSize: 14,
+                                      backgroundColor: Theme.of(
+                                        context,
+                                      ).colorScheme.surfaceContainerHighest,
+                                      color: AppTheme.primary,
+                                    ),
+                                    codeblockDecoration: BoxDecoration(
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.surfaceContainerHighest,
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    blockquoteDecoration: BoxDecoration(
+                                      border: Border(
+                                        left: BorderSide(
+                                          color: AppTheme.primary.withOpacity(
+                                            0.5,
+                                          ),
+                                          width: 3,
+                                        ),
+                                      ),
+                                    ),
+                                    listBullet: TextStyle(
+                                      fontSize: 16,
+                                      color: Theme.of(
+                                        context,
+                                      ).textTheme.bodyLarge?.color,
+                                    ),
+                                    checkbox: TextStyle(
+                                      color: AppTheme.primary,
+                                    ),
                                   ),
-                                  checkbox: TextStyle(color: AppTheme.primary),
-                                ),
-                              )
-                      else
-                        TextField(
-                          controller: _contentController,
-                          maxLines: null,
-                          minLines: 10,
-                          style: TextStyle(
-                            fontSize: 16,
-                            height: 1.6,
-                            color: Theme.of(context).textTheme.bodyLarge?.color,
+                                )
+                        else
+                          TextField(
+                            controller: _contentController,
+                            maxLines: null,
+                            minLines: 10,
+                            style: TextStyle(
+                              fontSize: 16,
+                              height: 1.6,
+                              color: Theme.of(
+                                context,
+                              ).textTheme.bodyLarge?.color,
+                            ),
+                            decoration: InputDecoration(
+                              hintText: t.diary.editor_hint,
+                              hintStyle: TextStyle(color: Colors.grey[400]),
+                              border: InputBorder.none,
+                            ),
                           ),
-                          decoration: InputDecoration(
-                            hintText: t.diary.editor_hint,
-                            hintStyle: TextStyle(color: Colors.grey[400]),
-                            border: InputBorder.none,
-                          ),
-                        ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-                // Markdown 格式化工具栏
-                MarkdownToolbar(
-                  isPreview: _isPreview,
-                  onTogglePreview: () {
-                    setState(() => _isPreview = !_isPreview);
-                    if (_isPreview) FocusScope.of(context).unfocus();
-                  },
-                  onHideKeyboard: () => FocusScope.of(context).unfocus(),
-                  onInsertText: _insertText,
-                ),
-              ],
-            ),
+                  // Markdown 格式化工具栏
+                  MarkdownToolbar(
+                    isPreview: _isPreview,
+                    onTogglePreview: () {
+                      setState(() => _isPreview = !_isPreview);
+                      if (_isPreview) FocusScope.of(context).unfocus();
+                    },
+                    onHideKeyboard: () => FocusScope.of(context).unfocus(),
+                    onInsertText: _insertText,
+                  ),
+                ],
+              ),
+      ),
     );
   }
 
@@ -799,5 +814,30 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
         );
         break;
     }
+  }
+
+  /// 显示退出确认对话框
+  Future<bool> _showExitConfirmation() async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(t.diary.exit_without_saving),
+        content: Text(t.diary.exit_confirmation_hint),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(t.common.cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(
+              foregroundColor: Theme.of(context).colorScheme.error,
+            ),
+            child: Text(t.diary.exit_without_saving_confirm),
+          ),
+        ],
+      ),
+    );
+    return result ?? false;
   }
 }
