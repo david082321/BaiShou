@@ -1,5 +1,4 @@
 import 'package:baishou/i18n/strings.g.dart';
-import 'dart:async';
 import 'package:intl/intl.dart';
 
 import 'package:baishou/features/diary/data/vault_index_notifier.dart';
@@ -9,7 +8,6 @@ import 'package:baishou/features/diary/domain/repositories/diary_repository.dart
 import 'package:baishou/features/index/data/shadow_index_database.dart';
 import 'package:baishou/features/index/data/shadow_index_sync_service.dart';
 import 'package:baishou/features/storage/domain/services/journal_file_service.dart';
-import 'package:baishou/features/storage/domain/services/file_state_scheduler.dart';
 import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -20,23 +18,12 @@ class DiaryRepositoryImpl implements DiaryRepository {
   final JournalFileService _fileService;
   final ShadowIndexSyncService _syncService;
   final VaultIndex _vaultIndex;
-  final FileStateScheduler _fileStateScheduler;
-
-  // ==========================================
-  // 响应式流处理部分 (Reactive Stream)
-  // ==========================================
-
-  // 使用 BroadcastStreamController 来模拟原来数据库(如 drift)的实时监听机制。
-  // 它作为一个中转站：底层数据发生任何变动时，我们手动向这个流中“喂”一份最新的列表数据，
-  // 订阅了这个流的 UI 界面（如日记列表页）就会自动接收到推送并完成重绘。
-  final _streamController = StreamController<List<Diary>>.broadcast();
 
   DiaryRepositoryImpl(
     this._dbService,
     this._fileService,
     this._syncService,
     this._vaultIndex,
-    this._fileStateScheduler,
   ) {
     // 仓库初始化时，立即执行一次全量扫描，确保物理文件和数据库影子索引一致（支持手动删除同步）
     _initRepositoryData();
@@ -44,60 +31,10 @@ class DiaryRepositoryImpl implements DiaryRepository {
 
   Future<void> _initRepositoryData() async {
     try {
-      // 1. 初始化时先执行一次全量扫描，拉平现有状态
       await _syncService.fullScanVault();
-
-      // 2. 挂载实时文件系统监听器事件流
-      _syncService.syncEvents.listen((event) {
-        debugPrint(
-          'DiaryRepository: External sync event for ${event.path}, refreshing list.',
-        );
-        _emitAllDiaries();
-      });
     } catch (e) {
       debugPrint('DiaryRepository: Full scan failed on startup: $e');
-    } finally {
-      // 2. 无论如何都触发一次流推送，确保 UI 有数据显示
-      _emitAllDiaries();
     }
-  }
-
-  void dispose() {
-    _streamController.close();
-  }
-
-  // 简单的扩展：为了支持带 limit 的 watch，我们维护一个当前的 limit 状态
-  int? _currentWatchLimit;
-
-  /// 【内部方法】：触发数据更新推送
-  /// 它会从极速读取的 SQLite 影子表中抓取最新列表，并塞入广播流中。
-  Future<void> _emitAllDiaries() async {
-    try {
-      final list = await getAllDiaries(limit: _currentWatchLimit);
-      if (!_streamController.isClosed) {
-        _streamController.add(list);
-      }
-    } catch (e, stack) {
-      debugPrint('DiaryRepository: Failed to emit diaries. Error: $e');
-      if (!_streamController.isClosed) {
-        _streamController.addError(e, stack);
-      }
-    }
-  }
-
-  /// 【核心监听入口】：供 UI 层订阅
-  @override
-  Stream<List<Diary>> watchAllDiaries() {
-    _currentWatchLimit = null;
-    _emitAllDiaries();
-    return _streamController.stream;
-  }
-
-  @override
-  Stream<List<Diary>> watchDiaries({int? limit}) {
-    _currentWatchLimit = limit;
-    _emitAllDiaries();
-    return _streamController.stream;
   }
 
   /// 从 SQLite 查询数据列表并转换为实体 (高速无头查询)
@@ -174,7 +111,6 @@ class DiaryRepositoryImpl implements DiaryRepository {
   }
 
   @override
-  @override
   Future<Diary> saveDiary({
     int? id,
     required DateTime date,
@@ -240,6 +176,7 @@ class DiaryRepositoryImpl implements DiaryRepository {
       }
 
       // 1. 物理写入（内部会根据物理文件是否存在来锁定 ID）
+      // suppress 已内置于 writeJournal 内部，Watcher 会自动屏蔽
       debugPrint('DiaryRepository: Writing journal file...');
       final savedDiary = await _fileService.writeJournal(diary);
 
@@ -261,8 +198,6 @@ class DiaryRepositoryImpl implements DiaryRepository {
         ),
       );
 
-      _emitAllDiaries();
-
       return savedDiary;
     } catch (e) {
       debugPrint('DiaryRepository: Critical error during saveDiary: $e');
@@ -276,9 +211,8 @@ class DiaryRepositoryImpl implements DiaryRepository {
       await _fileService.writeJournal(d);
       await _syncService.syncJournal(d.date);
     }
-    // 批量写完后强制刷新 VaultIndex 内存（主页绑定此状态，_emitAllDiaries 无效）
+    // 批量写完后强制刷新 VaultIndex 内存
     await _vaultIndex.forceReload();
-    _emitAllDiaries();
   }
 
   @override
@@ -293,19 +227,16 @@ class DiaryRepositoryImpl implements DiaryRepository {
     );
 
     if (rows.isNotEmpty) {
-      // 2. suppress 路径，再尝试同步删除物理磁盘上的 Markdown 文件
+      // 2. 尝试同步删除物理磁盘上的 Markdown 文件
+      // suppress 已内置于 deleteJournalFile 内部
       final dateStr = rows.first['date'] as String;
       try {
         final logicalDate = DateTime.parse(dateStr);
-        // 借用调度器屏蔽这条路径后续不可预测的监听杂音
-        final filePath = await _fileService.getExactFilePath(logicalDate);
-        _fileStateScheduler.suppressPath(filePath);
-        // 第一步：清理物理文件和缓存
         await _fileService.deleteJournalFile(logicalDate);
       } catch (e) {
         // 物理删除失败后，我们依然继续删除索引，但需要把这个“部分失效”的信息传给 UI
         await _dbService.deleteJournalIndex(id);
-        _emitAllDiaries();
+        _vaultIndex.remove(id);
         throw Exception(t.common.errors.physical_delete_failed);
       }
     }
@@ -315,9 +246,6 @@ class DiaryRepositoryImpl implements DiaryRepository {
 
     // 4. 直接从 VaultIndex 内存删除（UI 立即响应）
     _vaultIndex.remove(id);
-
-    // 5. 兼容旧流
-    _emitAllDiaries();
   }
 
   @override
@@ -325,7 +253,7 @@ class DiaryRepositoryImpl implements DiaryRepository {
     final db = await _dbService.database;
     await db.delete('journals_index');
     await db.rawDelete('DELETE FROM journals_fts');
-    _emitAllDiaries();
+    _vaultIndex.clear();
   }
 
   @override
@@ -388,19 +316,13 @@ DiaryRepository diaryRepository(Ref ref) {
   final fileService = ref.watch(journalFileServiceProvider.notifier);
   final syncService = ref.watch(shadowIndexSyncServiceProvider.notifier);
   final vaultIndex = ref.watch(vaultIndexProvider.notifier);
-  final fileStateScheduler = ref.watch(fileStateSchedulerProvider.notifier);
 
   final repo = DiaryRepositoryImpl(
     dbService,
     fileService,
     syncService,
     vaultIndex,
-    fileStateScheduler,
   );
-
-  ref.onDispose(() {
-    repo.dispose();
-  });
 
   return repo;
 }
