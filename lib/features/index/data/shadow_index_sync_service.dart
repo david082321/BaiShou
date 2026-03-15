@@ -314,9 +314,14 @@ class ShadowIndexSyncService extends _$ShadowIndexSyncService {
         }
       }
 
-      // 3. 【核心修复】：清理孤立索引 (Orphaned Index)
+      // 3. 【关键修复】：清理孤立索引 (Orphaned Index)
       // 找出那些数据库里有，但物理磁盘上已经消失的日期条目
+      // ⚠️ 不能使用 scannedDates 集合来判断——因为 fullScanVault 是异步执行的，
+      //    在文件列举期间 saveDiary 可能创建了新文件，scannedDates 不包含它，
+      //    会导致刚保存的日记被误判为孤立索引而删除！
+      //    修复方案：在清理前实时检查物理文件是否存在。
       final dbService = ref.read(shadowIndexDatabaseProvider.notifier);
+      final journalService = ref.read(journalFileServiceProvider.notifier);
       final db = await dbService.database;
       final rows = await db.query('journals_index', columns: ['id', 'date']);
 
@@ -326,8 +331,11 @@ class ShadowIndexSyncService extends _$ShadowIndexSyncService {
             .split('T')
             .first; // 提取 yyyy-MM-dd
 
-        if (!scannedDates.contains(dateStr)) {
-          // 物理文件已不存在，执行影子清理
+        // 实时检查物理文件是否存在（而非依赖启动时的快照）
+        final filePath = await journalService
+            .getExactFilePath(DateTime.parse(dateStr));
+        if (!File(filePath).existsSync()) {
+          // 物理文件确实不存在，安全执行影子清理
           await dbService.deleteJournalIndex(id);
           debugPrint(
             'ShadowIndexSyncService: Cleaned orphaned index for date $dateStr (ID: $id)',

@@ -1,12 +1,6 @@
 import 'package:baishou/features/diary/domain/entities/diary.dart';
 
 abstract class DiaryRepository {
-  // 获取所有日记 (按日期倒序)
-  Stream<List<Diary>> watchAllDiaries();
-
-  // 获取所有日记 (按日期倒序, 可选 limit)
-  Stream<List<Diary>> watchDiaries({int? limit});
-
   // 获取单个日记 (用于编辑)
   Future<Diary?> getDiaryById(int id);
 

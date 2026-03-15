@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:baishou/core/storage/storage_path_provider.dart';
 import 'package:baishou/core/storage/vault_service.dart';
 import 'package:baishou/features/diary/domain/entities/diary.dart';
+import 'package:baishou/features/storage/domain/services/file_state_scheduler.dart';
 import 'package:baishou/i18n/strings.g.dart';
 import 'package:intl/intl.dart';
 import 'package:path/path.dart' as p;
@@ -18,6 +19,7 @@ part 'journal_file_service.g.dart';
 @Riverpod(keepAlive: true)
 class JournalFileService extends _$JournalFileService {
   StoragePathService get _pathProvider => ref.read(storagePathServiceProvider);
+  FileStateScheduler get _fileStateScheduler => ref.read(fileStateSchedulerProvider.notifier);
 
   @override
   FutureOr<void> build() async {
@@ -75,6 +77,10 @@ class JournalFileService extends _$JournalFileService {
   /// 返回写入后的最终实体（包含可能纠偏后的 ID）
   Future<Diary> writeJournal(Diary diary) async {
     final file = await _resolveDateTargetFile(diary.date);
+
+    // 自动屏蔽 FileWatcher：写文件前先 suppress，防止 Watcher 在落盘过程中读到半成品
+    _fileStateScheduler.suppressPath(file.path);
+
     final isNewFile = !file.existsSync();
 
     Map<String, dynamic> existingMeta = {};
@@ -195,6 +201,8 @@ class JournalFileService extends _$JournalFileService {
   Future<void> deleteJournalFile(DateTime date) async {
     final file = await _resolveDateTargetFile(date);
     if (file.existsSync()) {
+      // 自动屏蔽 FileWatcher：删除前先 suppress，防止 Watcher 产生杂音事件
+      _fileStateScheduler.suppressPath(file.path);
       await file.delete();
     }
   }
