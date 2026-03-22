@@ -8,6 +8,7 @@ import 'package:baishou/features/diary/data/vault_index_notifier.dart';
 import 'package:baishou/features/diary/domain/entities/diary.dart';
 import 'package:baishou/features/diary/domain/entities/diary_meta.dart';
 import 'package:baishou/features/diary/presentation/widgets/diary_card.dart';
+import 'package:baishou/features/diary/presentation/widgets/diary_meta_card.dart';
 import 'package:collection/collection.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -126,7 +127,7 @@ class _DiaryListPageState extends ConsumerState<DiaryListPage> {
                 itemCount: filteredMeta.length,
                 itemBuilder: (context, index) {
                   final meta = filteredMeta[index];
-                  return _DiaryMetaCard(
+                  return DiaryMetaCard(
                     meta: meta,
                     onDelete: () => _confirmDelete(context, ref, meta),
                   );
@@ -472,31 +473,3 @@ class _DiaryListPageState extends ConsumerState<DiaryListPage> {
   }
 }
 
-/// 轻量卡片：直接接收 DiaryMeta，点击时去编辑（只加载内容）
-class _DiaryMetaCard extends ConsumerWidget {
-  final DiaryMeta meta;
-  final VoidCallback? onDelete;
-
-  const _DiaryMetaCard({required this.meta, this.onDelete});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    // 构造一个只有元数据（内容用 preview 代替）的 Diary 传给 DiaryCard
-    // 点击时会打开编辑器，编辑器会从 getDiaryById 读取完整内容
-    final diaryStub = Diary(
-      id: meta.id,
-      date: meta.date,
-      content: meta.preview,
-      tags: meta.tags,
-      createdAt: meta.updatedAt,
-      updatedAt: meta.updatedAt,
-    );
-
-    return DiaryCard(
-      diary: diaryStub,
-      onDelete: onDelete,
-      // 编辑后的原地更新：VaultIndex 由 repository 在 saveDiary 中调用 upsert 完成
-      // 这里不需要 onUpdated 回调（VaultIndex 直接触发整个列表重绘）
-    );
-  }
-}

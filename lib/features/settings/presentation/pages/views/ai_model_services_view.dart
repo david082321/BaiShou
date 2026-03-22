@@ -6,6 +6,7 @@ import 'package:baishou/features/settings/presentation/widgets/provider_config_f
 import 'package:baishou/features/settings/presentation/widgets/provider_list_panel.dart';
 import 'package:baishou/features/settings/presentation/widgets/provider_model_list.dart';
 import 'package:baishou/agent/models/ai_provider_model.dart';
+import 'package:baishou/features/settings/presentation/widgets/provider_icon.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:baishou/i18n/strings.g.dart';
@@ -301,47 +302,6 @@ class _AiModelServicesViewState extends ConsumerState<AiModelServicesView> {
     }
   }
 
-  /// 获取供应商对应的图标资源
-  Widget _getProviderIcon(ProviderType type, {double size = 20}) {
-    switch (type) {
-      case ProviderType.openai:
-        return Image.asset(
-          'assets/ai_provider_icon/openai.png',
-          width: size,
-          height: size,
-        );
-      case ProviderType.gemini:
-        return Image.asset(
-          'assets/ai_provider_icon/gemini-color.png',
-          width: size,
-          height: size,
-        );
-      case ProviderType.anthropic:
-        return Image.asset(
-          'assets/ai_provider_icon/claude-color.png',
-          width: size,
-          height: size,
-        );
-      case ProviderType.deepseek:
-        return Image.asset(
-          'assets/ai_provider_icon/deepseek-color.png',
-          width: size,
-          height: size,
-        );
-      case ProviderType.kimi:
-        return Image.asset(
-          'assets/ai_provider_icon/moonshot.png',
-          width: size,
-          height: size,
-        );
-      default:
-        return Icon(
-          Icons.cloud_outlined,
-          color: Colors.grey.shade700,
-          size: size,
-        );
-    }
-  }
 
   /// 显示新增供应商对话框
   void _showAddProviderDialog() {
@@ -377,7 +337,7 @@ class _AiModelServicesViewState extends ConsumerState<AiModelServicesView> {
                               SizedBox(
                                 width: 20,
                                 height: 20,
-                                child: _getProviderIcon(type),
+                                child: getProviderIcon(type),
                               ),
                               const SizedBox(width: 8),
                               Text(type.name.toUpperCase()),
@@ -500,7 +460,7 @@ class _AiModelServicesViewState extends ConsumerState<AiModelServicesView> {
           // Header
           Row(
             children: [
-              _getProviderIcon(activeProvider.type, size: 48),
+              getProviderIcon(activeProvider.type, size: 48),
               const SizedBox(width: 16),
               Expanded(
                 child: Column(
@@ -578,7 +538,7 @@ class _AiModelServicesViewState extends ConsumerState<AiModelServicesView> {
 
           ProviderModelList(
             provider: activeProvider,
-            iconBuilder: (type) => _getProviderIcon(type),
+            iconBuilder: (type) => getProviderIcon(type),
             onFetchRequested: () => _fetchModels(setModalState: setModalState),
             isFetching: _isFetchingModels,
             onModelToggled: _loadProviderConfig,
@@ -674,7 +634,7 @@ class _AiModelServicesViewState extends ConsumerState<AiModelServicesView> {
             providers: _providers,
             selectedProviderId: _selectedProviderId,
             isMobile: isMobile,
-            iconBuilder: (type) => _getProviderIcon(type),
+            iconBuilder: (type) => getProviderIcon(type),
             onProviderTap: _handleProviderTap,
             onReorder: isMobile ? null : (oldIndex, newIndex) async {
               if (oldIndex < newIndex) newIndex--;

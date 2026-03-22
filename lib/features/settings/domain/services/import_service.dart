@@ -23,42 +23,9 @@ import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:baishou/i18n/strings.g.dart';
 import 'package:baishou/features/storage/domain/services/journal_file_service.dart';
+import 'package:baishou/features/settings/domain/services/import_models.dart';
+export 'package:baishou/features/settings/domain/services/import_models.dart';
 
-/// 导入结果
-class ImportResult {
-  final int diariesImported;
-  final int summariesImported;
-  final bool profileRestored;
-  final Map<String, dynamic>? configData;
-  final String? snapshotPath;
-  final String? error;
-
-  const ImportResult({
-    this.diariesImported = 0,
-    this.summariesImported = 0,
-    this.profileRestored = false,
-    this.configData,
-    this.snapshotPath,
-    this.error,
-  });
-
-  bool get success => error == null;
-}
-
-/// 解析后的导入数据 (用于 isolate 传输)
-class ParsedImportData {
-  final Map<String, dynamic> manifest;
-  final List<dynamic>? diaries;
-  final List<dynamic>? summaries;
-  final Map<String, dynamic>? config;
-
-  ParsedImportData({
-    required this.manifest,
-    this.diaries,
-    this.summaries,
-    this.config,
-  });
-}
 
 /// 在 Isolate 中运行的解析函数
 /// 使用 extractFileToDisk 解压到临时目录，再读取文件，避免 OOM
