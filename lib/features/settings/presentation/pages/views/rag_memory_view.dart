@@ -761,7 +761,6 @@ class _RagMemoryViewState extends ConsumerState<RagMemoryView> {
 
   Widget _buildEntryList(ColorScheme colorScheme, TextTheme textTheme) {
     final entries = _filteredEntries;
-    final dateFormat = DateFormat('MM/dd HH:mm');
 
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
