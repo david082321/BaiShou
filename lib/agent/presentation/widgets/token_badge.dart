@@ -130,9 +130,13 @@ class ContextChainDialog extends StatelessWidget {
     final cost = message.cost;
 
     return Dialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 680, maxHeight: 720),
+        constraints: BoxConstraints(
+          maxWidth: 680,
+          maxHeight: MediaQuery.of(context).size.height * 0.7,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -185,27 +189,26 @@ class ContextChainDialog extends StatelessWidget {
             if (input > 0 || output > 0)
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
-                child: Row(
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
                   children: [
                     _InfoChip(
                       icon: Icons.arrow_upward_rounded,
                       label: '${t.agent.chat.round_input} ${_formatTokens(input)}',
                       theme: theme,
                     ),
-                    const SizedBox(width: 8),
                     _InfoChip(
                       icon: Icons.arrow_downward_rounded,
                       label: '${t.agent.chat.round_output} ${_formatTokens(output)}',
                       theme: theme,
                     ),
-                    if (cost != null && cost > 0) ...[
-                      const SizedBox(width: 8),
+                    if (cost != null && cost > 0)
                       _InfoChip(
                         icon: Icons.attach_money_rounded,
-                        label: '${t.agent.chat.round_cost} ${cost.toStringAsFixed(6)}',
+                        label: '${t.agent.chat.round_cost} ${cost.toStringAsFixed(4)}',
                         theme: theme,
                       ),
-                    ],
                   ],
                 ),
               ),

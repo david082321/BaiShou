@@ -392,7 +392,7 @@ class ApiConfigService {
 
   /// RAG 相似度阈值（低于此值的结果会被过滤，默认 0.0 不过滤）
   double get ragSimilarityThreshold {
-    return _prefs.getDouble(_keyRagSimilarityThreshold) ?? 0.0;
+    return _prefs.getDouble(_keyRagSimilarityThreshold) ?? 0.6;
   }
 
   /// 设置 RAG 相似度阈值
