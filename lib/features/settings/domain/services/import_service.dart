@@ -27,7 +27,7 @@ import 'package:baishou/features/settings/domain/services/import_models.dart';
 import 'package:baishou/agent/database/agent_database.dart';
 import 'package:baishou/core/storage/storage_path_provider.dart';
 import 'package:baishou/core/storage/vault_service.dart';
-import 'package:drift/drift.dart' show InsertMode;
+import 'package:drift/drift.dart' show InsertMode, Value;
 export 'package:baishou/features/settings/domain/services/import_models.dart';
 
 
@@ -375,23 +375,73 @@ class ImportService {
   }
 
   Future<void> _importAgentData(ParsedImportData data, String tempPath) async {
-    // 恢复 SQLite 主要结构
-    if (data.aiAssistants != null) {
-      final rows = data.aiAssistants!.map((e) => AgentAssistant.fromJson(e)).toList();
-      await _agentDatabase.into(_agentDatabase.agentAssistants).insertAll(rows, mode: InsertMode.insertOrReplace);
-    }
-    if (data.agentSessions != null) {
-      final rows = data.agentSessions!.map((e) => AgentSession.fromJson(e)).toList();
-      await _agentDatabase.into(_agentDatabase.agentSessions).insertAll(rows, mode: InsertMode.insertOrReplace);
-    }
-    if (data.agentMessages != null) {
-      final rows = data.agentMessages!.map((e) => AgentMessage.fromJson(e)).toList();
-      await _agentDatabase.into(_agentDatabase.agentMessages).insertAll(rows, mode: InsertMode.insertOrReplace);
-    }
-    if (data.agentParts != null) {
-      final rows = data.agentParts!.map((e) => AgentPart.fromJson(e)).toList();
-      await _agentDatabase.into(_agentDatabase.agentParts).insertAll(rows, mode: InsertMode.insertOrReplace);
-    }
+    // 恢复 SQLite 主要结构（使用 batch API）
+    await _agentDatabase.batch((batch) {
+      if (data.aiAssistants != null) {
+        for (final e in data.aiAssistants!) {
+          batch.insert(_agentDatabase.agentAssistants, AgentAssistantsCompanion.insert(
+            id: e['id'] as String,
+            name: e['name'] as String? ?? '',
+            emoji: Value(e['emoji'] as String?),
+            description: Value(e['description'] as String? ?? ''),
+            avatarPath: Value(e['avatar_path'] as String?),
+            systemPrompt: Value(e['system_prompt'] as String? ?? ''),
+            isDefault: Value(e['is_default'] as bool? ?? false),
+            contextWindow: Value(e['context_window'] as int? ?? 20),
+            providerId: Value(e['provider_id'] as String?),
+            modelId: Value(e['model_id'] as String?),
+            compressTokenThreshold: Value(e['compress_token_threshold'] as int? ?? 60000),
+            compressKeepTurns: Value(e['compress_keep_turns'] as int? ?? 3),
+            sortOrder: Value(e['sort_order'] as int? ?? 0),
+          ), mode: InsertMode.insertOrReplace);
+        }
+      }
+      if (data.agentSessions != null) {
+        for (final e in data.agentSessions!) {
+          batch.insert(_agentDatabase.agentSessions, AgentSessionsCompanion.insert(
+            id: e['id'] as String,
+            vaultName: e['vault_name'] as String? ?? '',
+            providerId: e['provider_id'] as String? ?? '',
+            modelId: e['model_id'] as String? ?? '',
+            title: Value(e['title'] as String? ?? ''),
+            assistantId: Value(e['assistant_id'] as String?),
+            isPinned: Value(e['is_pinned'] as bool? ?? false),
+            systemPrompt: Value(e['system_prompt'] as String?),
+            totalInputTokens: Value(e['total_input_tokens'] as int? ?? 0),
+            totalOutputTokens: Value(e['total_output_tokens'] as int? ?? 0),
+            totalCostMicros: Value(e['total_cost_micros'] as int? ?? 0),
+          ), mode: InsertMode.insertOrReplace);
+        }
+      }
+      if (data.agentMessages != null) {
+        for (final e in data.agentMessages!) {
+          batch.insert(_agentDatabase.agentMessages, AgentMessagesCompanion.insert(
+            id: e['id'] as String,
+            sessionId: e['session_id'] as String,
+            role: e['role'] as String,
+            orderIndex: e['order_index'] as int,
+            isSummary: Value(e['is_summary'] as bool? ?? false),
+            askId: Value(e['ask_id'] as String?),
+            providerId: Value(e['provider_id'] as String?),
+            modelId: Value(e['model_id'] as String?),
+            inputTokens: Value(e['input_tokens'] as int?),
+            outputTokens: Value(e['output_tokens'] as int?),
+            costMicros: Value(e['cost_micros'] as int?),
+          ), mode: InsertMode.insertOrReplace);
+        }
+      }
+      if (data.agentParts != null) {
+        for (final e in data.agentParts!) {
+          batch.insert(_agentDatabase.agentParts, AgentPartsCompanion.insert(
+            id: e['id'] as String,
+            messageId: e['message_id'] as String,
+            sessionId: e['session_id'] as String,
+            type: e['type'] as String,
+            data: e['data'] as String,
+          ), mode: InsertMode.insertOrReplace);
+        }
+      }
+    });
     
     // 恢复 RAG 向量并进行反向 Base64 解封装
     if (data.agentEmbeddings != null) {

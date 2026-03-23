@@ -24,6 +24,7 @@ import 'package:intl/intl.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:baishou/i18n/strings.g.dart';
+import 'package:path/path.dart' as p;
 
 /// 备份包 schema 版本，每次修改格式时递增
 const int _kSchemaVersion = 2;
@@ -237,8 +238,10 @@ class ExportService {
         sb.writeln();
       }
 
+      final year = dateStr.substring(0, 4);  // yyyy
+      final month = dateStr.substring(5, 7); // MM
       final bytes = utf8.encode(sb.toString());
-      archive.addFile(ArchiveFile('markdown/$dateStr.md', bytes.length, bytes));
+      archive.addFile(ArchiveFile('markdown/$year/$month/$dateStr.md', bytes.length, bytes));
     }
   }
 
