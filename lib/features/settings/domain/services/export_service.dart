@@ -14,6 +14,9 @@ import 'package:baishou/features/settings/domain/services/user_profile_service.d
 import 'package:baishou/features/summary/data/repositories/summary_repository_impl.dart';
 import 'package:baishou/features/summary/domain/entities/summary.dart';
 import 'package:baishou/features/summary/domain/repositories/summary_repository.dart';
+import 'package:baishou/agent/database/agent_database.dart';
+import 'package:baishou/core/storage/storage_path_provider.dart';
+import 'package:baishou/core/storage/vault_service.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart' hide Summary;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -23,7 +26,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:baishou/i18n/strings.g.dart';
 
 /// 备份包 schema 版本，每次修改格式时递增
-const int _kSchemaVersion = 1;
+const int _kSchemaVersion = 2;
 
 /// 数据导出服务
 /// 负责将日记、总结以及用户配置打包成 ZIP 备份，支持 MD 与 JSON 双格式导出。
@@ -34,6 +37,9 @@ class ExportService {
   final DataSyncConfigService _dataSyncConfig;
   final UserProfile _userProfile;
   final AppThemeState _themeState;
+  final AgentDatabase _agentDatabase;
+  final VaultService _vaultService;
+  final StoragePathService _storagePathService;
 
   ExportService({
     required DiaryRepository diaryRepository,
@@ -42,12 +48,18 @@ class ExportService {
     required DataSyncConfigService dataSyncConfig,
     required UserProfile userProfile,
     required AppThemeState themeState,
+    required AgentDatabase agentDatabase,
+    required VaultService vaultService,
+    required StoragePathService storagePathService,
   }) : _diaryRepository = diaryRepository,
        _summaryRepository = summaryRepository,
        _apiConfig = apiConfig,
        _dataSyncConfig = dataSyncConfig,
        _userProfile = userProfile,
-       _themeState = themeState;
+       _themeState = themeState,
+       _agentDatabase = agentDatabase,
+       _vaultService = vaultService,
+       _storagePathService = storagePathService;
 
   /// 导出完整备份 ZIP
   /// [share] 是否调用系统分享（局域网传输时设为 false）
@@ -77,6 +89,49 @@ class ExportService {
     // 4. 写入 data/summaries.json
     final summariesJson = summaries.map((s) => _summaryToJson(s)).toList();
     _addJsonFile(archive, 'data/summaries.json', summariesJson);
+
+    // 4.5 提取并写入所有 Agent 表结构与 RAG 向量
+    final assistants = await _agentDatabase.select(_agentDatabase.agentAssistants).get();
+    final sessions = await _agentDatabase.select(_agentDatabase.agentSessions).get();
+    final messages = await _agentDatabase.select(_agentDatabase.agentMessages).get();
+    final parts = await _agentDatabase.select(_agentDatabase.agentParts).get();
+    final embeddings = await _agentDatabase.getAllEmbeddingsForExport();
+
+    _addJsonFile(archive, 'data/ai_assistants.json', assistants.map((e) => e.toJson()).toList());
+    _addJsonFile(archive, 'data/agent_sessions.json', sessions.map((e) => e.toJson()).toList());
+    _addJsonFile(archive, 'data/agent_messages.json', messages.map((e) => e.toJson()).toList());
+    _addJsonFile(archive, 'data/agent_parts.json', parts.map((e) => e.toJson()).toList());
+
+    final embeddingsJson = embeddings.map((e) {
+      final copy = Map<String, dynamic>.from(e);
+      if (copy['embedding'] is Uint8List) {
+        copy['embedding'] = base64Encode(copy['embedding'] as Uint8List);
+      }
+      return copy;
+    }).toList();
+    _addJsonFile(archive, 'data/agent_embeddings.json', embeddingsJson);
+
+    // 4.6 遍历读取当前 Vault 下所有的物理附件并打包进 attachments/ 目录
+    // 这里依赖了 _vaultService 的内存缓存。如果是在前台执行的导出，这个缓存一定是热的。
+    // 但是这里不能使用 _vaultService.state.value （因为它是 AsyncValue）。如果是 Notifier，可以尝试直接用 getAllVaults 等方法获取当前活动。
+    // VaultService 返回的是 AsyncData。
+    final currentVault = _vaultService.state.value;
+    if (currentVault != null) {
+      final vaultDir = await _storagePathService.getVaultDirectory(currentVault.name);
+      final attachmentsDir = Directory(p.join(vaultDir.path, 'attachments'));
+      if (attachmentsDir.existsSync()) {
+        final entities = attachmentsDir.listSync(recursive: true);
+        for (final entity in entities) {
+          if (entity is File) {
+            // e.g. "attachments/sessionId/uuid.jpg"
+            final relPath = p.relative(entity.path, from: vaultDir.path);
+            final zipPath = relPath.replaceAll('\\', '/');
+            final bytes = await entity.readAsBytes();
+            archive.addFile(ArchiveFile(zipPath, bytes.length, bytes));
+          }
+        }
+      }
+    }
 
     // 5. 写入 config/user_profile.json（含 API Key）
     final config = {
@@ -294,5 +349,8 @@ final exportServiceProvider = Provider<ExportService>((ref) {
     dataSyncConfig: ref.watch(dataSyncConfigServiceProvider),
     userProfile: ref.watch(userProfileProvider),
     themeState: ref.watch(themeProvider),
+    agentDatabase: ref.watch(agentDatabaseProvider),
+    vaultService: ref.watch(vaultServiceProvider.notifier),
+    storagePathService: ref.watch(storagePathServiceProvider),
   );
 });

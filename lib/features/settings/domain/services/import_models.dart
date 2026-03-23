@@ -30,11 +30,23 @@ class ParsedImportData {
   final List<dynamic>? diaries;
   final List<dynamic>? summaries;
   final Map<String, dynamic>? config;
+  
+  // 新增 Agent 解析数据
+  final List<dynamic>? aiAssistants;
+  final List<dynamic>? agentSessions;
+  final List<dynamic>? agentMessages;
+  final List<dynamic>? agentParts;
+  final List<dynamic>? agentEmbeddings;
 
   ParsedImportData({
     required this.manifest,
     this.diaries,
     this.summaries,
     this.config,
+    this.aiAssistants,
+    this.agentSessions,
+    this.agentMessages,
+    this.agentParts,
+    this.agentEmbeddings,
   });
 }
