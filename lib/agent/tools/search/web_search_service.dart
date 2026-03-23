@@ -156,7 +156,7 @@ class WebSearchService {
       body: {'q': query},
     ).timeout(_timeout);
 
-    if (response.statusCode != 200) {
+    if (response.statusCode < 200 || response.statusCode >= 300) {
       throw Exception('DuckDuckGo search failed: ${response.statusCode}');
     }
 

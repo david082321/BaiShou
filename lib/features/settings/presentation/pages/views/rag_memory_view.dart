@@ -236,8 +236,9 @@ class _RagMemoryViewState extends ConsumerState<RagMemoryView> {
           if (mounted) setState(() => _batchProgress++);
           continue;
         }
+        final dateLabel = DateFormat('yyyy-MM-dd').format(diary.date);
         await embeddingService.embedText(
-          text: '${diary.date}: ${diary.content}',
+          text: '$dateLabel: ${diary.content}',
           sessionId: 'diary_batch',
           customId: 'diary_${diary.id}',
         );
