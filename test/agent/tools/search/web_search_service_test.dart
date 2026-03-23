@@ -147,11 +147,11 @@ void main() {
   });
 
   group('WebSearchService - 搜索引擎枚举', () {
-    test('应该包含三个搜索引擎选项', () {
-      expect(SearchEngine.values.length, 3);
-      expect(SearchEngine.values, contains(SearchEngine.duckduckgo));
+    test('应该包含两个搜索引擎选项', () {
+      expect(SearchEngine.values.length, 2);
       expect(SearchEngine.values, contains(SearchEngine.google));
       expect(SearchEngine.values, contains(SearchEngine.bing));
     });
   });
 }
+

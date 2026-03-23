@@ -40,8 +40,8 @@ class WebSearchTool extends AgentTool {
           label: t.agent.tools.param_search_engine,
           description: t.agent.tools.param_search_engine_desc,
           type: ParamType.select,
-          defaultValue: 'duckduckgo',
-          options: ['duckduckgo', 'google', 'bing'],
+          defaultValue: 'bing',
+          options: ['bing', 'google'],
           icon: Icons.search,
         ),
         ToolConfigParam(
@@ -116,7 +116,7 @@ class WebSearchTool extends AgentTool {
       return ToolResult.error('At least one search query is required.');
     }
 
-    final engineStr = context.userConfig['engine'] as String? ?? 'duckduckgo';
+    final engineStr = context.userConfig['engine'] as String? ?? 'bing';
     final maxResults =
         (context.userConfig['max_results'] as num?)?.toInt() ?? 5;
     final ragEnabled = context.userConfig['rag_enabled'] as bool? ?? false;
@@ -140,8 +140,7 @@ class WebSearchTool extends AgentTool {
       } catch (primaryError) {
         debugPrint('WebSearch: primary engine $engineStr failed: $primaryError');
 
-        // 自动 fallback 到备用引擎
-        final fallbackEngines = [SearchEngine.bing, SearchEngine.duckduckgo, SearchEngine.google]
+        final fallbackEngines = [SearchEngine.bing, SearchEngine.google]
             .where((e) => e != engine)
             .toList();
 
@@ -211,7 +210,7 @@ class WebSearchTool extends AgentTool {
       case 'bing':
         return SearchEngine.bing;
       default:
-        return SearchEngine.duckduckgo;
+        return SearchEngine.bing;
     }
   }
 

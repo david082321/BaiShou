@@ -1,6 +1,6 @@
 /// Web 搜索服务 — 负责执行搜索并解析结果
 ///
-/// 支持引擎：DuckDuckGo Lite（默认推荐）、Google、Bing
+/// 支持引擎：Bing（默认）、Google
 /// 支持 Multi-Query：并行多个查询词后去重合并
 ///
 /// SOLID: 单一职责 — 仅处理搜索请求和 HTML 解析
@@ -35,7 +35,7 @@ class SearchResult {
 }
 
 /// 支持的搜索引擎
-enum SearchEngine { duckduckgo, google, bing }
+enum SearchEngine { bing, google }
 
 /// Web 搜索服务
 class WebSearchService {
@@ -72,8 +72,6 @@ class WebSearchService {
     int maxResults = _defaultMaxResults,
   }) async {
     switch (engine) {
-      case SearchEngine.duckduckgo:
-        return _searchDuckDuckGo(query, maxResults);
       case SearchEngine.google:
         return _searchGoogle(query, maxResults);
       case SearchEngine.bing:
@@ -133,82 +131,6 @@ class WebSearchService {
     return merged;
   }
 
-  // ── DuckDuckGo Lite 搜索 ────────────────────────────────────
-
-  /// DuckDuckGo Lite — 纯 HTML 轻量版，无 JS、无验证码
-  ///
-  /// 这是最稳定的免代理搜索源：
-  /// - 不需要 API Key
-  /// - 不需要执行 JavaScript
-  /// - 极少被反爬拦截
-  static Future<List<SearchResult>> _searchDuckDuckGo(
-    String query,
-    int maxResults,
-  ) async {
-    final uri = Uri.https('lite.duckduckgo.com', '/lite/', {
-      'q': query,
-    });
-
-    // DuckDuckGo Lite 使用 POST 请求
-    final response = await http.post(
-      uri,
-      headers: _browserHeaders,
-      body: {'q': query},
-    ).timeout(_timeout);
-
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw Exception('DuckDuckGo search failed: ${response.statusCode}');
-    }
-
-    final html = utf8.decode(response.bodyBytes, allowMalformed: true);
-    return _parseDuckDuckGoResults(html, maxResults);
-  }
-
-  /// 解析 DuckDuckGo Lite 搜索结果 HTML
-  ///
-  /// DuckDuckGo Lite 的 HTML 结构非常简洁：
-  /// - 结果标题在 <a class="result-link" href="..."> 中
-  /// - 摘要在紧随的 <td class="result-snippet"> 中
-  static List<SearchResult> _parseDuckDuckGoResults(String html, int maxResults) {
-    final results = <SearchResult>[];
-
-    // DuckDuckGo Lite 的结构：
-    // <a rel="nofollow" href="URL" class="result-link">Title</a>
-    // 紧随其后的 <td class="result-snippet">Snippet</td>
-    final linkPattern = RegExp(
-      r'<a[^>]+class="result-link"[^>]+href="([^"]+)"[^>]*>(.*?)</a>',
-      dotAll: true,
-      caseSensitive: false,
-    );
-
-    final snippetPattern = RegExp(
-      r'<td\s+class="result-snippet"[^>]*>(.*?)</td>',
-      dotAll: true,
-      caseSensitive: false,
-    );
-
-    final linkMatches = linkPattern.allMatches(html).toList();
-    final snippetMatches = snippetPattern.allMatches(html).toList();
-
-    for (int i = 0; i < linkMatches.length && results.length < maxResults; i++) {
-      final url = _decodeEntities(linkMatches[i].group(1) ?? '');
-      final title = _stripHtml(linkMatches[i].group(2) ?? '');
-
-      // 跳过非 HTTP 链接
-      if (!url.startsWith('http')) continue;
-      if (title.isEmpty) continue;
-
-      // 尝试匹配相应的摘要
-      String snippet = '';
-      if (i < snippetMatches.length) {
-        snippet = _stripHtml(snippetMatches[i].group(1) ?? '');
-      }
-
-      results.add(SearchResult(title: title, url: url, snippet: snippet));
-    }
-
-    return results;
-  }
 
   // ── Google 搜索 ─────────────────────────────────────────────
 
@@ -349,15 +271,5 @@ class WebSearchService {
         .replaceAll('&nbsp;', ' ')
         .trim();
   }
-
-  /// 解码 HTML 实体
-  static String _decodeEntities(String text) {
-    return text
-        .replaceAll('&amp;', '&')
-        .replaceAll('&lt;', '<')
-        .replaceAll('&gt;', '>')
-        .replaceAll('&quot;', '"')
-        .replaceAll('&#39;', "'")
-        .replaceAll('&nbsp;', ' ');
-  }
 }
+
