@@ -255,6 +255,7 @@
     "agent_tools_category_summary": "Summary Tools",
     "agent_tools_category_memory": "Memory Tools",
     "agent_tools_category_general": "General Tools",
+    "agent_tools_category_search": "Search Tools",
     "scanning_new_dir": "Scanning diaries in new directory...",
     "dir_switched": "Switched to new directory, found $count diaries",
     "dir_scan_failed": "Failed to scan new directory: $error",
@@ -632,8 +633,16 @@
       "message_search": "Message Search",
       "vector_search": "Semantic Search",
       "memory_store": "Memory Store",
+      "web_search": "Web Search",
       "param_max_results": "Max Results",
-      "param_max_results_desc": "Maximum number of results returned per AI search"
+      "param_max_results_desc": "Maximum number of results returned per AI search",
+      "param_search_engine": "Search Engine",
+      "param_search_engine_desc": "Select the engine used for web search",
+      "url_read": "URL Reader",
+      "param_max_length": "Content Length Limit",
+      "param_max_length_desc": "Maximum characters returned when reading a web page",
+      "param_rag_enabled": "RAG Compression",
+      "param_rag_enabled_desc": "Filter search results by semantic relevance using vector search (requires embedding model)"
     },
     "chat": {
       "companion_mode": "Deep Companion",

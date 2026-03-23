@@ -255,6 +255,7 @@
     "agent_tools_category_summary": "总结工具",
     "agent_tools_category_memory": "记忆工具",
     "agent_tools_category_general": "通用工具",
+    "agent_tools_category_search": "搜索工具",
     "scanning_new_dir": "正在扫描新目录的日记...",
     "dir_switched": "已切换至新目录，共找到 $count 篇日记",
     "dir_scan_failed": "扫描新目录失败：$error",
@@ -632,8 +633,16 @@
       "message_search": "消息搜索",
       "vector_search": "语义搜索",
       "memory_store": "记忆存储",
+      "web_search": "网络搜索",
       "param_max_results": "搜索结果上限",
-      "param_max_results_desc": "AI 每次搜索时返回的最大结果数量"
+      "param_max_results_desc": "AI 每次搜索时返回的最大结果数量",
+      "param_search_engine": "搜索引擎",
+      "param_search_engine_desc": "选择用于网络搜索的引擎",
+      "url_read": "网页读取",
+      "param_max_length": "内容长度上限",
+      "param_max_length_desc": "网页读取时返回的最大字符数",
+      "param_rag_enabled": "RAG 向量压缩",
+      "param_rag_enabled_desc": "启用后搜索结果将通过向量检索筛选最相关内容（需配置嵌入模型）"
     },
     "chat": {
       "companion_mode": "深度陪伴",

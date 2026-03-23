@@ -264,6 +264,7 @@
     "agent_tools_category_summary": "總結工具",
     "agent_tools_category_memory": "記憶工具",
     "agent_tools_category_general": "通用工具",
+    "agent_tools_category_search": "搜尋工具",
     "scanning_new_dir": "正在掃描新目錄的日記...",
     "dir_switched": "已切換至新目錄，共找到 $count 篇日記",
     "dir_scan_failed": "掃描新目錄失敗：$error",
@@ -641,8 +642,16 @@
       "message_search": "訊息搜尋",
       "vector_search": "語義搜尋",
       "memory_store": "記憶儲存",
+      "web_search": "網路搜尋",
       "param_max_results": "搜尋結果上限",
-      "param_max_results_desc": "AI 每次搜尋時返回的最大結果數量"
+      "param_max_results_desc": "AI 每次搜尋時返回的最大結果數量",
+      "param_search_engine": "搜尋引擎",
+      "param_search_engine_desc": "選擇用於網路搜尋的引擎",
+      "url_read": "網頁讀取",
+      "param_max_length": "內容長度上限",
+      "param_max_length_desc": "網頁讀取時返回的最大字元數",
+      "param_rag_enabled": "RAG 向量壓縮",
+      "param_rag_enabled_desc": "啟用後搜尋結果將透過向量檢索篩選最相關內容（需設定嵌入模型）"
     },
     "chat": {
       "companion_mode": "深度陪伴",

@@ -255,6 +255,7 @@
     "agent_tools_category_summary": "要約ツール",
     "agent_tools_category_memory": "記憶ツール",
     "agent_tools_category_general": "汎用ツール",
+    "agent_tools_category_search": "検索ツール",
     "scanning_new_dir": "新しいディレクトリの日記をスキャン中...",
     "dir_switched": "新しいディレクトリに切り替えました。$count 件の日記が見つかりました",
     "dir_scan_failed": "新しいディレクトリのスキャンに失敗しました：$error",
@@ -632,8 +633,16 @@
       "message_search": "メッセージ検索",
       "vector_search": "セマンティック検索",
       "memory_store": "記憶保存",
+      "web_search": "ウェブ検索",
       "param_max_results": "最大結果数",
-      "param_max_results_desc": "AI検索時の最大結果数"
+      "param_max_results_desc": "AI検索時の最大結果数",
+      "param_search_engine": "検索エンジン",
+      "param_search_engine_desc": "ウェブ検索に使用するエンジンを選択",
+      "url_read": "ウェブページ読取",
+      "param_max_length": "コンテンツ長制限",
+      "param_max_length_desc": "ウェブページ読取時の最大文字数",
+      "param_rag_enabled": "RAG ベクトル圧縮",
+      "param_rag_enabled_desc": "ベクトル検索で最も関連性の高い内容をフィルタリング（埋め込みモデル設定が必要）"
     },
     "chat": {
       "companion_mode": "ディープ・コンパニオン",

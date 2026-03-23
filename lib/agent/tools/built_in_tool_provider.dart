@@ -8,6 +8,8 @@ import 'package:baishou/agent/tools/diary/diary_write_tool.dart';
 import 'package:baishou/agent/tools/memory/memory_store_tool.dart';
 import 'package:baishou/agent/tools/memory/vector_search_tool.dart';
 import 'package:baishou/agent/tools/message/message_search_tool.dart';
+import 'package:baishou/agent/tools/search/web_search_tool.dart';
+import 'package:baishou/agent/tools/search/url_read_tool.dart';
 import 'package:baishou/agent/tools/summary/summary_read_tool.dart';
 import 'package:baishou/core/database/app_database.dart';
 import 'package:baishou/features/index/data/shadow_index_database.dart';
@@ -41,5 +43,11 @@ List<AgentTool> builtInTools(Ref ref) {
 
     // ── 记忆存储工具 ──
     MemoryStoreTool(),
+
+    // ── 网络搜索工具 ──
+    WebSearchTool(),
+
+    // ── 网页读取工具 ──
+    UrlReadTool(),
   ];
 }
