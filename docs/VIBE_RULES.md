@@ -28,6 +28,7 @@
 | **UI System**  | **Material Design 3**    | 遵循 M3 规范，设计素雅淡洁                           |
 | **Immutable**  | **Freezed**              | 数据类不可变，杜绝隐式状态修改                       |
 | **I18n**       | **slang**                | 强类型翻译键，代码生成                               |
+| **Testing**    | **mocktail**             | 零生成 Mock 测试，详见 [TESTING_GUIDE.md](./TESTING_GUIDE.md) |
 
 ---
 
