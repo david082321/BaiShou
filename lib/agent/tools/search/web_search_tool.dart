@@ -1,7 +1,7 @@
 /// WebSearchTool — AI 可调用的网络搜索工具
 ///
-/// 通过 Google/Bing 抓取搜索结果,让 AI 获取实时互联网信息。
-/// 搜索引擎可通过工具配置参数切换。
+/// 通过 DuckDuckGo/Google/Bing 抓取搜索结果,让 AI 获取实时互联网信息。
+/// 支持 Multi-Query：AI 可以同时提交多个查询词，系统并行搜索后去重合并。
 ///
 /// 当启用 RAG 压缩且配置了 embedding 模型时：
 /// 搜索 → 抓取全文 → 向量分块 → KNN 检索 → Round Robin → 合并
@@ -40,8 +40,8 @@ class WebSearchTool extends AgentTool {
           label: t.agent.tools.param_search_engine,
           description: t.agent.tools.param_search_engine_desc,
           type: ParamType.select,
-          defaultValue: 'bing',
-          options: ['google', 'bing'],
+          defaultValue: 'duckduckgo',
+          options: ['duckduckgo', 'google', 'bing'],
           icon: Icons.search,
         ),
         ToolConfigParam(
@@ -68,20 +68,28 @@ class WebSearchTool extends AgentTool {
   String get description =>
       'Search the internet for current information, news, and real-time data. '
       'Use this when the user asks about recent events, current facts, or anything '
-      'that requires up-to-date information beyond your training data. '
-      'Results include URLs — use the url_read tool to read specific pages in detail.';
+      'that requires up-to-date information beyond your training data.\n\n'
+      'IMPORTANT: You should provide 2-3 search queries with different angles/keywords '
+      'to get comprehensive results. For example, if the user asks about "iPhone 16 vs Samsung S25", '
+      'you could search ["iPhone 16 specs review", "Samsung S25 specs review", "iPhone 16 vs Samsung S25 comparison"].\n\n'
+      'Results include clickable [title](url) citations — use the url_read tool to read specific pages in detail.';
 
   @override
   Map<String, dynamic> get parameterSchema => {
         'type': 'object',
         'properties': {
-          'query': {
-            'type': 'string',
+          'queries': {
+            'type': 'array',
+            'items': {'type': 'string'},
             'description':
-                'The search query. Use clear, specific keywords for best results.',
+                'A list of 1-3 search queries with different angles/keywords. '
+                'Using multiple queries greatly improves result diversity and comprehensiveness. '
+                'Example: ["latest Flutter 4.0 features", "Flutter 4.0 migration guide"]',
+            'minItems': 1,
+            'maxItems': 3,
           },
         },
-        'required': ['query'],
+        'required': ['queries'],
       };
 
   @override
@@ -89,32 +97,50 @@ class WebSearchTool extends AgentTool {
     Map<String, dynamic> arguments,
     ToolContext context,
   ) async {
-    final query = arguments['query'] as String?;
-    if (query == null || query.trim().isEmpty) {
-      return ToolResult.error('Missing required parameter: query');
+    // 兼容旧的 query（string）和新的 queries（array）
+    final List<String> queries;
+    if (arguments.containsKey('queries') && arguments['queries'] is List) {
+      queries = (arguments['queries'] as List)
+          .map((e) => e.toString().trim())
+          .where((q) => q.isNotEmpty)
+          .toList();
+    } else if (arguments.containsKey('query') && arguments['query'] is String) {
+      // 向后兼容：部分 LLM 可能仍然传 query
+      final q = (arguments['query'] as String).trim();
+      queries = q.isNotEmpty ? [q] : [];
+    } else {
+      return ToolResult.error('Missing required parameter: queries');
     }
 
-    final engineStr = context.userConfig['engine'] as String? ?? 'google';
+    if (queries.isEmpty) {
+      return ToolResult.error('At least one search query is required.');
+    }
+
+    final engineStr = context.userConfig['engine'] as String? ?? 'duckduckgo';
     final maxResults =
         (context.userConfig['max_results'] as num?)?.toInt() ?? 5;
     final ragEnabled = context.userConfig['rag_enabled'] as bool? ?? false;
 
-    final engine =
-        engineStr == 'bing' ? SearchEngine.bing : SearchEngine.google;
+    final engine = _parseEngine(engineStr);
 
     try {
-      // ── 步骤 1: 搜索 ──
-      final results = await WebSearchService.search(
-        query: query.trim(),
+      // ── 步骤 1: Multi-Query 搜索 ──
+      final results = await WebSearchService.multiSearch(
+        queries: queries,
         engine: engine,
-        maxResults: maxResults,
+        maxResultsPerQuery: maxResults,
+        totalMaxResults: maxResults * 2, // 多查询总量适当加大
       );
 
       if (results.isEmpty) {
         return ToolResult(
-          output: 'No search results found for "$query".',
+          output: 'No search results found for: ${queries.join(", ")}',
           success: true,
-          metadata: {'query': query, 'engine': engineStr, 'count': 0},
+          metadata: {
+            'queries': queries,
+            'engine': engineStr,
+            'count': 0,
+          },
         );
       }
 
@@ -123,23 +149,35 @@ class WebSearchTool extends AgentTool {
           context.embeddingService != null &&
           context.embeddingService!.isConfigured) {
         return _executeWithRag(
-          query: query,
+          queries: queries,
           results: results,
           context: context,
           engineStr: engineStr,
         );
       }
 
-      // ── 普通模式：直接返回摘要 ──
-      return _formatPlainResults(query, results, engineStr);
+      // ── 普通模式：直接返回格式化摘要 ──
+      return _formatPlainResults(queries, results, engineStr);
     } catch (e) {
       return ToolResult.error('Web search failed: $e');
     }
   }
 
+  /// 解析搜索引擎枚举
+  SearchEngine _parseEngine(String str) {
+    switch (str) {
+      case 'google':
+        return SearchEngine.google;
+      case 'bing':
+        return SearchEngine.bing;
+      default:
+        return SearchEngine.duckduckgo;
+    }
+  }
+
   /// RAG 压缩模式
   Future<ToolResult> _executeWithRag({
-    required String query,
+    required List<String> queries,
     required List<SearchResult> results,
     required ToolContext context,
     required String engineStr,
@@ -166,10 +204,10 @@ class WebSearchTool extends AgentTool {
     final fetchedCount = fetchedContents.where((c) => c.isNotEmpty).length;
     debugPrint('WebSearch: fetched $fetchedCount/${results.length} pages');
 
-    // 2b. RAG 压缩
+    // 2b. RAG 压缩（使用第一个查询词作为主要语义锚）
     try {
       final compressed = await SearchRagService.compress(
-        query: query,
+        query: queries.first,
         results: ragInputs,
         embeddingService: context.embeddingService!,
         totalMaxChunks: 12,
@@ -178,21 +216,23 @@ class WebSearchTool extends AgentTool {
 
       if (compressed.isEmpty) {
         debugPrint('WebSearch: RAG returned empty, falling back to plain');
-        return _formatPlainResults(query, results, engineStr);
+        return _formatPlainResults(queries, results, engineStr);
       }
 
       // 格式化 RAG 压缩结果
       final buffer = StringBuffer()
         ..writeln(
-          'Found ${results.length} results for "$query", '
+          'Search queries: ${queries.map((q) => '"$q"').join(', ')}',
+        )
+        ..writeln(
+          'Found ${results.length} results, '
           'RAG-compressed to ${compressed.length} relevant sources:',
         )
         ..writeln();
 
       for (var i = 0; i < compressed.length; i++) {
         final r = compressed[i];
-        buffer.writeln('[${i + 1}] ${r.title}');
-        buffer.writeln('URL: ${r.url}');
+        buffer.writeln('[${i + 1}] [${r.title}](${r.url})');
         buffer.writeln('Relevance: ${(r.avgScore * 100).toStringAsFixed(1)}%');
         buffer.writeln(r.content);
         buffer.writeln();
@@ -200,7 +240,7 @@ class WebSearchTool extends AgentTool {
 
       buffer.writeln(
         'These results have been semantically filtered for relevance. '
-        'Use [number] to cite sources. '
+        'Use [number](url) to cite sources in your answer. '
         'Use url_read for more details on specific pages.',
       );
 
@@ -208,7 +248,7 @@ class WebSearchTool extends AgentTool {
         output: buffer.toString(),
         success: true,
         metadata: {
-          'query': query,
+          'queries': queries,
           'engine': engineStr,
           'count': results.length,
           'rag_compressed': true,
@@ -218,7 +258,7 @@ class WebSearchTool extends AgentTool {
       );
     } catch (e) {
       debugPrint('WebSearch: RAG compression failed: $e, falling back');
-      return _formatPlainResults(query, results, engineStr);
+      return _formatPlainResults(queries, results, engineStr);
     }
   }
 
@@ -266,36 +306,44 @@ class WebSearchTool extends AgentTool {
     }
   }
 
-  /// 普通模式格式化
+  /// 普通模式格式化 — 带可点击引用链接
   ToolResult _formatPlainResults(
-    String query,
+    List<String> queries,
     List<SearchResult> results,
     String engineStr,
   ) {
+    final engineName = switch (engineStr) {
+      'bing' => 'Bing',
+      'google' => 'Google',
+      _ => 'DuckDuckGo',
+    };
+
     final buffer = StringBuffer()
       ..writeln(
-        'Found ${results.length} results for "$query" '
-        '(via ${engineStr == "bing" ? "Bing" : "Google"}):',
+        'Search queries: ${queries.map((q) => '"$q"').join(', ')}',
+      )
+      ..writeln(
+        'Found ${results.length} results (via $engineName):',
       )
       ..writeln();
 
     for (var i = 0; i < results.length; i++) {
       final r = results[i];
-      buffer.writeln('[${i + 1}] ${r.title}');
-      buffer.writeln('URL: ${r.url}');
+      buffer.writeln('[${i + 1}] [${r.title}](${r.url})');
       buffer.writeln(r.snippet);
       buffer.writeln();
     }
 
     buffer.writeln(
-      'Use [number] format to cite specific sources in your response.',
+      'Use [number](url) format to cite specific sources in your response. '
+      'Use url_read for more details on specific pages.',
     );
 
     return ToolResult(
       output: buffer.toString(),
       success: true,
       metadata: {
-        'query': query,
+        'queries': queries,
         'engine': engineStr,
         'count': results.length,
         'urls': results.map((r) => r.url).toList(),
@@ -303,10 +351,10 @@ class WebSearchTool extends AgentTool {
     );
   }
 
-  static const _browserHeaders = {
+  static Map<String, String> get _browserHeaders => {
     'User-Agent':
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
-            '(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            '(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
     'Accept': 'text/html,application/xhtml+xml',
     'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
   };
