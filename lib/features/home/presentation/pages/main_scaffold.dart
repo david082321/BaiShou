@@ -35,12 +35,17 @@ class _MainScaffoldState extends ConsumerState<MainScaffold>
   }
 
   /// 移动端底栏索引映射
+  /// 移动端底栏顺序：日记(0) / 伙伴(1) / 总结(2) / 设置(3)
+  /// branch 索引：0=日记, 1=总结, 2=sync, 3=设置, 4=agent
   int _getMobileNavIndex() {
     final branchIndex = widget.navigationShell.currentIndex;
-    if (branchIndex == 4) return 2;
-    if (branchIndex == 3) return 3;
-    if (branchIndex <= 1) return branchIndex;
-    return 0;
+    return switch (branchIndex) {
+      0 => 0,  // 日记
+      4 => 1,  // 伙伴 (Agent)
+      1 => 2,  // 总结
+      3 => 3,  // 设置
+      _ => 0,  // 其他情况默认到日记
+    };
   }
 
   /// 读取侧边栏排序首位 branchIndex（移动端回退用）
@@ -209,13 +214,13 @@ class _MainScaffoldState extends ConsumerState<MainScaffold>
         onDestinationSelected: (index) {
           switch (index) {
             case 0:
-              _goBranch(0);
+              _goBranch(0); // 日记
             case 1:
-              _goBranch(1);
+              _goBranch(4); // 伙伴 (Agent)
             case 2:
-              _goBranch(4);
+              _goBranch(1); // 总结
             case 3:
-              _goBranch(3);
+              _goBranch(3); // 设置
           }
         },
         destinations: [
@@ -225,14 +230,14 @@ class _MainScaffoldState extends ConsumerState<MainScaffold>
             label: t.diary.title,
           ),
           NavigationDestination(
+            icon: const Icon(Icons.auto_awesome_outlined),
+            selectedIcon: const Icon(Icons.auto_awesome_rounded),
+            label: t.agent.partner_label,
+          ),
+          NavigationDestination(
             icon: const Icon(Icons.auto_stories_outlined),
             selectedIcon: const Icon(Icons.auto_stories),
             label: t.summary.dashboard_title,
-          ),
-          NavigationDestination(
-            icon: const Icon(Icons.auto_awesome_outlined),
-            selectedIcon: const Icon(Icons.auto_awesome_rounded),
-            label: 'Agent',
           ),
           NavigationDestination(
             icon: const Icon(Icons.settings_outlined),

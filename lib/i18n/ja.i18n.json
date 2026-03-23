@@ -618,6 +618,7 @@
     "transparency_desc": "エンドツーエンドのエクスポートと同期をサポートしています。ZIP 形式でいつでもデータを持ち出せますし、自分の S3/WebDAV に同期することも可能です。"
   },
   "agent": {
+    "partner_label": "パートナー",
     "tools": {
       "built_in": "組み込みツール",
       "community": "コミュニティツール",

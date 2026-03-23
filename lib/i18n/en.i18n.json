@@ -618,6 +618,7 @@
     "transparency_desc": "Supports end-to-end data export. Take your memories with you anytime via ZIP or sync to your own S3/WebDAV space."
   },
   "agent": {
+    "partner_label": "Partner",
     "tools": {
       "built_in": "Built-in Tools",
       "community": "Community Tools",

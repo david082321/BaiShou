@@ -142,7 +142,7 @@ class ImportService {
 
       // 2. 验证版本
       final schemaVersion = parsedData.manifest['schema_version'] as int? ?? 0;
-      if (schemaVersion > 1) {
+      if (schemaVersion > 2) {
         return ImportResult(
           error: t.settings.schema_version_too_high(
             version: schemaVersion.toString(),
