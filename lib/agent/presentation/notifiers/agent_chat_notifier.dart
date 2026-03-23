@@ -63,6 +63,12 @@ class AgentChatState {
   /// 当前选择的伙伴 ID（新对话创建时使用）
   final String? currentAssistantId;
 
+  /// 当前会话使用的供应商 ID（快速切换模型时使用）
+  final String? currentProviderId;
+
+  /// 当前会话使用的模型 ID（快速切换模型时使用）
+  final String? currentModelId;
+
   /// 是否还有更多历史消息可加载
   final bool hasMore;
 
@@ -82,6 +88,8 @@ class AgentChatState {
     this.totalOutputTokens = 0,
     this.lastInputTokens = 0,
     this.currentAssistantId,
+    this.currentProviderId,
+    this.currentModelId,
     this.hasMore = false,
     this.isLoadingMore = false,
   });
@@ -99,6 +107,8 @@ class AgentChatState {
     int? totalOutputTokens,
     int? lastInputTokens,
     String? Function()? currentAssistantId,
+    String? Function()? currentProviderId,
+    String? Function()? currentModelId,
     bool? hasMore,
     bool? isLoadingMore,
   }) {
@@ -119,6 +129,12 @@ class AgentChatState {
       currentAssistantId: currentAssistantId != null
           ? currentAssistantId()
           : this.currentAssistantId,
+      currentProviderId: currentProviderId != null
+          ? currentProviderId()
+          : this.currentProviderId,
+      currentModelId: currentModelId != null
+          ? currentModelId()
+          : this.currentModelId,
       hasMore: hasMore ?? this.hasMore,
       isLoadingMore: isLoadingMore ?? this.isLoadingMore,
     );
@@ -165,11 +181,11 @@ class AgentChatNotifier extends _$AgentChatNotifier {
       _sessionStateCache[sessionId] = state;
     }
 
-    // 解析模型：优先使用伙伴绑定模型，否则回退全局模型
-    final apiConfig = ref.read(apiConfigServiceProvider);
+    // 解析模型优先级：会话级切换 > 伙伴绑定 > 全局默认
     String providerId = apiConfig.globalDialogueProviderId;
     String modelId = apiConfig.globalDialogueModelId;
 
+    // 1. 伙伴绑定模型
     if (state.currentAssistantId != null) {
       final assistant = await ref
           .read(assistantRepositoryProvider)
@@ -182,6 +198,13 @@ class AgentChatNotifier extends _$AgentChatNotifier {
         providerId = assistant.providerId!;
         modelId = assistant.modelId!;
       }
+    }
+
+    // 2. 会话级快速切换（最高优先级）
+    if (state.currentProviderId != null && state.currentProviderId!.isNotEmpty &&
+        state.currentModelId != null && state.currentModelId!.isNotEmpty) {
+      providerId = state.currentProviderId!;
+      modelId = state.currentModelId!;
     }
 
     final provider = apiConfig.getProvider(providerId);
@@ -274,6 +297,8 @@ class AgentChatNotifier extends _$AgentChatNotifier {
       totalInputTokens: session?.totalInputTokens ?? 0,
       totalOutputTokens: session?.totalOutputTokens ?? 0,
       currentAssistantId: () => session?.assistantId,
+      currentProviderId: () => session?.providerId,
+      currentModelId: () => session?.modelId,
       hasMore: messages.length == 20,
       isLoadingMore: false,
     );
@@ -319,6 +344,19 @@ class AgentChatNotifier extends _$AgentChatNotifier {
     state = state.copyWith(currentAssistantId: () => id);
   }
 
+  /// 设置当前伙伴 ID（alias for setAssistant）
+  void setCurrentAssistantId(String id) {
+    setAssistant(id);
+  }
+
+  /// 快速切换当前会话使用的模型（不切换伙伴）
+  void setCurrentModel({required String providerId, required String modelId}) {
+    state = state.copyWith(
+      currentProviderId: () => providerId,
+      currentModelId: () => modelId,
+    );
+  }
+
   /// 初始化默认伙伴
   Future<void> _initDefaultAssistant() async {
     try {
@@ -361,10 +399,11 @@ class AgentChatNotifier extends _$AgentChatNotifier {
     final vaultDir = await storageService.getVaultDirectory(vaultName);
     final vaultPath = vaultDir.path;
 
-    // 解析模型：优先使用伙伴绑定模型，否则回退全局模型
+    // 解析模型优先级：会话级切换 > 伙伴绑定 > 全局默认
     String providerId = apiConfig.globalDialogueProviderId;
     String modelId = apiConfig.globalDialogueModelId;
 
+    // 1. 伙伴绑定模型
     if (state.currentAssistantId != null) {
       final assistant = await ref
           .read(assistantRepositoryProvider)
@@ -377,6 +416,13 @@ class AgentChatNotifier extends _$AgentChatNotifier {
         providerId = assistant.providerId!;
         modelId = assistant.modelId!;
       }
+    }
+
+    // 2. 会话级快速切换（最高优先级）
+    if (state.currentProviderId != null && state.currentProviderId!.isNotEmpty &&
+        state.currentModelId != null && state.currentModelId!.isNotEmpty) {
+      providerId = state.currentProviderId!;
+      modelId = state.currentModelId!;
     }
 
     final provider = apiConfig.getProvider(providerId);

@@ -416,10 +416,10 @@ class ImportService {
       if (data.agentMessages != null) {
         for (final e in data.agentMessages!) {
           batch.insert(_agentDatabase.agentMessages, AgentMessagesCompanion.insert(
-            id: e['id'] as String,
-            sessionId: e['session_id'] as String,
-            role: e['role'] as String,
-            orderIndex: e['order_index'] as int,
+            id: e['id'] as String? ?? '',
+            sessionId: e['session_id'] as String? ?? '',
+            role: e['role'] as String? ?? 'user',
+            orderIndex: e['order_index'] as int? ?? 0,
             isSummary: Value(e['is_summary'] as bool? ?? false),
             askId: Value(e['ask_id'] as String?),
             providerId: Value(e['provider_id'] as String?),
@@ -433,11 +433,11 @@ class ImportService {
       if (data.agentParts != null) {
         for (final e in data.agentParts!) {
           batch.insert(_agentDatabase.agentParts, AgentPartsCompanion.insert(
-            id: e['id'] as String,
-            messageId: e['message_id'] as String,
-            sessionId: e['session_id'] as String,
-            type: e['type'] as String,
-            data: e['data'] as String,
+            id: e['id'] as String? ?? '',
+            messageId: e['message_id'] as String? ?? '',
+            sessionId: e['session_id'] as String? ?? '',
+            type: e['type'] as String? ?? 'text',
+            data: e['data'] as String? ?? '',
           ), mode: InsertMode.insertOrReplace);
         }
       }
