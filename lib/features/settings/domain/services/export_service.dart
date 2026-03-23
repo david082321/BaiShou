@@ -227,11 +227,10 @@ class ExportService {
       sb.writeln();
 
       for (final diary in dailyDiaries) {
-        sb.writeln('## ${DateFormat('HH:mm').format(diary.date)}');
         if (diary.tags.isNotEmpty) {
-          sb.writeln('${t.diary.tag_label}: ${diary.tags.join(', ')}');
+          sb.writeln('> ${t.diary.tag_label}: ${diary.tags.join(', ')}');
+          sb.writeln();
         }
-        sb.writeln();
         sb.writeln(diary.content);
         sb.writeln();
         sb.writeln('---');
