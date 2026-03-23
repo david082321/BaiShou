@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:baishou/agent/models/ai_provider_model.dart';
 import 'package:baishou/agent/clients/base_ai_client.dart';
@@ -322,8 +323,67 @@ class OpenAiClient extends BaseAiClient {
 
     switch (msg.role) {
       case MessageRole.system:
-      case MessageRole.user:
         map['content'] = msg.content ?? '';
+        break;
+
+      case MessageRole.user:
+        // 无附件时保持原始字符串格式
+        if (msg.attachments == null || msg.attachments!.isEmpty) {
+          map['content'] = msg.content ?? '';
+        } else {
+          // 有附件时使用多模态 content 数组
+          final contentParts = <Map<String, dynamic>>[];
+          // 文本部分
+          if (msg.content != null && msg.content!.isNotEmpty) {
+            contentParts.add({'type': 'text', 'text': msg.content!});
+          }
+          // 附件部分
+          for (final att in msg.attachments!) {
+            if (att.isImage) {
+              try {
+                final file = File(att.filePath);
+                if (file.existsSync()) {
+                  final bytes = file.readAsBytesSync();
+                  final b64 = base64Encode(bytes);
+                  contentParts.add({
+                    'type': 'image_url',
+                    'image_url': {
+                      'url': 'data:${att.mimeType};base64,$b64',
+                    },
+                  });
+                }
+              } catch (_) {
+                contentParts.add({
+                  'type': 'text',
+                  'text': '[附件: ${att.fileName} 读取失败]',
+                });
+              }
+            } else if (att.isPdf) {
+              // PDF: 发送为 base64 file（部分 OpenAI 兼容 API 支持）
+              // 降级方案：作为文本附注
+              try {
+                final file = File(att.filePath);
+                if (file.existsSync()) {
+                  final bytes = file.readAsBytesSync();
+                  final b64 = base64Encode(bytes);
+                  contentParts.add({
+                    'type': 'file',
+                    'file': {
+                      'filename': att.fileName,
+                      'file_data': 'data:application/pdf;base64,$b64',
+                    },
+                  });
+                }
+              } catch (_) {
+                contentParts.add({
+                  'type': 'text',
+                  'text': '[PDF: ${att.fileName} 读取失败]',
+                });
+              }
+            }
+          }
+          map['content'] = contentParts;
+        }
         break;
 
       case MessageRole.assistant:

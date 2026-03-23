@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:baishou/agent/models/ai_provider_model.dart';
 import 'package:baishou/agent/clients/openai_client.dart';
 import 'package:baishou/agent/clients/gemini_client.dart';
@@ -42,8 +43,17 @@ abstract class AiClient {
 
 /// AI 客户端工厂 (Simple Factory 模式)
 class AiClientFactory {
+  static AiClient? _testClient;
+
+  @visibleForTesting
+  static void setTestClient(AiClient? client) {
+    _testClient = client;
+  }
+
   /// 根据提供的 [provider] 创建并挂载对应的专属 API Client
   static AiClient createClient(AiProviderModel provider) {
+    if (_testClient != null) return _testClient!;
+
     if (provider.apiKey.isEmpty) {
       throw Exception(t.ai.error_no_api_key);
     }

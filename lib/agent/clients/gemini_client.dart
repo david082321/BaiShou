@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:baishou/agent/models/ai_provider_model.dart';
 import 'package:baishou/agent/clients/base_ai_client.dart';
@@ -327,6 +328,43 @@ class GeminiClient extends BaseAiClient {
         case MessageRole.user:
           role = 'user';
           parts.add({'text': msg.content ?? ''});
+          // 处理附件：图片 → inline_data，PDF → 提取文本
+          if (msg.attachments != null) {
+            for (final att in msg.attachments!) {
+              if (att.isImage) {
+                try {
+                  final file = File(att.filePath);
+                  if (file.existsSync()) {
+                    final bytes = file.readAsBytesSync();
+                    parts.add({
+                      'inline_data': {
+                        'mime_type': att.mimeType,
+                        'data': base64Encode(bytes),
+                      },
+                    });
+                  }
+                } catch (_) {
+                  parts.add({'text': '[附件: ${att.fileName} 读取失败]'});
+                }
+              } else if (att.isPdf) {
+                // PDF: 提取文本内容拼接进消息
+                try {
+                  final file = File(att.filePath);
+                  if (file.existsSync()) {
+                    final bytes = file.readAsBytesSync();
+                    parts.add({
+                      'inline_data': {
+                        'mime_type': 'application/pdf',
+                        'data': base64Encode(bytes),
+                      },
+                    });
+                  }
+                } catch (_) {
+                  parts.add({'text': '[PDF: ${att.fileName} 读取失败]'});
+                }
+              }
+            }
+          }
           break;
 
         case MessageRole.assistant:

@@ -1,14 +1,18 @@
 /// 聊天输入框组件
 import 'dart:io';
 
+import 'package:baishou/agent/models/message_attachment.dart';
 import 'package:baishou/features/settings/presentation/pages/views/agent_tools_view.dart';
 import 'package:baishou/i18n/strings.g.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:path/path.dart' as p;
 
 class ChatInputBar extends StatefulWidget {
   final bool isLoading;
-  final ValueChanged<String> onSend;
+  /// 发送回调 — 包含文本和可选附件
+  final void Function(String text, {List<MessageAttachment>? attachments}) onSend;
   final VoidCallback? onStop;
 
   /// 当前伙伴名称（显示在 chip 上）
@@ -34,6 +38,9 @@ class _ChatInputBarState extends State<ChatInputBar> {
   final _controller = TextEditingController();
   final _focusNode = FocusNode();
 
+  /// 待发送附件列表
+  final List<MessageAttachment> _attachments = [];
+
   @override
   void initState() {
     super.initState();
@@ -41,9 +48,43 @@ class _ChatInputBarState extends State<ChatInputBar> {
 
   void _handleSend() {
     final text = _controller.text.trim();
-    if (text.isEmpty || widget.isLoading) return;
-    widget.onSend(text);
+    if (text.isEmpty && _attachments.isEmpty) return;
+    if (widget.isLoading) return;
+    widget.onSend(
+      text,
+      attachments: _attachments.isNotEmpty ? List.of(_attachments) : null,
+    );
     _controller.clear();
+    setState(() => _attachments.clear());
+  }
+
+  /// 打开文件选择器
+  Future<void> _pickFiles() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'pdf'],
+      allowMultiple: true,
+    );
+    if (result == null || result.files.isEmpty) return;
+
+    setState(() {
+      for (final file in result.files) {
+        if (file.path == null) continue;
+        final ext = p.extension(file.path!).replaceFirst('.', '');
+        _attachments.add(MessageAttachment.create(
+          fileName: file.name,
+          filePath: file.path!,
+          fileSize: file.size,
+          type: MessageAttachment.typeFromExtension(ext),
+          mimeType: MessageAttachment.mimeFromExtension(ext),
+        ));
+      }
+    });
+  }
+
+  /// 移除附件
+  void _removeAttachment(String id) {
+    setState(() => _attachments.removeWhere((a) => a.id == id));
   }
 
   /// 打开工具管理页面
@@ -133,6 +174,25 @@ class _ChatInputBarState extends State<ChatInputBar> {
                 ),
               ),
 
+              // 附件预览栏
+              if (_attachments.isNotEmpty)
+                Container(
+                  margin: const EdgeInsets.only(bottom: 6),
+                  height: 68,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: _attachments.length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 8),
+                    itemBuilder: (ctx, i) {
+                      final att = _attachments[i];
+                      return _AttachmentPreviewChip(
+                        attachment: att,
+                        onRemove: () => _removeAttachment(att.id),
+                      );
+                    },
+                  ),
+                ),
+
               // 主输入卡片
               AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
@@ -150,7 +210,6 @@ class _ChatInputBarState extends State<ChatInputBar> {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    // 附件按钮 (固定高度 36)
                     Container(
                       width: 36,
                       height: 36,
@@ -160,9 +219,7 @@ class _ChatInputBarState extends State<ChatInputBar> {
                         shape: const CircleBorder(),
                         clipBehavior: Clip.hardEdge,
                         child: InkWell(
-                          onTap: () {
-                            // TODO: 附件功能
-                          },
+                          onTap: _pickFiles,
                           child: Center(
                             child: Icon(
                               Icons.add_circle_outline_rounded,
@@ -457,6 +514,102 @@ class _QuickActionChip extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// 附件预览小卡片
+class _AttachmentPreviewChip extends StatelessWidget {
+  final MessageAttachment attachment;
+  final VoidCallback onRemove;
+
+  const _AttachmentPreviewChip({
+    required this.attachment,
+    required this.onRemove,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Container(
+          width: attachment.isImage ? 64 : 120,
+          height: 64,
+          decoration: BoxDecoration(
+            color: colorScheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: colorScheme.outlineVariant.withValues(alpha: 0.4),
+            ),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: attachment.isImage
+              ? Image.file(
+                  File(attachment.filePath),
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Icon(
+                    Icons.broken_image_outlined,
+                    color: colorScheme.outline,
+                  ),
+                )
+              : Padding(
+                  padding: const EdgeInsets.all(8),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        Icons.description_outlined,
+                        size: 18,
+                        color: colorScheme.primary,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        attachment.fileName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: colorScheme.onSurface,
+                        ),
+                      ),
+                      Text(
+                        attachment.readableSize,
+                        style: TextStyle(
+                          fontSize: 9,
+                          color: colorScheme.outline,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+        ),
+        // 删除按钮
+        Positioned(
+          top: -6,
+          right: -6,
+          child: GestureDetector(
+            onTap: onRemove,
+            child: Container(
+              width: 18,
+              height: 18,
+              decoration: BoxDecoration(
+                color: colorScheme.error,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.close,
+                size: 12,
+                color: colorScheme.onError,
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

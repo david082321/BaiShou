@@ -4,7 +4,7 @@
 import 'package:flutter/material.dart';
 
 /// 参数类型
-enum ParamType { integer, string, boolean }
+enum ParamType { integer, string, boolean, select }
 
 /// 工具可配参数定义
 class ToolConfigParam {
@@ -32,6 +32,9 @@ class ToolConfigParam {
   /// 图标
   final IconData? icon;
 
+  /// 选项列表（仅 select 类型有效）
+  final List<String>? options;
+
   const ToolConfigParam({
     required this.key,
     required this.label,
@@ -41,5 +44,6 @@ class ToolConfigParam {
     this.min,
     this.max,
     this.icon,
+    this.options,
   });
 }

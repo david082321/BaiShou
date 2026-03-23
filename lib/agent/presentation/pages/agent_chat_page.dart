@@ -49,6 +49,14 @@ class _AgentChatPageState extends ConsumerState<AgentChatPage> {
     if (atBottom != _isAtBottom) {
       setState(() => _isAtBottom = atBottom);
     }
+
+    // 滑动接近顶部（历史最前）触发加载更多
+    if (pos.pixels >= pos.maxScrollExtent - 300) {
+      final chatState = ref.read(agentChatProvider);
+      if (chatState.hasMore && !chatState.isLoadingMore) {
+        ref.read(agentChatProvider.notifier).loadMore();
+      }
+    }
   }
 
   @override
@@ -83,12 +91,13 @@ class _AgentChatPageState extends ConsumerState<AgentChatPage> {
     final chatState = ref.watch(agentChatProvider);
     final theme = Theme.of(context);
 
-    // 监听消息变化，仅在底部时自动滚动
+    // 监听消息变化（如果不在底部但新增了消息，或者有其他特殊情况，可以保留逻辑。
+    // 由于 reverse: true 且 offset 处于 0 时 Flutter 原生支持平滑上推插入，无需在流式输出时手动 jumpTo(0)
+    // 删除了对 streamText 变化的反复滚动，极大改善性能和滚动条跳动。
     ref.listen(agentChatProvider, (prev, next) {
-      if (prev?.messages.length != next.messages.length ||
-          prev?.streamingText != next.streamingText) {
+      if (prev?.messages.length != next.messages.length) {
         if (_isAtBottom) {
-          _scrollToBottom();
+          _scrollToBottom(animate: true);
         }
       }
     });
@@ -190,7 +199,7 @@ class _AgentChatPageState extends ConsumerState<AgentChatPage> {
                       ListView.builder(
                         controller: _scrollController,
                         reverse: true, // 核心改动：倒排列表
-                        cacheExtent: 2000,
+                        cacheExtent: 999999, // 极大 cacheExtent 解决超长消息 Scrollbar 预估跳动问题
                         padding: const EdgeInsets.only(top: 20, bottom: 20),
                         itemCount:
                             _buildDisplayItems(chatState).length +
@@ -249,12 +258,9 @@ class _AgentChatPageState extends ConsumerState<AgentChatPage> {
                                   : null,
                             );
                           } else {
-                            // 3. 达到最顶部（历史最前），触发并显示加载更多
-                            if (!chatState.isLoadingMore) {
-                              WidgetsBinding.instance.addPostFrameCallback((_) {
-                                ref.read(agentChatProvider.notifier).loadMore();
-                              });
-                            }
+                            // 3. 达到最顶部（历史最前），显示加载指示器
+                            // loadMore 触发现已移动到 _onScroll 中，避免因 cacheExtent 过大导致瞬间穿透加载
+
                             return Container(
                               padding: const EdgeInsets.all(20),
                               alignment: Alignment.center,
@@ -381,7 +387,7 @@ class _AgentChatPageState extends ConsumerState<AgentChatPage> {
                     .updateSessionAssistant(chatState.sessionId!, newId);
               }
             },
-            onSend: (text) async {
+            onSend: (text, {attachments}) async {
               // 发送消息时自动滚动到底部
               setState(() => _isAtBottom = true);
               String? guidelines;
@@ -393,7 +399,11 @@ class _AgentChatPageState extends ConsumerState<AgentChatPage> {
               }
               ref
                   .read(agentChatProvider.notifier)
-                  .sendMessage(text: text, guidelines: guidelines);
+                  .sendMessage(
+                    text: text,
+                    guidelines: guidelines,
+                    attachments: attachments,
+                  );
               _scrollToBottom();
             },
           ),

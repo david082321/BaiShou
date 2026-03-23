@@ -1,5 +1,6 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:baishou/agent/models/ai_provider_model.dart';
 import 'package:baishou/agent/clients/base_ai_client.dart';
@@ -295,7 +296,60 @@ class AnthropicClient extends BaseAiClient {
 
       switch (msg.role) {
         case MessageRole.user:
-          result.add({'role': 'user', 'content': msg.content ?? ''});
+          // 无附件时保持字符串格式
+          if (msg.attachments == null || msg.attachments!.isEmpty) {
+            result.add({'role': 'user', 'content': msg.content ?? ''});
+          } else {
+            // 有附件时使用 content 数组
+            final contentParts = <Map<String, dynamic>>[];
+            if (msg.content != null && msg.content!.isNotEmpty) {
+              contentParts.add({'type': 'text', 'text': msg.content!});
+            }
+            for (final att in msg.attachments!) {
+              if (att.isImage) {
+                try {
+                  final file = File(att.filePath);
+                  if (file.existsSync()) {
+                    final bytes = file.readAsBytesSync();
+                    contentParts.add({
+                      'type': 'image',
+                      'source': {
+                        'type': 'base64',
+                        'media_type': att.mimeType,
+                        'data': base64Encode(bytes),
+                      },
+                    });
+                  }
+                } catch (_) {
+                  contentParts.add({
+                    'type': 'text',
+                    'text': '[附件: ${att.fileName} 读取失败]',
+                  });
+                }
+              } else if (att.isPdf) {
+                try {
+                  final file = File(att.filePath);
+                  if (file.existsSync()) {
+                    final bytes = file.readAsBytesSync();
+                    contentParts.add({
+                      'type': 'document',
+                      'source': {
+                        'type': 'base64',
+                        'media_type': 'application/pdf',
+                        'data': base64Encode(bytes),
+                      },
+                    });
+                  }
+                } catch (_) {
+                  contentParts.add({
+                    'type': 'text',
+                    'text': '[PDF: ${att.fileName} 读取失败]',
+                  });
+                }
+              }
+            }
+            result.add({'role': 'user', 'content': contentParts});
+          }
           break;
 
         case MessageRole.assistant:

@@ -37,6 +37,8 @@ class _AgentToolsViewState extends ConsumerState<AgentToolsView> {
         return t.settings.agent_tools_category_summary;
       case 'memory':
         return t.settings.agent_tools_category_memory;
+      case 'search':
+        return t.settings.agent_tools_category_search;
       default:
         return t.settings.agent_tools_category_general;
     }
@@ -51,6 +53,8 @@ class _AgentToolsViewState extends ConsumerState<AgentToolsView> {
         return Icons.summarize_outlined;
       case 'memory':
         return Icons.psychology_outlined;
+      case 'search':
+        return Icons.travel_explore_rounded;
       default:
         return Icons.extension_outlined;
     }

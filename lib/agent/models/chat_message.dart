@@ -2,6 +2,7 @@
 /// 参考 opencode: packages/opencode/src/session/message-v2.ts
 
 import 'dart:convert';
+import 'package:baishou/agent/models/message_attachment.dart';
 import 'package:uuid/uuid.dart';
 
 /// 消息角色
@@ -47,6 +48,10 @@ class ChatMessage {
   final String? askId;
   final DateTime timestamp;
 
+  // ── 附件 ──
+  /// 消息附带的文件附件（图片、PDF 等）
+  final List<MessageAttachment>? attachments;
+
   // ── 调用链信息（运行时附加，会话级汇总已持久化到 AgentSessions）──
   /// 本轮 API 调用的输入 token 数
   final int? inputTokens;
@@ -72,6 +77,7 @@ class ChatMessage {
     this.outputTokens,
     this.cost,
     this.contextMessages,
+    this.attachments,
     DateTime? timestamp,
   }) : timestamp = timestamp ?? DateTime.now();
 
@@ -94,6 +100,7 @@ class ChatMessage {
       outputTokens: outputTokens ?? this.outputTokens,
       cost: cost ?? this.cost,
       contextMessages: contextMessages ?? this.contextMessages,
+      attachments: attachments,
       timestamp: timestamp,
     );
   }
@@ -106,10 +113,15 @@ class ChatMessage {
       );
 
   /// 创建 user 消息
-  factory ChatMessage.user(String content) => ChatMessage(
+  factory ChatMessage.user(
+    String content, {
+    List<MessageAttachment>? attachments,
+  }) =>
+      ChatMessage(
         id: _generateId(),
         role: MessageRole.user,
         content: content,
+        attachments: attachments,
       );
 
   /// 创建 assistant 消息
@@ -154,6 +166,8 @@ class ChatMessage {
         'toolName': toolName,
         'askId': askId,
         'timestamp': timestamp.toIso8601String(),
+        if (attachments != null && attachments!.isNotEmpty)
+          'attachments': attachments!.map((a) => a.toMap()).toList(),
       };
 
   factory ChatMessage.fromMap(Map<String, dynamic> map) => ChatMessage(
@@ -167,6 +181,9 @@ class ChatMessage {
         toolName: map['toolName'] as String?,
         askId: map['askId'] as String?,
         timestamp: DateTime.parse(map['timestamp'] as String),
+        attachments: (map['attachments'] as List?)
+            ?.map((a) => MessageAttachment.fromMap(a as Map<String, dynamic>))
+            .toList(),
       );
 
   String toJson() => jsonEncode(toMap());

@@ -127,11 +127,14 @@ class _ToolCardState extends State<ToolCard> {
               color: colorScheme.outlineVariant.withValues(alpha: 0.3),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
               child: Column(
-                children: tool.configurableParams.map((param) {
-                  return _buildParamControl(param, colorScheme);
-                }).toList(),
+                children: [
+                  for (var i = 0; i < tool.configurableParams.length; i++) ...[
+                    if (i > 0) const SizedBox(height: 16),
+                    _buildParamControl(tool.configurableParams[i], colorScheme),
+                  ]
+                ],
               ),
             ),
           ],
@@ -265,23 +268,86 @@ class _ToolCardState extends State<ToolCard> {
       case ParamType.boolean:
         return Row(
           children: [
+            if (param.icon != null) ...[
+              Icon(param.icon, size: 16, color: colorScheme.onSurfaceVariant),
+              const SizedBox(width: 8),
+            ],
             Expanded(
               child: Text(
                 param.label,
                 style: TextStyle(fontSize: 13, color: colorScheme.onSurface),
               ),
             ),
-            Switch(
-              value: currentValue == true,
-              onChanged: (val) async {
-                await service.setToolConfigValue(tool.id, param.key, val);
-                setState(() {});
-              },
+            SizedBox(
+              height: 32,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Switch(
+                  value: currentValue == true,
+                  onChanged: (val) async {
+                    await service.setToolConfigValue(tool.id, param.key, val);
+                    setState(() {});
+                  },
+                ),
+              ),
             ),
           ],
         );
       case ParamType.string:
         return const SizedBox.shrink();
+      case ParamType.select:
+        final strVal = (currentValue is String)
+            ? currentValue
+            : param.defaultValue as String;
+        final options = param.options ?? [strVal];
+        return Row(
+          children: [
+            if (param.icon != null) ...[
+              Icon(param.icon, size: 16, color: colorScheme.onSurfaceVariant),
+              const SizedBox(width: 8),
+            ],
+            Expanded(
+              child: Text(
+                param.label,
+                style: TextStyle(fontSize: 13, color: colorScheme.onSurface),
+              ),
+            ),
+            Container(
+              height: 32,
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: colorScheme.outlineVariant.withValues(alpha: 0.5),
+                ),
+              ),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<String>(
+                  value: options.contains(strVal) ? strVal : options.first,
+                  isDense: true,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: colorScheme.primary,
+                  ),
+                  items: options
+                      .map((o) => DropdownMenuItem(
+                            value: o,
+                            child: Text(o[0].toUpperCase() + o.substring(1)),
+                          ))
+                      .toList(),
+                  onChanged: (val) async {
+                    if (val != null) {
+                      await service.setToolConfigValue(
+                          tool.id, param.key, val);
+                      setState(() {});
+                    }
+                  },
+                ),
+              ),
+            ),
+          ],
+        );
     }
   }
 }
