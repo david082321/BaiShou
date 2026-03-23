@@ -182,6 +182,7 @@ class AgentChatNotifier extends _$AgentChatNotifier {
     }
 
     // 解析模型优先级：会话级切换 > 伙伴绑定 > 全局默认
+    final apiConfig = ref.read(apiConfigServiceProvider);
     String providerId = apiConfig.globalDialogueProviderId;
     String modelId = apiConfig.globalDialogueModelId;
 
@@ -973,11 +974,6 @@ class AgentChatNotifier extends _$AgentChatNotifier {
       _sessionStateCache.remove(state.sessionId);
     }
     state = const AgentChatState();
-  }
-
-  /// 设置当前伙伴 ID（用于新建对话时绑定）
-  void setCurrentAssistantId(String assistantId) {
-    state = state.copyWith(currentAssistantId: () => assistantId);
   }
 
   /// 复制附件文件到应用私有目录

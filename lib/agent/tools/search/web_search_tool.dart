@@ -124,13 +124,53 @@ class WebSearchTool extends AgentTool {
     final engine = _parseEngine(engineStr);
 
     try {
-      // ── 步骤 1: Multi-Query 搜索 ──
-      final results = await WebSearchService.multiSearch(
-        queries: queries,
-        engine: engine,
-        maxResultsPerQuery: maxResults,
-        totalMaxResults: maxResults * 2, // 多查询总量适当加大
-      );
+      // ── 步骤 1: Multi-Query 搜索（含自动引擎 fallback） ──
+      List<SearchResult> results = [];
+      String actualEngine = engineStr;
+
+      // 首选引擎搜索
+      try {
+        results = await WebSearchService.multiSearch(
+          queries: queries,
+          engine: engine,
+          maxResultsPerQuery: maxResults,
+          totalMaxResults: maxResults * 2,
+        );
+        debugPrint('WebSearch: primary engine $engineStr returned ${results.length} results');
+      } catch (primaryError) {
+        debugPrint('WebSearch: primary engine $engineStr failed: $primaryError');
+
+        // 自动 fallback 到备用引擎
+        final fallbackEngines = [SearchEngine.bing, SearchEngine.duckduckgo, SearchEngine.google]
+            .where((e) => e != engine)
+            .toList();
+
+        for (final fallback in fallbackEngines) {
+          try {
+            debugPrint('WebSearch: trying fallback engine ${fallback.name}...');
+            results = await WebSearchService.multiSearch(
+              queries: queries,
+              engine: fallback,
+              maxResultsPerQuery: maxResults,
+              totalMaxResults: maxResults * 2,
+            );
+            actualEngine = fallback.name;
+            debugPrint('WebSearch: fallback ${fallback.name} returned ${results.length} results');
+            break;
+          } catch (fallbackError) {
+            debugPrint('WebSearch: fallback ${fallback.name} also failed: $fallbackError');
+          }
+        }
+
+        // 所有引擎都失败
+        if (results.isEmpty) {
+          return ToolResult.error(
+            'Web search failed with all engines. '
+            'Primary ($engineStr): $primaryError. '
+            'Please check network connectivity.',
+          );
+        }
+      }
 
       if (results.isEmpty) {
         return ToolResult(
@@ -138,7 +178,7 @@ class WebSearchTool extends AgentTool {
           success: true,
           metadata: {
             'queries': queries,
-            'engine': engineStr,
+            'engine': actualEngine,
             'count': 0,
           },
         );
@@ -152,12 +192,12 @@ class WebSearchTool extends AgentTool {
           queries: queries,
           results: results,
           context: context,
-          engineStr: engineStr,
+          engineStr: actualEngine,
         );
       }
 
       // ── 普通模式：直接返回格式化摘要 ──
-      return _formatPlainResults(queries, results, engineStr);
+      return _formatPlainResults(queries, results, actualEngine);
     } catch (e) {
       return ToolResult.error('Web search failed: $e');
     }

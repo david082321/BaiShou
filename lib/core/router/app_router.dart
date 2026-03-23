@@ -10,6 +10,7 @@ import 'package:baishou/features/settings/presentation/pages/data_sync_page.dart
 import 'package:baishou/features/settings/presentation/pages/settings_page.dart';
 import 'package:baishou/features/settings/presentation/pages/views/ai_global_models_view.dart';
 import 'package:baishou/features/settings/presentation/pages/views/ai_model_services_view.dart';
+import 'package:baishou/features/settings/presentation/pages/views/agent_tools_view.dart';
 import 'package:baishou/features/settings/presentation/pages/views/general_settings_view.dart';
 import 'package:baishou/features/settings/presentation/pages/lan_transfer_page.dart';
 import 'package:baishou/features/summary/presentation/pages/summary_page.dart';
@@ -179,6 +180,14 @@ GoRouter goRouter(Ref ref) {
         parentNavigatorKey: rootNavigatorKey,
         path: '/settings/assistants',
         builder: (context, state) => const AssistantManagementPage(),
+      ),
+      GoRoute(
+        parentNavigatorKey: rootNavigatorKey,
+        path: '/settings/agent-tools',
+        builder: (context, state) => Scaffold(
+          appBar: AppBar(title: Text(t.settings.agent_tools_title)),
+          body: const AgentToolsView(),
+        ),
       ),
       GoRoute(
         parentNavigatorKey: rootNavigatorKey,
