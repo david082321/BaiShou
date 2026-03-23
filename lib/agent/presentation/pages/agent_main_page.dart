@@ -11,6 +11,8 @@ import 'package:baishou/agent/presentation/notifiers/assistant_notifier.dart';
 import 'package:baishou/agent/presentation/pages/agent_chat_page.dart';
 import 'package:baishou/agent/presentation/widgets/assistant_picker_sheet.dart';
 import 'package:baishou/agent/presentation/widgets/session_list_tile.dart';
+import 'package:baishou/core/storage/storage_path_provider.dart';
+import 'package:baishou/core/storage/vault_service.dart';
 import 'package:baishou/features/settings/domain/services/user_profile_service.dart';
 import 'package:baishou/i18n/strings.g.dart';
 import 'package:flutter/material.dart';
@@ -117,7 +119,16 @@ class _AgentMainPageState extends ConsumerState<AgentMainPage> {
       ),
     );
     if (act == true) {
-      await ref.read(sessionManagerProvider).deleteSession(id);
+      // 获取 vaultPath 以清理附件
+      final vaultInfo = await ref.read(vaultServiceProvider.future);
+      final vaultName = vaultInfo?.name ?? 'Personal';
+      final storageService = ref.read(storagePathServiceProvider);
+      final vaultDir = await storageService.getVaultDirectory(vaultName);
+
+      await ref.read(sessionManagerProvider).deleteSession(
+        id,
+        vaultPath: vaultDir.path,
+      );
       if (_selectedSessionId == id) {
         _selectedSessionId = null;
         ref.read(agentChatProvider.notifier).clearChat();
@@ -552,9 +563,18 @@ class _AgentMainPageState extends ConsumerState<AgentMainPage> {
                                 ),
                               );
                               if (confirm == true) {
+                                // 获取 vaultPath 以清理附件
+                                final vaultInfo = await ref.read(vaultServiceProvider.future);
+                                final vaultName = vaultInfo?.name ?? 'Personal';
+                                final storageService = ref.read(storagePathServiceProvider);
+                                final vaultDir = await storageService.getVaultDirectory(vaultName);
+
                                 await ref
                                     .read(sessionManagerProvider)
-                                    .deleteSessions(_selectedIds.toList());
+                                    .deleteSessions(
+                                      _selectedIds.toList(),
+                                      vaultPath: vaultDir.path,
+                                    );
                                 if (_selectedIds.contains(_selectedSessionId)) {
                                   _selectedSessionId = null;
                                   ref

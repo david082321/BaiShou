@@ -3,9 +3,12 @@
 /// 管理当前对话的消息列表、流式输出、工具执行状态
 
 import 'dart:async';
+import 'dart:io';
+import 'package:path/path.dart' as p;
 import 'package:baishou/i18n/strings.g.dart';
 import 'package:baishou/agent/clients/ai_client.dart';
 import 'package:baishou/agent/models/chat_message.dart';
+import 'package:baishou/agent/models/message_attachment.dart';
 import 'package:baishou/agent/models/stream_event.dart';
 import 'package:baishou/agent/runner/agent_runner.dart';
 import 'package:baishou/agent/session/compression_service.dart';
@@ -334,8 +337,10 @@ class AgentChatNotifier extends _$AgentChatNotifier {
     required String text,
     String? persona,
     String? guidelines,
+    List<MessageAttachment>? attachments,
   }) async {
-    if (text.trim().isEmpty || state.isLoading) return;
+    if (text.trim().isEmpty && (attachments == null || attachments.isEmpty)) return;
+    if (state.isLoading) return;
 
     // 生成本次运行的唯一 ID（用于会话隔离检查）
     _currentRunId++;
@@ -399,8 +404,18 @@ class AgentChatNotifier extends _$AgentChatNotifier {
       state = state.copyWith(sessionId: sessionId);
     }
 
+    // 复制附件到私有目录（跨平台持久化）
+    List<MessageAttachment>? persistedAttachments;
+    if (attachments != null && attachments.isNotEmpty) {
+      persistedAttachments = await _copyAttachmentsToPrivate(
+        attachments: attachments,
+        vaultPath: vaultPath,
+        sessionId: sessionId,
+      );
+    }
+
     // 添加用户消息到 UI（插到头部，因为是倒排）
-    final userMsg = ChatMessage.user(text);
+    final userMsg = ChatMessage.user(text, attachments: persistedAttachments);
     final updatedMessages = [userMsg, ...state.messages];
     state = state.copyWith(messages: updatedMessages);
 
@@ -917,5 +932,65 @@ class AgentChatNotifier extends _$AgentChatNotifier {
   /// 设置当前伙伴 ID（用于新建对话时绑定）
   void setCurrentAssistantId(String assistantId) {
     state = state.copyWith(currentAssistantId: () => assistantId);
+  }
+
+  /// 复制附件文件到应用私有目录
+  ///
+  /// 路径: {vaultPath}/attachments/{sessionId}/{uuid}.ext
+  /// 确保移动端临时路径的文件被持久化。
+  Future<List<MessageAttachment>> _copyAttachmentsToPrivate({
+    required List<MessageAttachment> attachments,
+    required String vaultPath,
+    required String sessionId,
+  }) async {
+    final dir = Directory(p.join(vaultPath, 'attachments', sessionId));
+    if (!dir.existsSync()) {
+      dir.createSync(recursive: true);
+    }
+
+    final result = <MessageAttachment>[];
+    for (final att in attachments) {
+      try {
+        final srcFile = File(att.filePath);
+        if (!srcFile.existsSync()) {
+          result.add(att); // 文件不存在，保留原始路径
+          continue;
+        }
+
+        final ext = p.extension(att.fileName);
+        final destName = '${att.id}$ext';
+        final destPath = p.join(dir.path, destName);
+        final destFile = File(destPath);
+
+        // 如果已经在目标目录内，跳过复制
+        if (att.filePath == destPath) {
+          result.add(att);
+          continue;
+        }
+
+        await srcFile.copy(destPath);
+        result.add(att.copyWith(filePath: destFile.path));
+      } catch (e) {
+        debugPrint('附件复制失败: ${att.fileName}: $e');
+        result.add(att); // 复制失败保留原始路径
+      }
+    }
+    return result;
+  }
+
+  /// 清理会话附件目录
+  static Future<void> cleanupSessionAttachments({
+    required String vaultPath,
+    required String sessionId,
+  }) async {
+    final dir = Directory(p.join(vaultPath, 'attachments', sessionId));
+    if (dir.existsSync()) {
+      try {
+        await dir.delete(recursive: true);
+        debugPrint('已清理附件目录: ${dir.path}');
+      } catch (e) {
+        debugPrint('清理附件目录失败: $e');
+      }
+    }
   }
 }

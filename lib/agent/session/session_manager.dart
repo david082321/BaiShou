@@ -2,6 +2,8 @@
 /// 负责会话、消息、Part 的 CRUD 操作（三表架构）
 
 import 'dart:convert';
+import 'dart:io';
+import 'package:path/path.dart' as p;
 import 'package:baishou/agent/database/agent_database.dart';
 import 'package:baishou/i18n/strings.g.dart';
 import 'package:baishou/agent/models/chat_message.dart';
@@ -148,8 +150,20 @@ class SessionManager {
     );
   }
 
-  /// 删除会话（级联删除 Parts → Messages）
-  Future<void> deleteSession(String id) async {
+  /// 删除会话（级联删除 Parts → Messages → 附件目录）
+  ///
+  /// [vaultPath] 可选，提供时会一并清理 {vaultPath}/attachments/{sessionId}/
+  Future<void> deleteSession(String id, {String? vaultPath}) async {
+    // 清理附件目录
+    if (vaultPath != null) {
+      final attDir = Directory(p.join(vaultPath, 'attachments', id));
+      if (attDir.existsSync()) {
+        try {
+          await attDir.delete(recursive: true);
+        } catch (_) {}
+      }
+    }
+
     // 必须首先清理 FTS 索引
     await _db.customStatement(
       'DELETE FROM agent_messages_fts WHERE session_id = ?',
@@ -165,9 +179,9 @@ class SessionManager {
   }
 
   /// 批量删除会话
-  Future<void> deleteSessions(List<String> ids) async {
+  Future<void> deleteSessions(List<String> ids, {String? vaultPath}) async {
     for (final id in ids) {
-      await deleteSession(id);
+      await deleteSession(id, vaultPath: vaultPath);
     }
   }
 
