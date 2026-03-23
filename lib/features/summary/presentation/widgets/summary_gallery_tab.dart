@@ -75,7 +75,8 @@ class GalleryTab extends ConsumerWidget {
                 children: [
                   SizedBox(
                     width: 280,
-                    child: _buildList(context, theme, summaries, selected),
+                    child: _buildList(context, theme, summaries, selected,
+                        isWide: true, ref: ref),
                   ),
                   Container(
                     width: 1,
@@ -90,7 +91,8 @@ class GalleryTab extends ConsumerWidget {
                 ],
               );
             }
-            return _buildList(context, theme, summaries, selected);
+            return _buildList(context, theme, summaries, selected,
+                isWide: false, ref: ref);
           },
         );
       },
@@ -98,7 +100,8 @@ class GalleryTab extends ConsumerWidget {
   }
 
   Widget _buildList(BuildContext context, ThemeData theme,
-      List<Summary> summaries, Summary? selected) {
+      List<Summary> summaries, Summary? selected,
+      {bool isWide = true, WidgetRef? ref}) {
     return ListView.builder(
       padding: const EdgeInsets.only(right: 8, top: 8),
       itemCount: summaries.length,
@@ -108,7 +111,127 @@ class GalleryTab extends ConsumerWidget {
         return GalleryListItem(
           summary: s,
           isSelected: isSelected,
-          onTap: () => onSelect(s),
+          onTap: () {
+            onSelect(s);
+            // 移动端：弹出底部面板展示详情
+            if (!isWide && ref != null) {
+              _showMobileDetail(context, ref, theme, s);
+            }
+          },
+        );
+      },
+    );
+  }
+
+  /// 移动端展示总结详情的底部面板
+  void _showMobileDetail(
+      BuildContext context, WidgetRef ref, ThemeData theme, Summary summary) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.85,
+          minChildSize: 0.4,
+          maxChildSize: 0.95,
+          expand: false,
+          builder: (ctx, controller) {
+            return Column(
+              children: [
+                // 拖拽手柄
+                Container(
+                  margin: const EdgeInsets.only(top: 12, bottom: 8),
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.outlineVariant,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                Expanded(
+                  child: SingleChildScrollView(
+                    controller: controller,
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: AppTheme.primary.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                typeLabel(type),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppTheme.primary,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                formatTitle(summary),
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.edit_note_rounded),
+                              tooltip: t.common.edit,
+                              onPressed: () {
+                                Navigator.pop(ctx);
+                                context.push(
+                                    '/diary/edit?summaryId=${summary.id}');
+                              },
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.delete_outline_rounded),
+                              tooltip: t.common.delete,
+                              color: Colors.red.shade400,
+                              onPressed: () {
+                                Navigator.pop(ctx);
+                                _confirmDelete(context, ref, summary);
+                              },
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                        MarkdownBody(
+                          data: summary.content,
+                          styleSheet: MarkdownStyleSheet(
+                            p: theme.textTheme.bodyMedium
+                                ?.copyWith(height: 1.7),
+                            h1: theme.textTheme.titleLarge,
+                            h2: theme.textTheme.titleMedium,
+                            h3: theme.textTheme.titleSmall,
+                            horizontalRuleDecoration: BoxDecoration(
+                              border: Border(
+                                top: BorderSide(
+                                  color: theme.colorScheme.outlineVariant
+                                      .withValues(alpha: 0.5),
+                                  width: 1,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
         );
       },
     );

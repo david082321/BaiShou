@@ -49,21 +49,28 @@ class _MissingSummaryListState extends ConsumerState<MissingSummaryList> {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
-                    Icon(
-                      Icons.auto_fix_high_rounded,
-                      size: 20,
-                      color: Colors.amber.shade700,
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.auto_fix_high_rounded,
+                          size: 20,
+                          color: Colors.amber.shade700,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          t.summary.ai_suggestions,
+                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 8),
-                    Text(
-                      t.summary.ai_suggestions,
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
                     // 批量生成按钮
                     FilledButton.tonal(
                       onPressed: _isBatchProcessing
@@ -107,7 +114,6 @@ class _MissingSummaryListState extends ConsumerState<MissingSummaryList> {
                         ],
                       ),
                     ),
-                    const SizedBox(width: 8),
                     // 并发设置
                     PopupMenuButton<int>(
                       initialValue: _concurrencyLimit,
@@ -144,7 +150,6 @@ class _MissingSummaryListState extends ConsumerState<MissingSummaryList> {
                         ),
                       ),
                     ),
-                    const SizedBox(width: 8),
                     // 数量标签
                     Container(
                       padding: const EdgeInsets.symmetric(
