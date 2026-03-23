@@ -238,8 +238,14 @@ class AgentChatNotifier extends _$AgentChatNotifier {
     // 尝试从缓存恢复目标会话
     final cached = _sessionStateCache[sessionId];
     if (cached != null) {
-      state = cached;
-      return;
+      // 会话仍在生成中 → 直接恢复缓存以保持流式状态
+      if (cached.isLoading) {
+        state = cached;
+        return;
+      }
+      // 会话已完成生成 → 从数据库重新加载消息
+      // 确保工具调用消息的完整性和正确顺序（避免缓存中间态导致合并异常）
+      _sessionStateCache.remove(sessionId);
     }
 
     // 缓存中没有，从数据库加载最近 20 条（倒序，最新的在前面）

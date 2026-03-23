@@ -375,11 +375,11 @@ class _StopButtonState extends State<_StopButton>
           width: 36,
           height: 36,
           decoration: BoxDecoration(
-            color: widget.theme.colorScheme.error,
+            color: widget.theme.colorScheme.surfaceContainerHighest,
             shape: BoxShape.circle,
             boxShadow: [
               BoxShadow(
-                color: widget.theme.colorScheme.error.withValues(alpha: 0.3),
+                color: widget.theme.colorScheme.shadow.withValues(alpha: 0.15),
                 blurRadius: 8,
                 offset: const Offset(0, 2),
               ),
@@ -388,7 +388,7 @@ class _StopButtonState extends State<_StopButton>
           child: Icon(
             Icons.stop_rounded,
             size: 20,
-            color: widget.theme.colorScheme.onError,
+            color: widget.theme.colorScheme.onSurface,
           ),
         ),
       ),

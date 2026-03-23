@@ -472,8 +472,9 @@ QueryExecutor _openAgentConnection(StoragePathService pathService) {
     final dbFile = File(p.join(sysDir.path, 'agent.sqlite'));
     return NativeDatabase.createInBackground(
       dbFile,
-      setup: (db) {
-        // 在后台 Isolate 的独立连接中加载向量库扩展
+      isolateSetup: () {
+        // 必须在数据库打开前注册 auto-extension
+        // setup 回调在 DB 打开后执行，已注册的 auto-extension 不会应用到当前连接
         sql.sqlite3.loadSqliteVectorExtension();
       },
     );
