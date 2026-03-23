@@ -627,6 +627,7 @@
     "transparency_desc": "白守支援端到端的資料匯出與同步。你可以隨時透過 ZIP 匯出徹底帶走自己的回憶，或者將其同步至你完全掌控的 S3/WebDAV 空間。"
   },
   "agent": {
+    "partner_label": "夥伴",
     "tools": {
       "built_in": "內建工具",
       "community": "社群工具",
