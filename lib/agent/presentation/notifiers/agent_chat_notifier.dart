@@ -137,24 +137,27 @@ class AgentChatNotifier extends _$AgentChatNotifier {
     return const AgentChatState();
   }
 
-  /// 重发用户消息（基于现有对话中的 user 消息并清空其后的无效模型响应）
+  /// 重发用户消息（截断该消息之后的所有对话再重新发送）
   Future<void> resendUserMessage(String userMessageId) async {
     final sessionId = state.sessionId;
     if (sessionId == null || state.isLoading) return;
 
     final manager = ref.read(sessionManagerProvider);
 
-    // 1. 获取关联的伙伴/工具消息并将其删除
-    final msgsToDelete = state.messages
-        .where((m) => m.askId == userMessageId)
-        .map((m) => m.id)
-        .toList();
-    if (msgsToDelete.isNotEmpty) {
-      await manager.deleteMessagesByIds(msgsToDelete);
+    // 1. 删除该用户消息之后的所有消息（保留用户消息本身）
+    // state.messages 是倒排的（最新在前），找到该用户消息的位置
+    final userMsgIndex = state.messages.indexWhere(
+      (m) => m.id == userMessageId,
+    );
+    if (userMsgIndex == -1) return;
+
+    // 倒排中 index < userMsgIndex 的消息比 userMsg 更新，需要删除
+    final msgsAfter = state.messages.sublist(0, userMsgIndex);
+    if (msgsAfter.isNotEmpty) {
+      final idsToDelete = msgsAfter.map((m) => m.id).toList();
+      await manager.deleteMessagesByIds(idsToDelete);
       state = state.copyWith(
-        messages: state.messages
-            .where((m) => m.askId != userMessageId)
-            .toList(),
+        messages: state.messages.sublist(userMsgIndex),
       );
       _sessionStateCache[sessionId] = state;
     }

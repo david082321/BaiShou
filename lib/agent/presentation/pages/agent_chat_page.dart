@@ -615,8 +615,9 @@ class _AgentChatPageState extends ConsumerState<AgentChatPage> {
   /// 判断消息是否属于工具调用序列的一部分
   bool _isToolRelated(ChatMessage msg) {
     if (msg.role == MessageRole.tool) return true;
+    // assistant 消息只要包含 toolCalls 就属于工具序列
+    // （即使有文本内容如"让我搜索一下…"，也合入工具分组而不单独成泡）
     if (msg.role == MessageRole.assistant &&
-        (msg.content == null || msg.content!.trim().isEmpty) &&
         msg.toolCalls != null &&
         msg.toolCalls!.isNotEmpty) {
       return true;
