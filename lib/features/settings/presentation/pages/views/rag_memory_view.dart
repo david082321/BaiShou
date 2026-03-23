@@ -328,22 +328,23 @@ class _RagMemoryViewState extends ConsumerState<RagMemoryView> {
         children: [
           // 标题 + 全局开关
           Padding(
-            padding: const EdgeInsets.fromLTRB(32, 32, 32, 8),
-            child: Row(
+            padding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 Icon(
                   Icons.psychology_outlined,
-                  size: 28,
+                  size: 24,
                   color: colorScheme.primary,
                 ),
-                const SizedBox(width: 12),
                 Text(
                   t.agent.rag.title,
-                  style: textTheme.headlineSmall?.copyWith(
+                  style: textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(width: 12),
                 // 全局记忆开关
                 Switch(
                   value: ref.read(apiConfigServiceProvider).ragEnabled,
@@ -352,7 +353,6 @@ class _RagMemoryViewState extends ConsumerState<RagMemoryView> {
                     setState(() {});
                   },
                 ),
-                const Spacer(),
                 if (totalCount > 0)
                   TextButton.icon(
                     onPressed: _clearAll,
@@ -393,7 +393,7 @@ class _RagMemoryViewState extends ConsumerState<RagMemoryView> {
 
           // 统计信息
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 32),
+            padding: const EdgeInsets.symmetric(horizontal: 24),
             child: _buildStatsRow(colorScheme, textTheme, totalCount),
           ),
 
@@ -401,7 +401,7 @@ class _RagMemoryViewState extends ConsumerState<RagMemoryView> {
 
           // RAG 检索参数调节
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 32),
+            padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -512,7 +512,7 @@ class _RagMemoryViewState extends ConsumerState<RagMemoryView> {
 
           // 操作按钮行
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 32),
+            padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Wrap(
               spacing: 8,
               runSpacing: 8,
@@ -521,8 +521,8 @@ class _RagMemoryViewState extends ConsumerState<RagMemoryView> {
                 RagActionChip(
                   icon: Icons.layers_clear,
                   label: t.agent.rag.action_clear_dimension,
-                  color: colorScheme.error,
-                  onTap: _clearCurrentDimension,
+                  color: _isBatchEmbedding ? colorScheme.outline : colorScheme.error,
+                  onTap: _isBatchEmbedding ? null : _clearCurrentDimension,
                 ),
                 // 全量嵌入日记
                 RagActionChip(
@@ -530,7 +530,7 @@ class _RagMemoryViewState extends ConsumerState<RagMemoryView> {
                   label: _isBatchEmbedding
                       ? t.agent.rag.batch_embed_progress(progress: _batchProgress.toString(), total: _batchTotal.toString())
                       : t.agent.rag.action_batch_embed,
-                  color: colorScheme.primary,
+                  color: _isBatchEmbedding ? colorScheme.outline : colorScheme.primary,
                   onTap: _isBatchEmbedding ? null : _batchEmbedDiaries,
                   isLoading: _isBatchEmbedding,
                 ),
@@ -538,8 +538,8 @@ class _RagMemoryViewState extends ConsumerState<RagMemoryView> {
                 RagActionChip(
                   icon: Icons.add_comment_outlined,
                   label: t.agent.rag.action_add_memory,
-                  color: colorScheme.tertiary,
-                  onTap: _addManualMemory,
+                  color: _isBatchEmbedding ? colorScheme.outline : colorScheme.tertiary,
+                  onTap: _isBatchEmbedding ? null : _addManualMemory,
                 ),
               ],
             ),
@@ -549,7 +549,7 @@ class _RagMemoryViewState extends ConsumerState<RagMemoryView> {
 
           // 搜索框
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 32),
+            padding: const EdgeInsets.symmetric(horizontal: 24),
             child: TextField(
               controller: _searchController,
               decoration: InputDecoration(

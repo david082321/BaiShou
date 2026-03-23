@@ -259,11 +259,9 @@ class _ChatInputBarState extends State<ChatInputBar> {
                             decoration: InputDecoration(
                               hintText: t.agent.chat.input_hint,
                               border: InputBorder.none,
-                              contentPadding: const EdgeInsets.only(
-                                left: 6,
-                                right: 6,
-                                top: 2,
-                                bottom: 14, // 使偏下假象被彻底抵消，绝对视觉居中
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 8,
                               ),
                               isDense: true,
                               hintStyle: theme.textTheme.bodyMedium?.copyWith(
