@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 
@@ -461,6 +462,108 @@ class AgentDatabase extends _$AgentDatabase {
         'created_at': row.read<int>('created_at'),
       };
     }).toList();
+  }
+
+  // ── 数据导出与恢复支持 ───────────────────────────────────
+
+  /// 导入前全量清空所有 Agent 数据
+  Future<void> clearAllAgentData() async {
+    await transaction(() async {
+      await delete(agentParts).go();
+      await delete(agentMessages).go();
+      await delete(agentSessions).go();
+      await delete(agentAssistants).go();
+      await delete(compressionSnapshots).go();
+      
+      await customStatement('DELETE FROM message_embeddings');
+      await customStatement('DELETE FROM agent_messages_fts');
+    });
+  }
+
+  /// 获取全量嵌入数据（包含 BLOB 的二进制片段），专用于 ZIP 导出序列化
+  Future<List<Map<String, dynamic>>> getAllEmbeddingsForExport() async {
+    final results = await customSelect('''
+      SELECT *
+      FROM message_embeddings
+    ''').get();
+
+    return results.map((row) {
+      return {
+        'id': row.read<int>('id'),
+        'embedding_id': row.read<String>('embedding_id'),
+        'message_id': row.read<String>('message_id'),
+        'session_id': row.read<String>('session_id'),
+        'chunk_index': row.read<int>('chunk_index'),
+        'chunk_text': row.read<String>('chunk_text'),
+        'dimension': row.read<int>('dimension'),
+        'model_id': row.read<String>('model_id'),
+        'created_at': row.read<int>('created_at'),
+        // 取出原生 BLOB 供外部 Base64 编码
+        'embedding': row.read<Uint8List>('embedding'), 
+      };
+    }).toList();
+  }
+
+  /// 从导入数据的原生 BLOB 恢复嵌入
+  Future<void> importEmbeddingsRaw(List<Map<String, dynamic>> embeddings) async {
+    await transaction(() async {
+      // 在原生插入时由于使用 (?, ?) 语法，Uint8List 会自动由 drift 绑定为 sqlite3 BLOB
+      final stmt = 'INSERT INTO message_embeddings '
+          '(id, embedding_id, message_id, session_id, chunk_index, chunk_text, '
+          'embedding, dimension, model_id, created_at) '
+          'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)';
+      
+      for (final e in embeddings) {
+        await customStatement(stmt, [
+          e['id'], e['embedding_id'], e['message_id'], e['session_id'],
+          e['chunk_index'], e['chunk_text'], 
+          e['embedding'], // Uint8List
+          e['dimension'], e['model_id'], e['created_at'],
+        ]);
+      }
+    });
+  }
+
+  /// 导入后全量重建 FTS 全文索引
+  Future<void> rebuildFtsIndex() async {
+    await transaction(() async {
+      await customStatement('DELETE FROM agent_messages_fts');
+      
+      // 获取用户与助手的所有有效消息
+      final messages = await (select(agentMessages)
+        ..where((t) => t.role.isIn(['user', 'assistant']))).get();
+        
+      if (messages.isEmpty) return;
+      
+      // 取出文本类 Part 用于提取字符串
+      final parts = await (select(agentParts)
+        ..where((t) => t.type.equals('text'))).get();
+        
+      final partsByMsg = <String, String>{};
+      for (final p in parts) {
+        try {
+          final data = jsonDecode(p.data) as Map<String, dynamic>;
+          final text = data['text'] as String? ?? '';
+          if (text.isNotEmpty) {
+            final existing = partsByMsg[p.messageId] ?? '';
+            partsByMsg[p.messageId] = existing + text;
+          }
+        } catch (_) {}
+      }
+      
+      // 将拼装好的纯文本写入 FTS 虚表
+      for (final msg in messages) {
+        final text = partsByMsg[msg.id];
+        if (text != null && text.trim().isNotEmpty) {
+          await insertFtsRecord(
+            messageId: msg.id,
+            sessionId: msg.sessionId,
+            role: msg.role,
+            content: text,
+          );
+        }
+      }
+    });
   }
 }
 

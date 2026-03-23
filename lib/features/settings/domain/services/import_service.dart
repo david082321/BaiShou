@@ -24,53 +24,55 @@ import 'package:path_provider/path_provider.dart';
 import 'package:baishou/i18n/strings.g.dart';
 import 'package:baishou/features/storage/domain/services/journal_file_service.dart';
 import 'package:baishou/features/settings/domain/services/import_models.dart';
+import 'package:baishou/agent/database/agent_database.dart';
+import 'package:baishou/core/storage/storage_path_provider.dart';
+import 'package:baishou/core/storage/vault_service.dart';
+import 'package:drift/drift.dart' show InsertMode;
 export 'package:baishou/features/settings/domain/services/import_models.dart';
 
 
 /// 在 Isolate 中运行的解析函数
-/// 使用 extractFileToDisk 解压到临时目录，再读取文件，避免 OOM
-Future<ParsedImportData> parseZipData(String zipFilePath) async {
-  // 创建临时目录
-  final tempDir = Directory.systemTemp.createTempSync('baishou_import_');
+/// 接收 zip 路径与传入的 tempDir 路径
+Future<ParsedImportData> parseZipData(Map<String, String> args) async {
+  final zipFilePath = args['zip']!;
+  final tempDir = Directory(args['temp']!);
 
-  try {
-    // 使用 archive_io 的 extractFileToDisk 直接解压到磁盘
-    // 这不会将整个 ZIP 加载到内存，非常高效
-    await extractFileToDisk(zipFilePath, tempDir.path);
+  // 使用 archive_io 直接解压到磁盘
+  await extractFileToDisk(zipFilePath, tempDir.path);
 
-    // 辅助函数：读取并解析 JSON 文件
-    dynamic parseJsonFile(String relativePath) {
-      final file = File(path.join(tempDir.path, relativePath));
-      if (!file.existsSync()) return null;
-      try {
-        final content = file.readAsStringSync();
-        return jsonDecode(content);
-      } catch (_) {
-        return null;
-      }
-    }
-
-    // 1. 读取并验证 manifest
-    final manifest = parseJsonFile('manifest.json');
-
-    // 2. 读取其他数据
-    final diaries = parseJsonFile('data/diaries.json') as List<dynamic>?;
-    final summaries = parseJsonFile('data/summaries.json') as List<dynamic>?;
-    final config =
-        parseJsonFile('config/user_profile.json') as Map<String, dynamic>?;
-
-    return ParsedImportData(
-      manifest: manifest as Map<String, dynamic>,
-      diaries: diaries,
-      summaries: summaries,
-      config: config,
-    );
-  } finally {
-    // 清理临时目录
-    if (tempDir.existsSync()) {
-      tempDir.deleteSync(recursive: true);
+  // 辅助函数：读取并解析 JSON 文件
+  dynamic parseJsonFile(String relativePath) {
+    final file = File(path.join(tempDir.path, relativePath));
+    if (!file.existsSync()) return null;
+    try {
+      final content = file.readAsStringSync();
+      return jsonDecode(content);
+    } catch (_) {
+      return null;
     }
   }
+
+  // 1. 读取并验证 manifest
+  final manifest = parseJsonFile('manifest.json');
+
+  // 2. 读取其他数据
+  final diaries = parseJsonFile('data/diaries.json') as List<dynamic>?;
+  final summaries = parseJsonFile('data/summaries.json') as List<dynamic>?;
+  final config =
+      parseJsonFile('config/user_profile.json') as Map<String, dynamic>?;
+
+  // 3. 读取跨平台 Agent 数据与 RAG
+  return ParsedImportData(
+    manifest: manifest as Map<String, dynamic>,
+    diaries: diaries,
+    summaries: summaries,
+    config: config,
+    aiAssistants: parseJsonFile('data/ai_assistants.json') as List<dynamic>?,
+    agentSessions: parseJsonFile('data/agent_sessions.json') as List<dynamic>?,
+    agentMessages: parseJsonFile('data/agent_messages.json') as List<dynamic>?,
+    agentParts: parseJsonFile('data/agent_parts.json') as List<dynamic>?,
+    agentEmbeddings: parseJsonFile('data/agent_embeddings.json') as List<dynamic>?,
+  );
 }
 
 class ImportService {
@@ -81,6 +83,9 @@ class ImportService {
   final ApiConfigService _apiConfig;
   final DataSyncConfigService _dataSyncConfig;
   final JournalFileService _journalFileService;
+  final AgentDatabase _agentDatabase;
+  final VaultService _vaultService;
+  final StoragePathService _storagePathService;
 
   ImportService({
     required DiaryRepository diaryRepository,
@@ -90,26 +95,33 @@ class ImportService {
     required ApiConfigService apiConfig,
     required DataSyncConfigService dataSyncConfig,
     required JournalFileService journalFileService,
+    required AgentDatabase agentDatabase,
+    required VaultService vaultService,
+    required StoragePathService storagePathService,
   }) : _diaryRepository = diaryRepository,
        _summaryRepository = summaryRepository,
        _profileNotifier = profileNotifier,
        _themeNotifier = themeNotifier,
        _apiConfig = apiConfig,
        _dataSyncConfig = dataSyncConfig,
-       _journalFileService = journalFileService;
+       _journalFileService = journalFileService,
+       _agentDatabase = agentDatabase,
+       _vaultService = vaultService,
+       _storagePathService = storagePathService;
 
   /// 从 ZIP 文件导入备份（覆盖模式：先自动创建快照，再清空数据，最后写入）
   Future<ImportResult> importFromZip(File zipFile) async {
     final stopwatch = Stopwatch()..start();
     debugPrint('Import: Starting import process from ${zipFile.path}');
 
-    // 创建一个完全独立的临时副本，以规避潜在的文件锁冲突 (特别是 LAN 传输刚完成时)
     final tempZipFile = File(
       path.join(
         Directory.systemTemp.path,
         'import_tmp_${DateTime.now().millisecondsSinceEpoch}.zip',
       ),
     );
+    // [NEW] 外置临时抽取主目录以便管理物理附件
+    final tempBaseDir = Directory.systemTemp.createTempSync('baishou_import_');
 
     try {
       debugPrint('Import: Copying ZIP to temporary location...');
@@ -117,7 +129,10 @@ class ImportService {
 
       debugPrint('Import: Parsing ZIP data in Isolate...');
       // 1. 传递临时文件路径给 isolate
-      final parsedData = await compute(parseZipData, tempZipFile.path).timeout(
+      final parsedData = await compute(parseZipData, {
+        'zip': tempZipFile.path,
+        'temp': tempBaseDir.path,
+      }).timeout(
         const Duration(minutes: 2),
         onTimeout: () {
           throw TimeoutException(t.settings.parse_timeout);
@@ -143,6 +158,8 @@ class ImportService {
       await _diaryRepository.deleteAllDiaries();
       debugPrint('Import: Deleting existing summaries...');
       await _summaryRepository.deleteAllSummaries();
+      debugPrint('Import: Clearing all Agent data...');
+      await _agentDatabase.clearAllAgentData();
 
       // 5. 导入日记
       int diariesImported = 0;
@@ -166,6 +183,9 @@ class ImportService {
         summariesImported = await _importSummaries(parsedData.summaries!);
         debugPrint('Import: Summaries batch save complete');
       }
+
+      // [NEW] 6.5 导入 Agent 附属层级与物理附件合并转移 + FTS 索引重建
+      await _importAgentData(parsedData, tempBaseDir.path);
 
       // 7. 返回结果
       return ImportResult(
@@ -193,6 +213,11 @@ class ImportService {
         } catch (e) {
           debugPrint('Import: Failed to delete temporary ZIP: $e');
         }
+      }
+      if (tempBaseDir.existsSync()) {
+        try {
+          tempBaseDir.deleteSync(recursive: true);
+        } catch (_) {}
       }
     }
   }
@@ -347,6 +372,68 @@ class ImportService {
     }
 
     return parsedSummaries.length;
+  }
+
+  Future<void> _importAgentData(ParsedImportData data, String tempPath) async {
+    // 恢复 SQLite 主要结构
+    if (data.aiAssistants != null) {
+      final rows = data.aiAssistants!.map((e) => AgentAssistant.fromJson(e)).toList();
+      await _agentDatabase.into(_agentDatabase.agentAssistants).insertAll(rows, mode: InsertMode.insertOrReplace);
+    }
+    if (data.agentSessions != null) {
+      final rows = data.agentSessions!.map((e) => AgentSession.fromJson(e)).toList();
+      await _agentDatabase.into(_agentDatabase.agentSessions).insertAll(rows, mode: InsertMode.insertOrReplace);
+    }
+    if (data.agentMessages != null) {
+      final rows = data.agentMessages!.map((e) => AgentMessage.fromJson(e)).toList();
+      await _agentDatabase.into(_agentDatabase.agentMessages).insertAll(rows, mode: InsertMode.insertOrReplace);
+    }
+    if (data.agentParts != null) {
+      final rows = data.agentParts!.map((e) => AgentPart.fromJson(e)).toList();
+      await _agentDatabase.into(_agentDatabase.agentParts).insertAll(rows, mode: InsertMode.insertOrReplace);
+    }
+    
+    // 恢复 RAG 向量并进行反向 Base64 解封装
+    if (data.agentEmbeddings != null) {
+      final mapped = data.agentEmbeddings!.map((e) {
+        final Map<String, dynamic> row = Map<String, dynamic>.from(e);
+        if (row['embedding'] is String) {
+          row['embedding'] = base64Decode(row['embedding'] as String);
+        }
+        return row;
+      }).toList();
+      await _agentDatabase.importEmbeddingsRaw(mapped);
+    }
+
+    // 拷贝物理附件
+    final currentVault = _vaultService.state.value;
+    if (currentVault != null) {
+      final extractedAttachDir = Directory(path.join(tempPath, 'attachments'));
+      if (extractedAttachDir.existsSync()) {
+        final destVaultDir = await _storagePathService.getVaultDirectory(currentVault.name);
+        final destAttachDir = Directory(path.join(destVaultDir.path, 'attachments'));
+        if (destAttachDir.existsSync()) {
+           destAttachDir.deleteSync(recursive: true);
+        }
+        destAttachDir.createSync(recursive: true);
+
+        final files = extractedAttachDir.listSync(recursive: true);
+        for (final entity in files) {
+          if (entity is File) {
+            final relPath = path.relative(entity.path, from: extractedAttachDir.path);
+            final targetPath = path.join(destAttachDir.path, relPath);
+            final targetFile = File(targetPath);
+            if (!targetFile.parent.existsSync()) {
+              targetFile.parent.createSync(recursive: true);
+            }
+            await entity.copy(targetPath);
+          }
+        }
+      }
+    }
+    
+    // 触发全文索引重建
+    await _agentDatabase.rebuildFtsIndex();
   }
 
   /// 恢复用户配置（主题、API Key 等）
@@ -578,5 +665,8 @@ final importServiceProvider = Provider<ImportService>((ref) {
     apiConfig: ref.watch(apiConfigServiceProvider),
     dataSyncConfig: ref.watch(dataSyncConfigServiceProvider),
     journalFileService: ref.watch(journalFileServiceProvider.notifier),
+    agentDatabase: ref.watch(agentDatabaseProvider),
+    vaultService: ref.watch(vaultServiceProvider.notifier),
+    storagePathService: ref.watch(storagePathServiceProvider),
   );
 });
