@@ -2,6 +2,8 @@
 ///
 /// 全屏覆盖路由，包含消息列表和输入框
 
+import 'dart:io';
+
 import 'package:baishou/agent/models/chat_message.dart';
 import 'package:baishou/core/services/api_config_service.dart';
 import 'package:baishou/agent/session/session_manager.dart';
@@ -120,27 +122,53 @@ class _AgentChatPageState extends ConsumerState<AgentChatPage> {
     final currentModel =
         assistantData?.modelId ?? apiConfig.globalDialogueModelId;
 
+    final bool isMobile = !(Platform.isWindows || Platform.isMacOS || Platform.isLinux)
+        && MediaQuery.of(context).size.width < 700;
+
     return Scaffold(
       appBar: AppBar(
-        title: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // 当前模型名称 + 伙伴名称
-            if (currentModel.isNotEmpty || assistantName != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 2),
-                child: Text(
-                  [
-                    if (assistantName != null) '✨ $assistantName',
-                    if (currentModel.isNotEmpty) currentModel,
-                  ].join(' · '),
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: theme.colorScheme.outline,
-                    fontSize: 10,
+        leading: isMobile
+            ? IconButton(
+                icon: const Icon(Icons.menu_rounded),
+                onPressed: () => Scaffold.of(context).openDrawer(),
+              )
+            : null,
+        automaticallyImplyLeading: false,
+        title: GestureDetector(
+          onTap: () => _showModelSwitcher(context, ref, chatState),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (currentModel.isNotEmpty || assistantName != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          [
+                            if (assistantName != null) '✨ $assistantName',
+                            if (currentModel.isNotEmpty) currentModel,
+                          ].join(' · '),
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: theme.colorScheme.outline,
+                            fontSize: 10,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Icon(
+                        Icons.unfold_more,
+                        size: 14,
+                        color: theme.colorScheme.outline,
+                      ),
+                    ],
                   ),
                 ),
-              ),
-          ],
+            ],
+          ),
         ),
         centerTitle: true,
         elevation: 0,
@@ -454,6 +482,92 @@ class _AgentChatPageState extends ConsumerState<AgentChatPage> {
     }
   }
 
+  /// 模型快速切换器 — 点击标题栏弹出，直接切换当前会话使用的模型
+  void _showModelSwitcher(
+    BuildContext context,
+    WidgetRef ref,
+    AgentChatState chatState,
+  ) {
+    final apiConfig = ref.read(apiConfigServiceProvider);
+    final providers = apiConfig.getProviders().where((p) => p.isEnabled).toList();
+    final currentProviderId = chatState.currentProviderId;
+    final currentModelId = chatState.currentModelId
+        ?? apiConfig.globalDialogueModelId;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.55,
+          minChildSize: 0.3,
+          maxChildSize: 0.85,
+          expand: false,
+          builder: (ctx, controller) {
+            return Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Text(
+                    t.agent.assistant.select_model_title,
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                ),
+                Expanded(
+                  child: ListView.builder(
+                    controller: controller,
+                    itemCount: providers.length,
+                    itemBuilder: (ctx, i) {
+                      final provider = providers[i];
+                      final modelList = provider.enabledModels.isNotEmpty
+                          ? provider.enabledModels
+                          : provider.models;
+
+                      return ExpansionTile(
+                        title: Text(provider.name),
+                        initiallyExpanded: provider.id == (currentProviderId ?? apiConfig.globalDialogueProviderId),
+                        children: modelList.map((modelId) {
+                          final isSelected =
+                              provider.id == (currentProviderId ?? apiConfig.globalDialogueProviderId) &&
+                              modelId == currentModelId;
+                          return ListTile(
+                            title: Text(modelId),
+                            trailing: isSelected
+                                ? Icon(
+                                    Icons.check_circle,
+                                    color: Theme.of(context).colorScheme.primary,
+                                  )
+                                : null,
+                            onTap: () async {
+                              // 更新 notifier 中的当前模型
+                              ref.read(agentChatProvider.notifier).setCurrentModel(
+                                providerId: provider.id,
+                                modelId: modelId,
+                              );
+                              // 持久化到会话记录
+                              if (chatState.sessionId != null) {
+                                await ref.read(sessionManagerProvider).updateSessionModel(
+                                  chatState.sessionId!,
+                                  provider.id,
+                                  modelId,
+                                );
+                              }
+                              if (ctx.mounted) Navigator.pop(ctx);
+                            },
+                          );
+                        }).toList(),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   Widget _buildEmptyState(ThemeData theme) {
     return Center(
       child: Column(
@@ -520,11 +634,13 @@ class _AgentChatPageState extends ConsumerState<AgentChatPage> {
     String? friendly;
     if (statusCode != null) {
       if (statusCode == 400) friendly = t.agent.chat.err_format;
-      if (statusCode == 401 || statusCode == 403)
+      if (statusCode == 401 || statusCode == 403) {
         friendly = t.agent.chat.err_unauthorized;
+      }
       if (statusCode == 429) friendly = t.agent.chat.err_too_many_requests;
-      if (statusCode >= 500 && statusCode <= 503)
+      if (statusCode >= 500 && statusCode <= 503) {
         friendly = t.agent.chat.err_server;
+      }
     }
     if (raw.contains('timeout') || raw.contains('TimeoutException')) {
       friendly = t.agent.chat.err_timeout;

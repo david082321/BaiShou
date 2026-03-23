@@ -34,18 +34,14 @@ class _MainScaffoldState extends ConsumerState<MainScaffold>
     );
   }
 
-  /// 移动端底栏索引映射
-  /// 移动端底栏顺序：日记(0) / 伙伴(1) / 总结(2) / 设置(3)
-  /// branch 索引：0=日记, 1=总结, 2=sync, 3=设置, 4=agent
+  // ─── 移动端底栏索引 ↔ branch 索引 映射表 ───────────────────
+  // 移动端底栏顺序：日记(0) / 伙伴(1) / 总结(2) / 设置(3)
+  // branch 索引：     0=日记, 1=总结, 2=sync, 3=设置, 4=agent
+  static const _kMobileNavToBranch = {0: 0, 1: 4, 2: 1, 3: 3};
+  static const _kBranchToMobileNav = {0: 0, 4: 1, 1: 2, 3: 3};
+
   int _getMobileNavIndex() {
-    final branchIndex = widget.navigationShell.currentIndex;
-    return switch (branchIndex) {
-      0 => 0,  // 日记
-      4 => 1,  // 伙伴 (Agent)
-      1 => 2,  // 总结
-      3 => 3,  // 设置
-      _ => 0,  // 其他情况默认到日记
-    };
+    return _kBranchToMobileNav[widget.navigationShell.currentIndex] ?? 0;
   }
 
   /// 读取侧边栏排序首位 branchIndex（移动端回退用）
@@ -212,16 +208,8 @@ class _MainScaffoldState extends ConsumerState<MainScaffold>
       bottomNavigationBar: NavigationBar(
         selectedIndex: _getMobileNavIndex(),
         onDestinationSelected: (index) {
-          switch (index) {
-            case 0:
-              _goBranch(0); // 日记
-            case 1:
-              _goBranch(4); // 伙伴 (Agent)
-            case 2:
-              _goBranch(1); // 总结
-            case 3:
-              _goBranch(3); // 设置
-          }
+          final branch = _kMobileNavToBranch[index];
+          if (branch != null) _goBranch(branch);
         },
         destinations: [
           NavigationDestination(

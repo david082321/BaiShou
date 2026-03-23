@@ -297,7 +297,7 @@ class _AgentMainPageState extends ConsumerState<AgentMainPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Agent',
+                        t.agent.partner_label,
                         style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.bold,
                         ),

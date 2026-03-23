@@ -194,6 +194,20 @@ class SessionManager {
         .write(AgentSessionsCompanion(assistantId: Value(assistantId)));
   }
 
+  /// 更新会话使用的模型（快速切换模型时调用）
+  Future<void> updateSessionModel(
+    String sessionId,
+    String providerId,
+    String modelId,
+  ) async {
+    await (_db.update(_db.agentSessions)..where((t) => t.id.equals(sessionId)))
+        .write(AgentSessionsCompanion(
+          providerId: Value(providerId),
+          modelId: Value(modelId),
+          updatedAt: Value(DateTime.now()),
+        ));
+  }
+
   /// 累加会话的 token 用量和费用
   Future<void> addUsage({
     required String sessionId,
