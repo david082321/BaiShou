@@ -643,7 +643,9 @@
       "param_max_length": "内容长度上限",
       "param_max_length_desc": "网页读取时返回的最大字符数",
       "param_rag_enabled": "RAG 向量压缩",
-      "param_rag_enabled_desc": "启用后搜索结果将通过向量检索筛选最相关内容（需配置嵌入模型）"
+      "param_rag_enabled_desc": "启用后搜索结果将通过向量检索筛选最相关内容（需配置嵌入模型）",
+      "param_tavily_api_key": "Tavily API Key",
+      "param_tavily_api_key_desc": "Tavily 搜索 API 密钥（https://app.tavily.com 免费获取）"
     },
     "chat": {
       "companion_mode": "深度陪伴",

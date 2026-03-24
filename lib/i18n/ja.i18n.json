@@ -643,7 +643,9 @@
       "param_max_length": "コンテンツ長制限",
       "param_max_length_desc": "ウェブページ読取時の最大文字数",
       "param_rag_enabled": "RAG ベクトル圧縮",
-      "param_rag_enabled_desc": "ベクトル検索で最も関連性の高い内容をフィルタリング（埋め込みモデル設定が必要）"
+      "param_rag_enabled_desc": "ベクトル検索で最も関連性の高い内容をフィルタリング（埋め込みモデル設定が必要）",
+      "param_tavily_api_key": "Tavily API キー",
+      "param_tavily_api_key_desc": "Tavily 検索 API キー（https://app.tavily.com で無料取得）"
     },
     "chat": {
       "companion_mode": "ディープ・コンパニオン",
