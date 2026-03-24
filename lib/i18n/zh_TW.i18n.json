@@ -275,7 +275,16 @@
     "summary_ai_prompt_hint": "寫下該 AI 在提取並生成總結時的準則...",
     "summary_instructions_desc": "該設定將作為系統提示詞被運用於自動生成的週、月、季及年度總結中。預設採用中文輸出。",
     "saved": "已儲存",
-    "restore_default": "恢復預設"
+    "restore_default": "恢復預設",
+    "hotkey_title": "全域快捷鍵",
+    "hotkey_desc_enabled": "目前: $hotkey",
+    "hotkey_desc_disabled": "快速顯示/隱藏視窗（預設 Alt+S）",
+    "hotkey_change": "修改快捷鍵",
+    "hotkey_dialog_title": "設定快捷鍵",
+    "hotkey_modifier_label": "修飾鍵",
+    "hotkey_key_label": "按鍵",
+    "hotkey_conflict_warning": "⚠ 此組合與已註冊的熱鍵衝突，請選擇其他組合",
+    "hotkey_use_anyway": "仍然使用"
   },
   "data_sync": {
     "title": "資料同步",

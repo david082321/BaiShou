@@ -266,7 +266,16 @@
     "summary_ai_prompt_hint": "Write guidelines for AI when extracting and generating summaries...",
     "summary_instructions_desc": "This setting will be used as the system prompt for auto-generated weekly, monthly, quarterly and yearly summaries. Default output is in Chinese.",
     "saved": "Saved",
-    "restore_default": "Restore Default"
+    "restore_default": "Restore Default",
+    "hotkey_title": "Global Hotkey",
+    "hotkey_desc_enabled": "Current: $hotkey",
+    "hotkey_desc_disabled": "Quick show/hide window (default Alt+S)",
+    "hotkey_change": "Change Hotkey",
+    "hotkey_dialog_title": "Set Hotkey",
+    "hotkey_modifier_label": "Modifier",
+    "hotkey_key_label": "Key",
+    "hotkey_conflict_warning": "⚠ This combination conflicts with a registered hotkey, please choose another",
+    "hotkey_use_anyway": "Use Anyway"
   },
   "data_sync": {
     "title": "Data Sync",

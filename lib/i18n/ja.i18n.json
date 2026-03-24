@@ -266,7 +266,16 @@
     "summary_ai_prompt_hint": "AIがサマリーを抽出・生成する際のガイドラインを記入...",
     "summary_instructions_desc": "この設定は自動生成される週次・月次・四半期・年次サマリーのシステムプロンプトとして使用されます。デフォルトは中国語出力です。",
     "saved": "保存しました",
-    "restore_default": "デフォルトに戻す"
+    "restore_default": "デフォルトに戻す",
+    "hotkey_title": "グローバルホットキー",
+    "hotkey_desc_enabled": "現在: $hotkey",
+    "hotkey_desc_disabled": "ウィンドウの表示/非表示を切り替え（デフォルト Alt+S）",
+    "hotkey_change": "ホットキーを変更",
+    "hotkey_dialog_title": "ホットキー設定",
+    "hotkey_modifier_label": "修飾キー",
+    "hotkey_key_label": "キー",
+    "hotkey_conflict_warning": "⚠ この組み合わせは登録済みのホットキーと競合しています。別の組み合わせを選択してください",
+    "hotkey_use_anyway": "このまま使用"
   },
   "data_sync": {
     "title": "データ同期",

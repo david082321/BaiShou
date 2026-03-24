@@ -85,8 +85,8 @@ class GlobalHotkeyService {
   }
 
   Future<void> _register() async {
-    final keyModifier = _parseModifier(_modifier);
-    final physicalKey = _parsePhysicalKey(_key);
+    final keyModifier = parseModifier(_modifier);
+    final physicalKey = parsePhysicalKey(_key);
     if (physicalKey == null) return;
 
     _currentHotKey = HotKey(
@@ -128,7 +128,7 @@ class GlobalHotkeyService {
     _unregister();
   }
 
-  static HotKeyModifier? _parseModifier(String mod) {
+  static HotKeyModifier? parseModifier(String mod) {
     switch (mod.toLowerCase()) {
       case 'alt':
         return HotKeyModifier.alt;
@@ -146,7 +146,7 @@ class GlobalHotkeyService {
     }
   }
 
-  static PhysicalKeyboardKey? _parsePhysicalKey(String key) {
+  static PhysicalKeyboardKey? parsePhysicalKey(String key) {
     switch (key.toLowerCase()) {
       case 'keys':
         return PhysicalKeyboardKey.keyS;

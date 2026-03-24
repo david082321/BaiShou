@@ -266,7 +266,16 @@
     "summary_ai_prompt_hint": "写下该 AI 在提取并生成总结时的准则...",
     "summary_instructions_desc": "该设定将作为系统提示词被运用于自动生成的周、月、季及年度总结中。默认采用中文输出。",
     "saved": "已保存",
-    "restore_default": "恢复默认"
+    "restore_default": "恢复默认",
+    "hotkey_title": "全局快捷键",
+    "hotkey_desc_enabled": "当前: $hotkey",
+    "hotkey_desc_disabled": "快速显示/隐藏窗口（默认 Alt+S）",
+    "hotkey_change": "修改快捷键",
+    "hotkey_dialog_title": "设置快捷键",
+    "hotkey_modifier_label": "修饰键",
+    "hotkey_key_label": "按键",
+    "hotkey_conflict_warning": "⚠ 此组合与已注册的热键冲突，请选择其他组合",
+    "hotkey_use_anyway": "仍然使用"
   },
   "data_sync": {
     "title": "数据同步",
