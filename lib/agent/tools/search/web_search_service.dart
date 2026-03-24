@@ -8,6 +8,7 @@
 import 'dart:convert';
 import 'dart:math';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart' show visibleForTesting;
 import 'package:http/http.dart' as http;
 
 /// 单条搜索结果
@@ -152,11 +153,12 @@ class WebSearchService {
     }
 
     final html = utf8.decode(response.bodyBytes);
-    return _parseGoogleResults(html, maxResults);
+    return parseGoogleResults(html, maxResults);
   }
 
   /// 解析 Google 搜索结果 HTML
-  static List<SearchResult> _parseGoogleResults(String html, int maxResults) {
+  @visibleForTesting
+  static List<SearchResult> parseGoogleResults(String html, int maxResults) {
     final results = <SearchResult>[];
 
     final linkPattern = RegExp(
@@ -170,7 +172,7 @@ class WebSearchService {
 
       final url = match.group(1) ?? '';
       final rawTitle = match.group(2) ?? '';
-      final title = _stripHtml(rawTitle);
+      final title = stripHtml(rawTitle);
 
       // 跳过 Google 自身的链接
       if (url.contains('google.com') || title.isEmpty) continue;
@@ -182,7 +184,7 @@ class WebSearchService {
       final snippetMatch = RegExp(r'<span[^>]*>(.*?)</span>', dotAll: true)
           .firstMatch(snippetRegion);
       final snippet = snippetMatch != null
-          ? _stripHtml(snippetMatch.group(1) ?? '')
+          ? stripHtml(snippetMatch.group(1) ?? '')
           : '';
 
       if (snippet.length > 10) {
@@ -213,11 +215,12 @@ class WebSearchService {
     }
 
     final html = utf8.decode(response.bodyBytes);
-    return _parseBingResults(html, maxResults);
+    return parseBingResults(html, maxResults);
   }
 
   /// 解析 Bing 搜索结果 HTML
-  static List<SearchResult> _parseBingResults(String html, int maxResults) {
+  @visibleForTesting
+  static List<SearchResult> parseBingResults(String html, int maxResults) {
     final results = <SearchResult>[];
 
     final blockPattern = RegExp(
@@ -238,7 +241,7 @@ class WebSearchService {
       if (linkMatch == null) continue;
 
       final url = linkMatch.group(1) ?? '';
-      final title = _stripHtml(linkMatch.group(2) ?? '');
+      final title = stripHtml(linkMatch.group(2) ?? '');
 
       // 提取摘要
       final snippetMatch = RegExp(
@@ -246,7 +249,7 @@ class WebSearchService {
         dotAll: true,
       ).firstMatch(block);
       final snippet = snippetMatch != null
-          ? _stripHtml(snippetMatch.group(1) ?? '')
+          ? stripHtml(snippetMatch.group(1) ?? '')
           : '';
 
       if (title.isNotEmpty && snippet.length > 10) {
@@ -260,7 +263,8 @@ class WebSearchService {
   // ── 工具方法 ────────────────────────────────────────────────
 
   /// 移除 HTML 标签
-  static String _stripHtml(String html) {
+  @visibleForTesting
+  static String stripHtml(String html) {
     return html
         .replaceAll(RegExp(r'<[^>]+>'), '')
         .replaceAll('&amp;', '&')
