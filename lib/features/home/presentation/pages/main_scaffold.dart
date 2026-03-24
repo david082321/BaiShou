@@ -30,7 +30,7 @@ class _MainScaffoldState extends ConsumerState<MainScaffold>
   void _goBranch(int index) {
     widget.navigationShell.goBranch(
       index,
-      initialLocation: index == widget.navigationShell.currentIndex,
+      initialLocation: false,
     );
   }
 
@@ -44,16 +44,20 @@ class _MainScaffoldState extends ConsumerState<MainScaffold>
     return _kBranchToMobileNav[widget.navigationShell.currentIndex] ?? 0;
   }
 
-  /// 读取侧边栏排序首位 branchIndex（移动端回退用）
-  Future<int> _getDefaultBranch() async {
+  /// 缓存的默认 branch 索引（同步读取，避免异步延时导致 pop 先完成）
+  int _defaultBranch = 0;
+
+  void _computeDefaultBranch() {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final saved = prefs.getStringList('desktop_sidebar_nav_order');
-      if (saved != null && saved.isNotEmpty) {
-        return int.tryParse(saved.first) ?? 0;
-      }
+      final prefs = SharedPreferences.getInstance();
+      // ignore: discarded_futures
+      prefs.then((p) {
+        final saved = p.getStringList('desktop_sidebar_nav_order');
+        if (saved != null && saved.isNotEmpty) {
+          _defaultBranch = int.tryParse(saved.first) ?? 0;
+        }
+      });
     } catch (_) {}
-    return 0;
   }
 
   DateTime? _lastBackPress;
@@ -61,6 +65,7 @@ class _MainScaffoldState extends ConsumerState<MainScaffold>
   @override
   void initState() {
     super.initState();
+    _computeDefaultBranch();
     _overlayController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 300),
@@ -178,10 +183,7 @@ class _MainScaffoldState extends ConsumerState<MainScaffold>
         if (didPop) return;
 
         if (currentIndex != 0) {
-          Future.microtask(() async {
-            final defaultBranch = await _getDefaultBranch();
-            _goBranch(defaultBranch);
-          });
+          _goBranch(_defaultBranch);
           return;
         }
 

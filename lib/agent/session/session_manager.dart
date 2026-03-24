@@ -487,6 +487,21 @@ class SessionManager {
         .write(AgentMessagesCompanion(costMicros: Value(costMicros)));
   }
 
+  /// 获取会话最后一条 assistant 消息的 inputTokens（用于恢复上下文大小显示）
+  Future<int> getLastInputTokens(String sessionId) async {
+    final row = await (_db.select(_db.agentMessages)
+          ..where(
+            (t) =>
+                t.sessionId.equals(sessionId) &
+                t.role.equals('assistant') &
+                t.inputTokens.isNotNull(),
+          )
+          ..orderBy([(t) => OrderingTerm.desc(t.orderIndex)])
+          ..limit(1))
+        .getSingleOrNull();
+    return row?.inputTokens ?? 0;
+  }
+
   // ─── FTS5 全文搜索 ──────────────────────────────────────────
 
   /// 同步消息文本到 FTS5 索引

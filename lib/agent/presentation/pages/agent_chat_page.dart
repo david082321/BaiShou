@@ -14,6 +14,7 @@ import 'package:baishou/agent/presentation/widgets/chat_cost_dialog.dart';
 import 'package:baishou/agent/presentation/widgets/chat_input_bar.dart';
 import 'package:baishou/agent/presentation/widgets/chat_message_bubble.dart';
 import 'package:baishou/agent/presentation/widgets/streaming_bubble.dart';
+import 'package:baishou/features/settings/presentation/widgets/provider_icon.dart';
 import 'package:baishou/i18n/strings.g.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -524,6 +525,7 @@ class _AgentChatPageState extends ConsumerState<AgentChatPage> {
                           : provider.models;
 
                       return ExpansionTile(
+                        leading: getProviderIcon(provider.type, size: 22),
                         title: Text(provider.name),
                         initiallyExpanded: provider.id == (currentProviderId ?? apiConfig.globalDialogueProviderId),
                         children: modelList.map((modelId) {

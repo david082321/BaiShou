@@ -228,6 +228,7 @@ class _AgentMainPageState extends ConsumerState<AgentMainPage> {
     if (!isDesktop) {
       return Scaffold(
         body: const AgentChatPage(),
+        drawerEdgeDragWidth: 40,
         drawer: Drawer(child: _buildSidebar(theme)),
       );
     }

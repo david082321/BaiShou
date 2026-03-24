@@ -76,6 +76,7 @@ class AgentChatNotifier extends _$AgentChatNotifier {
       descending: true,
     );
     final session = await manager.getSession(sessionId);
+    final lastInput = await manager.getLastInputTokens(sessionId);
     state = state.copyWith(
       sessionId: sessionId,
       messages: messages,
@@ -87,6 +88,7 @@ class AgentChatNotifier extends _$AgentChatNotifier {
       totalCostMicros: session?.totalCostMicros ?? 0,
       totalInputTokens: session?.totalInputTokens ?? 0,
       totalOutputTokens: session?.totalOutputTokens ?? 0,
+      lastInputTokens: lastInput,
       currentAssistantId: () => session?.assistantId,
       currentProviderId: () => session?.providerId,
       currentModelId: () => session?.modelId,
