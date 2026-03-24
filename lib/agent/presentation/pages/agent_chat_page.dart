@@ -13,8 +13,8 @@ import 'package:baishou/agent/presentation/widgets/assistant_picker_sheet.dart';
 import 'package:baishou/agent/presentation/widgets/chat_cost_dialog.dart';
 import 'package:baishou/agent/presentation/widgets/chat_input_bar.dart';
 import 'package:baishou/agent/presentation/widgets/chat_message_bubble.dart';
+import 'package:baishou/agent/presentation/widgets/model_switcher_popup.dart';
 import 'package:baishou/agent/presentation/widgets/streaming_bubble.dart';
-import 'package:baishou/features/settings/presentation/widgets/provider_icon.dart';
 import 'package:baishou/i18n/strings.g.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -488,86 +488,35 @@ class _AgentChatPageState extends ConsumerState<AgentChatPage> {
     BuildContext context,
     WidgetRef ref,
     AgentChatState chatState,
-  ) {
+  ) async {
     final apiConfig = ref.read(apiConfigServiceProvider);
     final providers = apiConfig.getProviders().where((p) => p.isEnabled).toList();
-    final currentProviderId = chatState.currentProviderId;
+    final currentProviderId = chatState.currentProviderId
+        ?? apiConfig.globalDialogueProviderId;
     final currentModelId = chatState.currentModelId
         ?? apiConfig.globalDialogueModelId;
 
-    showModalBottomSheet(
+    final result = await showModelSwitcherPopup(
       context: context,
-      isScrollControlled: true,
-      builder: (ctx) {
-        return DraggableScrollableSheet(
-          initialChildSize: 0.55,
-          minChildSize: 0.3,
-          maxChildSize: 0.85,
-          expand: false,
-          builder: (ctx, controller) {
-            return Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Text(
-                    t.agent.assistant.select_model_title,
-                    style: Theme.of(context).textTheme.titleLarge,
-                  ),
-                ),
-                Expanded(
-                  child: ListView.builder(
-                    controller: controller,
-                    itemCount: providers.length,
-                    itemBuilder: (ctx, i) {
-                      final provider = providers[i];
-                      final modelList = provider.enabledModels.isNotEmpty
-                          ? provider.enabledModels
-                          : provider.models;
-
-                      return ExpansionTile(
-                        leading: getProviderIcon(provider.type, size: 22),
-                        title: Text(provider.name),
-                        initiallyExpanded: provider.id == (currentProviderId ?? apiConfig.globalDialogueProviderId),
-                        children: modelList.map((modelId) {
-                          final isSelected =
-                              provider.id == (currentProviderId ?? apiConfig.globalDialogueProviderId) &&
-                              modelId == currentModelId;
-                          return ListTile(
-                            title: Text(modelId),
-                            trailing: isSelected
-                                ? Icon(
-                                    Icons.check_circle,
-                                    color: Theme.of(context).colorScheme.primary,
-                                  )
-                                : null,
-                            onTap: () async {
-                              // 更新 notifier 中的当前模型
-                              ref.read(agentChatProvider.notifier).setCurrentModel(
-                                providerId: provider.id,
-                                modelId: modelId,
-                              );
-                              // 持久化到会话记录
-                              if (chatState.sessionId != null) {
-                                await ref.read(sessionManagerProvider).updateSessionModel(
-                                  chatState.sessionId!,
-                                  provider.id,
-                                  modelId,
-                                );
-                              }
-                              if (ctx.mounted) Navigator.pop(ctx);
-                            },
-                          );
-                        }).toList(),
-                      );
-                    },
-                  ),
-                ),
-              ],
-            );
-          },
-        );
-      },
+      providers: providers,
+      currentProviderId: currentProviderId,
+      currentModelId: currentModelId,
     );
+
+    if (result != null) {
+      final (providerId, modelId) = result;
+      ref.read(agentChatProvider.notifier).setCurrentModel(
+        providerId: providerId,
+        modelId: modelId,
+      );
+      if (chatState.sessionId != null) {
+        await ref.read(sessionManagerProvider).updateSessionModel(
+          chatState.sessionId!,
+          providerId,
+          modelId,
+        );
+      }
+    }
   }
 
   Widget _buildEmptyState(ThemeData theme) {

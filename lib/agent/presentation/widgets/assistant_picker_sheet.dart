@@ -367,7 +367,9 @@ class _DesktopPickerState extends ConsumerState<_DesktopPicker>
 
         // ── 右侧：详情面板 ──
         Expanded(
-          child: _selectedAssistant == null
+          child: Container(
+            color: colorScheme.surface,
+            child: _selectedAssistant == null
               ? Center(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -395,6 +397,7 @@ class _DesktopPickerState extends ConsumerState<_DesktopPicker>
                   onSelect: () => widget.onSelect(_selectedAssistant),
                   onAssistantUpdated: _onAssistantUpdated,
                 ),
+          ),
         ),
       ],
     );

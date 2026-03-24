@@ -38,6 +38,9 @@ class _AgentMainPageState extends ConsumerState<AgentMainPage> {
   bool _isMultiSelect = false;
   final Set<String> _selectedIds = {};
 
+  // 侧边栏收缩状态（桌面端）
+  bool _isSidebarCollapsed = false;
+
   @override
   void initState() {
     super.initState();
@@ -228,7 +231,7 @@ class _AgentMainPageState extends ConsumerState<AgentMainPage> {
     if (!isDesktop) {
       return Scaffold(
         body: const AgentChatPage(),
-        drawerEdgeDragWidth: 40,
+        drawerEdgeDragWidth: 60,
         drawer: Drawer(child: _buildSidebar(theme)),
       );
     }
@@ -237,7 +240,45 @@ class _AgentMainPageState extends ConsumerState<AgentMainPage> {
       backgroundColor: theme.colorScheme.surface,
       body: Row(
         children: [
-          _buildSidebar(theme),
+          // ─── 可收缩侧边栏 ───
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeInOut,
+            width: _isSidebarCollapsed ? 0 : 280,
+            clipBehavior: Clip.hardEdge,
+            decoration: const BoxDecoration(),
+            child: _isSidebarCollapsed
+                ? const SizedBox.shrink()
+                : _buildSidebar(theme),
+          ),
+          // ─── 收缩/展开分隔条 ───
+          MouseRegion(
+            cursor: SystemMouseCursors.click,
+            child: GestureDetector(
+              onTap: () => setState(() => _isSidebarCollapsed = !_isSidebarCollapsed),
+              child: Container(
+                width: 16,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surface,
+                  border: Border(
+                    right: BorderSide(
+                      color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
+                      width: 1,
+                    ),
+                  ),
+                ),
+                child: Center(
+                  child: Icon(
+                    _isSidebarCollapsed
+                        ? Icons.chevron_right_rounded
+                        : Icons.chevron_left_rounded,
+                    size: 16,
+                    color: theme.colorScheme.outline.withValues(alpha: 0.6),
+                  ),
+                ),
+              ),
+            ),
+          ),
           Expanded(
             child: Container(
               decoration: BoxDecoration(
