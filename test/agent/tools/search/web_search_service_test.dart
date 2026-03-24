@@ -63,15 +63,87 @@ void main() {
   // 搜索引擎枚举
   // ════════════════════════════════════════════════════════════
   group('SearchEngine 枚举', () {
-    test('包含 bing 和 google 两个选项', () {
-      expect(SearchEngine.values.length, 2);
+    test('包含 bing、google 和 tavily 三个选项', () {
+      expect(SearchEngine.values.length, 3);
       expect(SearchEngine.values, contains(SearchEngine.bing));
       expect(SearchEngine.values, contains(SearchEngine.google));
+      expect(SearchEngine.values, contains(SearchEngine.tavily));
     });
 
     test('name 应返回正确字符串', () {
       expect(SearchEngine.bing.name, 'bing');
       expect(SearchEngine.google.name, 'google');
+      expect(SearchEngine.tavily.name, 'tavily');
+    });
+  });
+
+  // ════════════════════════════════════════════════════════════
+  // Tavily JSON 解析
+  // ════════════════════════════════════════════════════════════
+  group('Tavily JSON 解析', () {
+    test('正确解析 Tavily API 响应', () {
+      final json = {
+        'results': [
+          {
+            'title': 'Flutter 官网',
+            'url': 'https://flutter.dev',
+            'content': 'Build apps for any screen',
+            'score': 0.98,
+          },
+          {
+            'title': 'Dart 语言',
+            'url': 'https://dart.dev',
+            'content': 'Client-optimized language',
+            'score': 0.95,
+          },
+        ],
+      };
+
+      final results = WebSearchService.parseTavilyResults(json, 10);
+      expect(results.length, 2);
+      expect(results[0].title, 'Flutter 官网');
+      expect(results[0].url, 'https://flutter.dev');
+      expect(results[0].snippet, 'Build apps for any screen');
+      expect(results[1].title, 'Dart 语言');
+    });
+
+    test('空结果应返回空列表', () {
+      final json = {'results': []};
+      final results = WebSearchService.parseTavilyResults(json, 10);
+      expect(results, isEmpty);
+    });
+
+    test('缺少 results 字段应返回空列表', () {
+      final json = <String, dynamic>{};
+      final results = WebSearchService.parseTavilyResults(json, 10);
+      expect(results, isEmpty);
+    });
+
+    test('应按 maxResults 限制结果数量', () {
+      final json = {
+        'results': List.generate(20, (i) => {
+          'title': 'Result $i',
+          'url': 'https://example.com/$i',
+          'content': 'Content $i',
+        }),
+      };
+
+      final results = WebSearchService.parseTavilyResults(json, 5);
+      expect(results.length, 5);
+    });
+
+    test('过滤缺少 title 或 url 的结果', () {
+      final json = {
+        'results': [
+          {'title': '', 'url': 'https://a.com', 'content': 'no title'},
+          {'title': 'Has Title', 'url': '', 'content': 'no url'},
+          {'title': 'Good', 'url': 'https://good.com', 'content': 'ok'},
+        ],
+      };
+
+      final results = WebSearchService.parseTavilyResults(json, 10);
+      expect(results.length, 1);
+      expect(results[0].title, 'Good');
     });
   });
 

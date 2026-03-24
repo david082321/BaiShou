@@ -10,6 +10,7 @@
 import 'dart:async';
 import 'package:baishou/i18n/strings.g.dart';
 import 'package:baishou/agent/clients/ai_client.dart';
+import 'package:baishou/agent/models/ai_provider_model.dart';
 import 'package:baishou/agent/models/chat_message.dart';
 import 'package:baishou/agent/models/message_attachment.dart';
 import 'package:baishou/agent/runner/agent_runner.dart';
@@ -422,7 +423,11 @@ class AgentChatNotifier extends _$AgentChatNotifier {
     final runner = AgentRunner(
       client: client,
       tools: tools,
-      config: AgentConfig(modelId: modelId, systemPrompt: systemPrompt),
+      config: AgentConfig(
+        modelId: modelId,
+        systemPrompt: systemPrompt,
+        enableWebSearch: provider.webSearchMode == WebSearchMode.builtin,
+      ),
     );
 
     // 滑动窗口上下文

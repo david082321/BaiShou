@@ -13,12 +13,14 @@ class AgentConfig {
   final String systemPrompt;
   final int maxSteps;
   final double? temperature;
+  final bool enableWebSearch;
 
   const AgentConfig({
     required this.modelId,
     required this.systemPrompt,
     this.maxSteps = 10,
     this.temperature,
+    this.enableWebSearch = false,
   });
 }
 
@@ -108,6 +110,7 @@ class AgentRunner {
         modelId: config.modelId,
         tools: tools.toDefinitions(),
         temperature: config.temperature,
+        enableWebSearch: config.enableWebSearch,
       )) {
         switch (event) {
           case TextDelta(:final text):

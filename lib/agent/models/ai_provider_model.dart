@@ -2,6 +2,24 @@ import 'dart:convert';
 
 enum ProviderType { openai, anthropic, gemini, deepseek, kimi, custom }
 
+/// 网络搜索模式
+enum WebSearchMode {
+  /// 关闭搜索
+  off,
+  /// 使用 Provider 内置搜索（OpenAI/Anthropic/Gemini 原生支持）
+  builtin,
+  /// 使用 Tavily API 搜索（通用，所有模型可用）
+  tavily,
+}
+
+/// 根据 ProviderType 返回默认的搜索模式
+WebSearchMode defaultWebSearchMode(ProviderType type) => switch (type) {
+  ProviderType.openai     => WebSearchMode.builtin,
+  ProviderType.anthropic  => WebSearchMode.builtin,
+  ProviderType.gemini     => WebSearchMode.builtin,
+  _                       => WebSearchMode.tavily,
+};
+
 class AiProviderModel {
   final String id;
   final String name;
@@ -16,6 +34,7 @@ class AiProviderModel {
   final String? notes;
   final bool isSystem;
   final int sortOrder;
+  final WebSearchMode webSearchMode;
 
   AiProviderModel({
     required this.id,
@@ -31,7 +50,9 @@ class AiProviderModel {
     this.notes,
     this.isSystem = true,
     this.sortOrder = 0,
-  });
+    WebSearchMode? webSearchMode,
+  }) : webSearchMode = webSearchMode ?? defaultWebSearchMode(type);
+
 
   AiProviderModel copyWith({
     String? id,
@@ -47,6 +68,7 @@ class AiProviderModel {
     String? notes,
     bool? isSystem,
     int? sortOrder,
+    WebSearchMode? webSearchMode,
   }) {
     return AiProviderModel(
       id: id ?? this.id,
@@ -62,6 +84,7 @@ class AiProviderModel {
       notes: notes ?? this.notes,
       isSystem: isSystem ?? this.isSystem,
       sortOrder: sortOrder ?? this.sortOrder,
+      webSearchMode: webSearchMode ?? this.webSearchMode,
     );
   }
 
@@ -80,6 +103,7 @@ class AiProviderModel {
       'notes': notes,
       'isSystem': isSystem,
       'sortOrder': sortOrder,
+      'webSearchMode': webSearchMode.name,
     };
   }
 
@@ -103,6 +127,12 @@ class AiProviderModel {
       notes: map['notes'],
       isSystem: map['isSystem'] ?? true,
       sortOrder: map['sortOrder'] ?? 0,
+      webSearchMode: map['webSearchMode'] != null
+          ? WebSearchMode.values.firstWhere(
+              (e) => e.name == map['webSearchMode'],
+              orElse: () => WebSearchMode.off,
+            )
+          : null,
     );
   }
 

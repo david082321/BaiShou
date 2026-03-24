@@ -161,6 +161,7 @@ class OpenAiClient extends BaseAiClient {
     required String modelId,
     List<ToolDefinition>? tools,
     double? temperature,
+    bool enableWebSearch = false,
   }) async* {
     final uri = Uri.parse('$baseUrl/chat/completions');
 
@@ -183,6 +184,14 @@ class OpenAiClient extends BaseAiClient {
               })
           .toList();
     }
+
+    // 注入 OpenAI 内置搜索工具
+    if (enableWebSearch) {
+      final toolsList = (body['tools'] as List?) ?? [];
+      toolsList.add({'type': 'web_search_preview'});
+      body['tools'] = toolsList;
+    }
+
     if (temperature != null) {
       body['temperature'] = temperature;
     }
