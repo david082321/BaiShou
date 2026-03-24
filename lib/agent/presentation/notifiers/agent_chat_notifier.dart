@@ -29,6 +29,8 @@ import 'package:baishou/agent/presentation/notifiers/chat_side_effects.dart';
 import 'package:baishou/core/services/api_config_service.dart';
 import 'package:baishou/core/storage/storage_path_provider.dart';
 import 'package:baishou/core/storage/vault_service.dart';
+import 'package:baishou/features/diary/data/vault_index_notifier.dart';
+import 'package:baishou/features/index/data/shadow_index_sync_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -515,7 +517,7 @@ class AgentChatNotifier extends _$AgentChatNotifier {
             );
             break;
 
-          case AgentToolComplete(:final toolCall, :final durationMs):
+          case AgentToolComplete(:final toolCall, :final result, :final durationMs):
             _updateSessionCache(
               sessionId,
               currentState.copyWith(
@@ -526,6 +528,11 @@ class AgentChatNotifier extends _$AgentChatNotifier {
                 ],
               ),
             );
+
+            // 日记写入成功后，异步刷新索引使日记页面即时可见
+            if (toolCall.name == 'diary_write' && result.success) {
+              _refreshDiaryIndexAfterWrite(toolCall.arguments);
+            }
             break;
 
           case AgentComplete(:final text, :final messages, :final usage):
@@ -663,6 +670,32 @@ class AgentChatNotifier extends _$AgentChatNotifier {
         ),
       );
     }
+  }
+
+  /// 日记写入后刷新索引（异步，不阻塞 Agent 循环）
+  void _refreshDiaryIndexAfterWrite(Map<String, dynamic> arguments) {
+    () async {
+      try {
+        final rawDate = arguments['date'] as String?;
+        final now = DateTime.now();
+        final dateStr = (rawDate != null && rawDate.isNotEmpty)
+            ? rawDate
+            : '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+        final date = DateTime.parse(dateStr);
+
+        final syncService = ref.read(shadowIndexSyncServiceProvider.notifier);
+        final result = await syncService.syncJournal(date);
+
+        if (result.isChanged && result.meta != null) {
+          ref.read(vaultIndexProvider.notifier).upsert(result.meta!);
+          debugPrint(
+            'AgentChatNotifier: Diary index refreshed for $dateStr',
+          );
+        }
+      } catch (e) {
+        debugPrint('AgentChatNotifier: Failed to refresh diary index: $e');
+      }
+    }();
   }
 
   // ========================================================================
