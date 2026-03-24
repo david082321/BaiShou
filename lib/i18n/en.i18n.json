@@ -643,7 +643,9 @@
       "param_max_length": "Content Length Limit",
       "param_max_length_desc": "Maximum characters returned when reading a web page",
       "param_rag_enabled": "RAG Compression",
-      "param_rag_enabled_desc": "Filter search results by semantic relevance using vector search (requires embedding model)"
+      "param_rag_enabled_desc": "Filter search results by semantic relevance using vector search (requires embedding model)",
+      "param_tavily_api_key": "Tavily API Key",
+      "param_tavily_api_key_desc": "Tavily search API key (get free at https://app.tavily.com)"
     },
     "chat": {
       "companion_mode": "Deep Companion",

@@ -64,8 +64,8 @@ class WebSearchTool extends AgentTool {
         ),
         ToolConfigParam(
           key: 'tavily_api_key',
-          label: 'Tavily API Key',
-          description: 'Tavily 搜索 API 密钥（https://app.tavily.com 免费获取）',
+          label: t.agent.tools.param_tavily_api_key,
+          description: t.agent.tools.param_tavily_api_key_desc,
           type: ParamType.string,
           defaultValue: '',
           icon: Icons.key,
