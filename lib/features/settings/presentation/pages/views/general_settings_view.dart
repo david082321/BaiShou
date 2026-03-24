@@ -1,6 +1,8 @@
 import 'dart:io';
 
 import 'package:baishou/core/storage/storage_path_provider.dart';
+import 'package:baishou/core/services/global_hotkey_service.dart';
+import 'package:baishou/core/providers/shared_preferences_provider.dart';
 import 'package:baishou/features/settings/domain/services/user_profile_service.dart';
 import 'package:baishou/features/settings/presentation/pages/views/appearance_settings_card.dart';
 import 'package:baishou/features/settings/presentation/pages/about_page.dart';
@@ -36,11 +38,15 @@ class GeneralSettingsView extends ConsumerStatefulWidget {
 class _GeneralSettingsViewState extends ConsumerState<GeneralSettingsView> {
   @override
   Widget build(BuildContext context) {
+    final bool isDesktop =
+        Platform.isWindows || Platform.isLinux || Platform.isMacOS;
+
     return ListView(
       padding: const EdgeInsets.all(32),
       children: [
         _buildProfileSection(),
         const AppearanceSettingsCard(),
+        if (isDesktop) _buildHotkeySection(),
         _buildStorageSection(),
         _buildDataManagementSection(),
         _buildAboutSection(),
@@ -187,6 +193,43 @@ class _GeneralSettingsViewState extends ConsumerState<GeneralSettingsView> {
     if (newNickname != null && newNickname.isNotEmpty) {
       ref.read(userProfileProvider.notifier).updateNickname(newNickname);
     }
+  }
+
+  Widget _buildHotkeySection() {
+    final hotkeyService = ref.read(globalHotkeyServiceProvider);
+    final prefs = ref.read(sharedPreferencesProvider);
+
+    return Card(
+      elevation: 0,
+      margin: const EdgeInsets.only(bottom: 16),
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
+      ),
+      child: Column(
+        children: [
+          SwitchListTile(
+            secondary: const Icon(Icons.keyboard_rounded),
+            title: const Text('全局快捷键'),
+            subtitle: Text(
+              hotkeyService.isEnabled
+                  ? '当前: ${hotkeyService.getHotkeyDisplayString()}'
+                  : '快速显示/隐藏窗口（默认 Alt+S）',
+            ),
+            value: hotkeyService.isEnabled,
+            onChanged: (v) async {
+              if (v) {
+                await hotkeyService.enable(prefs);
+              } else {
+                await hotkeyService.disable(prefs);
+              }
+              setState(() {});
+            },
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildStorageSection() {
