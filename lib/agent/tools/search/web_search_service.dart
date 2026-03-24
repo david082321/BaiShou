@@ -36,7 +36,7 @@ class SearchResult {
 }
 
 /// 支持的搜索引擎
-enum SearchEngine { bing, google }
+enum SearchEngine { bing, google, tavily }
 
 /// Web 搜索服务
 class WebSearchService {
@@ -71,12 +71,15 @@ class WebSearchService {
     required String query,
     required SearchEngine engine,
     int maxResults = _defaultMaxResults,
+    String? apiKey,
   }) async {
     switch (engine) {
       case SearchEngine.google:
         return _searchGoogle(query, maxResults);
       case SearchEngine.bing:
         return _searchBing(query, maxResults);
+      case SearchEngine.tavily:
+        return _searchTavily(query, maxResults, apiKey ?? '');
     }
   }
 
@@ -90,6 +93,7 @@ class WebSearchService {
     required SearchEngine engine,
     int maxResultsPerQuery = 5,
     int totalMaxResults = 10,
+    String? apiKey,
   }) async {
     if (queries.isEmpty) return [];
 
@@ -99,6 +103,7 @@ class WebSearchService {
         query: queries.first,
         engine: engine,
         maxResults: totalMaxResults,
+        apiKey: apiKey,
       );
     }
 
@@ -106,7 +111,7 @@ class WebSearchService {
 
     // 并行执行所有查询
     final futures = queries.map(
-      (q) => search(query: q, engine: engine, maxResults: maxResultsPerQuery),
+      (q) => search(query: q, engine: engine, maxResults: maxResultsPerQuery, apiKey: apiKey),
     );
     final allResults = await Future.wait(futures);
 
@@ -130,6 +135,64 @@ class WebSearchService {
       return merged.sublist(0, totalMaxResults);
     }
     return merged;
+  }
+
+  // ── Tavily API 搜索 ───────────────────────────────────────
+
+  /// Tavily 搜索 — 通过 REST API 获取结构化 JSON 结果
+  static Future<List<SearchResult>> _searchTavily(
+    String query,
+    int maxResults,
+    String apiKey,
+  ) async {
+    if (apiKey.isEmpty) {
+      throw Exception('Tavily API key is required');
+    }
+
+    final uri = Uri.parse('https://api.tavily.com/search');
+
+    final response = await http.post(
+      uri,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({
+        'api_key': apiKey,
+        'query': query,
+        'max_results': maxResults,
+        'search_depth': 'basic',
+        'include_answer': false,
+      }),
+    ).timeout(_timeout);
+
+    if (response.statusCode != 200) {
+      throw Exception('Tavily search failed: ${response.statusCode} ${response.body}');
+    }
+
+    final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+    return parseTavilyResults(data, maxResults);
+  }
+
+  /// 解析 Tavily API JSON 响应
+  @visibleForTesting
+  static List<SearchResult> parseTavilyResults(Map<String, dynamic> json, int maxResults) {
+    final results = <SearchResult>[];
+    final rawResults = json['results'] as List? ?? [];
+
+    for (final item in rawResults) {
+      if (results.length >= maxResults) break;
+
+      final map = item as Map<String, dynamic>;
+      final title = (map['title'] as String?) ?? '';
+      final url = (map['url'] as String?) ?? '';
+      final content = (map['content'] as String?) ?? '';
+
+      if (title.isNotEmpty && url.isNotEmpty) {
+        results.add(SearchResult(title: title, url: url, snippet: content));
+      }
+    }
+
+    return results;
   }
 
 

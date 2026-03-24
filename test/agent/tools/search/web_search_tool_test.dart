@@ -3,7 +3,7 @@
 /// 测试覆盖范围：
 /// 1. 基础属性（ID、分类、参数 schema）
 /// 2. 参数兼容性（queries 数组 + 旧 query 兼容）
-/// 3. 引擎配置（默认引擎 = bing）
+/// 3. 引擎配置（默认引擎 = tavily）
 /// 4. 结果格式化
 /// 5. ToolDefinition 转换
 
@@ -43,12 +43,19 @@ void main() {
       expect(queriesDef['maxItems'], 3);
     });
 
-    test('默认引擎应该是 bing', () {
+    test('默认引擎应该是 tavily', () {
       final params = tool.configurableParams;
       final engineParam = params.firstWhere((p) => p.key == 'engine');
-      expect(engineParam.defaultValue, 'bing');
+      expect(engineParam.defaultValue, 'tavily');
+      expect((engineParam.options as List), contains('tavily'));
       expect((engineParam.options as List), contains('bing'));
       expect((engineParam.options as List), contains('google'));
+    });
+
+    test('应该有 tavily_api_key 配置参数', () {
+      final params = tool.configurableParams;
+      final apiKeyParam = params.firstWhere((p) => p.key == 'tavily_api_key');
+      expect(apiKeyParam.defaultValue, '');
     });
 
     test('应该有 max_results 配置参数', () {

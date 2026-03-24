@@ -40,8 +40,8 @@ class WebSearchTool extends AgentTool {
           label: t.agent.tools.param_search_engine,
           description: t.agent.tools.param_search_engine_desc,
           type: ParamType.select,
-          defaultValue: 'bing',
-          options: ['bing', 'google'],
+          defaultValue: 'tavily',
+          options: ['tavily', 'bing', 'google'],
           icon: Icons.search,
         ),
         ToolConfigParam(
@@ -61,6 +61,14 @@ class WebSearchTool extends AgentTool {
           type: ParamType.boolean,
           defaultValue: false,
           icon: Icons.auto_awesome,
+        ),
+        ToolConfigParam(
+          key: 'tavily_api_key',
+          label: 'Tavily API Key',
+          description: 'Tavily 搜索 API 密钥（https://app.tavily.com 免费获取）',
+          type: ParamType.string,
+          defaultValue: '',
+          icon: Icons.key,
         ),
       ];
 
@@ -116,10 +124,11 @@ class WebSearchTool extends AgentTool {
       return ToolResult.error('At least one search query is required.');
     }
 
-    final engineStr = context.userConfig['engine'] as String? ?? 'bing';
+    final engineStr = context.userConfig['engine'] as String? ?? 'tavily';
     final maxResults =
         (context.userConfig['max_results'] as num?)?.toInt() ?? 5;
     final ragEnabled = context.userConfig['rag_enabled'] as bool? ?? false;
+    final tavilyApiKey = context.userConfig['tavily_api_key'] as String? ?? '';
 
     final engine = _parseEngine(engineStr);
 
@@ -135,6 +144,7 @@ class WebSearchTool extends AgentTool {
           engine: engine,
           maxResultsPerQuery: maxResults,
           totalMaxResults: maxResults * 2,
+          apiKey: tavilyApiKey,
         );
         debugPrint('WebSearch: primary engine $engineStr returned ${results.length} results');
       } catch (primaryError) {
@@ -152,6 +162,7 @@ class WebSearchTool extends AgentTool {
               engine: fallback,
               maxResultsPerQuery: maxResults,
               totalMaxResults: maxResults * 2,
+              apiKey: tavilyApiKey,
             );
             actualEngine = fallback.name;
             debugPrint('WebSearch: fallback ${fallback.name} returned ${results.length} results');
@@ -209,8 +220,10 @@ class WebSearchTool extends AgentTool {
         return SearchEngine.google;
       case 'bing':
         return SearchEngine.bing;
+      case 'tavily':
+        return SearchEngine.tavily;
       default:
-        return SearchEngine.bing;
+        return SearchEngine.tavily;
     }
   }
 

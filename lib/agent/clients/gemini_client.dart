@@ -183,6 +183,7 @@ class GeminiClient extends BaseAiClient {
     required String modelId,
     List<ToolDefinition>? tools,
     double? temperature,
+    bool enableWebSearch = false,
   }) async* {
     final uri = Uri.parse(
       '$baseUrl/models/$modelId:streamGenerateContent?alt=sse&key=${provider.apiKey}',
@@ -216,6 +217,13 @@ class GeminiClient extends BaseAiClient {
               .toList(),
         },
       ];
+    }
+
+    // 注入 Gemini Google Search grounding 工具
+    if (enableWebSearch) {
+      final toolsList = (body['tools'] as List?) ?? [];
+      toolsList.add({'google_search': {}});
+      body['tools'] = toolsList;
     }
 
     final config = <String, dynamic>{'maxOutputTokens': 8192};
