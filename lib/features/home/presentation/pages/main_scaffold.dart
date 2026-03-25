@@ -155,6 +155,9 @@ class _MainScaffoldState extends ConsumerState<MainScaffold>
 
   // ─── 移动端布局 ──────────────────────────────────────────────
 
+  /// 记录最后一次底边栏点击时间，用于过滤手势冲突
+  DateTime? _lastBottomBarTap;
+
   Widget _buildMobileLayout(BuildContext context) {
     final currentIndex = widget.navigationShell.currentIndex;
 
@@ -176,10 +179,17 @@ class _MainScaffoldState extends ConsumerState<MainScaffold>
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
 
-        // 防止手势误触反复跳转
+        // 如果刚刚点了底边栏（500ms 内），忽略此次 pop（手势误触）
+        if (_lastBottomBarTap != null &&
+            DateTime.now().difference(_lastBottomBarTap!) <
+                const Duration(milliseconds: 500)) {
+          return;
+        }
+
+        // 防止连续 pop
         if (_isNavigating) return;
         _isNavigating = true;
-        Future.delayed(const Duration(milliseconds: 300), () {
+        Future.delayed(const Duration(milliseconds: 500), () {
           _isNavigating = false;
         });
 
@@ -210,7 +220,10 @@ class _MainScaffoldState extends ConsumerState<MainScaffold>
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _getMobileNavIndex(),
-        onDestinationSelected: _goBranch,
+        onDestinationSelected: (index) {
+          _lastBottomBarTap = DateTime.now();
+          _goBranch(index);
+        },
         destinations: [
           NavigationDestination(
             icon: const Icon(Icons.timeline_outlined),
