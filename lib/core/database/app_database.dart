@@ -7,6 +7,7 @@ import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:path/path.dart' as p;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:baishou/core/storage/vault_service.dart';
 
 part 'app_database.g.dart';
 
@@ -34,9 +35,9 @@ class AppDatabase extends _$AppDatabase {
 
 /// 使用 NativeDatabase + LazyDatabase 打开数据库连接
 /// 替代原来的 drift_flutter driftDatabase()
-QueryExecutor _openConnection(StoragePathService pathService) {
+QueryExecutor _openConnection(StoragePathService pathService, String workspace) {
   return LazyDatabase(() async {
-    final sysDir = await pathService.getGlobalRegistryDirectory();
+    final sysDir = await pathService.getVaultSystemDirectory(workspace);
     final dbFile = File(p.join(sysDir.path, 'baishou.sqlite'));
     return NativeDatabase.createInBackground(dbFile);
   });
@@ -46,5 +47,14 @@ QueryExecutor _openConnection(StoragePathService pathService) {
 @Riverpod(keepAlive: true)
 AppDatabase appDatabase(Ref ref) {
   final pathService = ref.watch(storagePathServiceProvider);
-  return AppDatabase(_openConnection(pathService));
+  final vaultState = ref.watch(vaultServiceProvider);
+  
+  final vaultName = vaultState.value?.name ?? 'Personal';
+  final db = AppDatabase(_openConnection(pathService, vaultName));
+  
+  ref.onDispose(() {
+    db.close();
+  });
+  
+  return db;
 }

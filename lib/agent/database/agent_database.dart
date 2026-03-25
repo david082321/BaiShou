@@ -12,6 +12,7 @@ import 'package:path/path.dart' as p;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:sqlite3/sqlite3.dart' as sql;
 import 'package:sqlite_vector/sqlite_vector.dart';
+import 'package:baishou/core/storage/vault_service.dart';
 
 part 'agent_database.g.dart';
 
@@ -569,9 +570,9 @@ class AgentDatabase extends _$AgentDatabase {
 
 /// 打开 Agent 数据库连接
 /// 使用 NativeDatabase + LazyDatabase，注入 sqlite-vec 扩展
-QueryExecutor _openAgentConnection(StoragePathService pathService) {
+QueryExecutor _openAgentConnection(StoragePathService pathService, String workspace) {
   return LazyDatabase(() async {
-    final sysDir = await pathService.getGlobalRegistryDirectory();
+    final sysDir = await pathService.getVaultSystemDirectory(workspace);
     final dbFile = File(p.join(sysDir.path, 'agent.sqlite'));
     return NativeDatabase.createInBackground(
       dbFile,
@@ -588,5 +589,14 @@ QueryExecutor _openAgentConnection(StoragePathService pathService) {
 @Riverpod(keepAlive: true)
 AgentDatabase agentDatabase(Ref ref) {
   final pathService = ref.watch(storagePathServiceProvider);
-  return AgentDatabase(_openAgentConnection(pathService));
+  final vaultState = ref.watch(vaultServiceProvider);
+  
+  final vaultName = vaultState.value?.name ?? 'Personal';
+  final db = AgentDatabase(_openAgentConnection(pathService, vaultName));
+  
+  ref.onDispose(() {
+    db.close();
+  });
+  
+  return db;
 }
