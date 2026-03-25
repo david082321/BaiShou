@@ -77,11 +77,15 @@ class MemoryDeduplicationService {
   Future<DeduplicationResult> checkAndMerge({
     required String newMemoryContent,
     required String sessionId,
+    String sourceType = 'chat',
+    String? sourceId,
   }) async {
     try {
       return await _doCheckAndMerge(
         newMemoryContent: newMemoryContent,
         sessionId: sessionId,
+        sourceType: sourceType,
+        sourceId: sourceId,
       );
     } catch (e) {
       debugPrint('MemoryDedup: 去重流程异常，fallback 为直接存储: $e');
@@ -92,6 +96,8 @@ class MemoryDeduplicationService {
   Future<DeduplicationResult> _doCheckAndMerge({
     required String newMemoryContent,
     required String sessionId,
+    required String sourceType,
+    String? sourceId,
   }) async {
     // 1. 对新记忆做 embedding
     final queryVec = await _embeddingService.embedQuery(newMemoryContent);
@@ -154,6 +160,8 @@ class MemoryDeduplicationService {
         sessionId: sessionId,
         candidates: relevantMemories,
         highestSimilarity: best.similarity,
+        sourceType: sourceType,
+        sourceId: sourceId,
       );
     }
 
@@ -171,6 +179,8 @@ class MemoryDeduplicationService {
     required String sessionId,
     required List<_ScoredMemory> candidates,
     required double highestSimilarity,
+    required String sourceType,
+    String? sourceId,
   }) async {
     try {
       final llmResult = await _callLlmForMerge(newMemoryContent, candidates);
@@ -219,8 +229,8 @@ class MemoryDeduplicationService {
           // 存入合并后的新记忆（embedding_service 会重新 embedding）
           await _embeddingService.embedText(
             text: mergedContent,
-            sourceType: 'chat',
-            sourceId: 'mem_\${DateTime.now().millisecondsSinceEpoch}',
+            sourceType: sourceType,
+            sourceId: sourceId ?? 'mem_${DateTime.now().millisecondsSinceEpoch}',
             groupId: sessionId,
           );
 
