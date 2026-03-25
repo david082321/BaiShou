@@ -202,6 +202,7 @@ class _DesktopTitleBarState extends ConsumerState<DesktopTitleBar>
                   return _VaultSwitcher(
                     activeVaultName: activeVault?.name,
                     theme: theme,
+                    router: widget.router,
                   );
                 },
               ),
@@ -361,8 +362,9 @@ class _WindowButtonState extends State<_WindowButton> {
 class _VaultSwitcher extends ConsumerStatefulWidget {
   final String? activeVaultName;
   final ThemeData theme;
+  final GoRouter router;
 
-  const _VaultSwitcher({required this.activeVaultName, required this.theme});
+  const _VaultSwitcher({required this.activeVaultName, required this.theme, required this.router});
 
   @override
   ConsumerState<_VaultSwitcher> createState() => _VaultSwitcherState();
@@ -371,38 +373,57 @@ class _VaultSwitcher extends ConsumerStatefulWidget {
 class _VaultSwitcherState extends ConsumerState<_VaultSwitcher> {
   bool _isHovered = false;
 
+  void _showVaultMenu() {
+    final navContext = widget.router.routerDelegate.navigatorKey.currentContext;
+    if (navContext == null) return;
+    
+    final RenderBox button = context.findRenderObject() as RenderBox;
+    final RenderBox overlay = Navigator.of(navContext).overlay!.context.findRenderObject() as RenderBox;
+    
+    final RelativeRect position = RelativeRect.fromRect(
+      Rect.fromPoints(
+        button.localToGlobal(button.size.bottomLeft(Offset.zero), ancestor: overlay),
+        button.localToGlobal(button.size.bottomRight(Offset.zero), ancestor: overlay),
+      ),
+      Offset.zero & overlay.size,
+    );
+
+    final service = ref.read(vaultServiceProvider.notifier);
+    final vaults = service.getAllVaults();
+
+    showMenu<String>(
+      context: navContext,
+      position: position,
+      elevation: 4,
+      color: widget.theme.colorScheme.surfaceContainerHigh,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      items: vaults.map((v) => PopupMenuItem<String>(
+        value: v.name,
+        child: Row(
+          children: [
+            Icon(
+              v.name == widget.activeVaultName ? Icons.check : Icons.circle_outlined, 
+              size: 16, 
+              color: widget.theme.colorScheme.primary
+            ),
+            const SizedBox(width: 8),
+            Text(v.name),
+          ],
+        ),
+      )).toList(),
+    ).then((name) {
+      if (name != null && name != widget.activeVaultName) {
+        ref.read(vaultServiceProvider.notifier).switchVault(name);
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     if (widget.activeVaultName == null) return const SizedBox.shrink();
 
-    return PopupMenuButton<String>(
-      tooltip: t.common.switch_vault,
-      position: PopupMenuPosition.under,
-      color: widget.theme.colorScheme.surfaceContainerHigh,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      onSelected: (name) {
-        if (name != widget.activeVaultName) {
-           ref.read(vaultServiceProvider.notifier).switchVault(name);
-        }
-      },
-      itemBuilder: (context) {
-        final service = ref.read(vaultServiceProvider.notifier);
-        final vaults = service.getAllVaults();
-        return vaults.map((v) => PopupMenuItem<String>(
-           value: v.name,
-           child: Row(
-             children: [
-               Icon(
-                 v.name == widget.activeVaultName ? Icons.check : Icons.circle_outlined, 
-                 size: 16, 
-                 color: widget.theme.colorScheme.primary
-               ),
-               const SizedBox(width: 8),
-               Text(v.name),
-             ],
-           ),
-        )).toList();
-      },
+    return GestureDetector(
+      onTap: _showVaultMenu,
       child: MouseRegion(
         cursor: SystemMouseCursors.click,
         onEnter: (_) => setState(() => _isHovered = true),
