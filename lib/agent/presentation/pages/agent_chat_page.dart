@@ -13,9 +13,11 @@ import 'package:baishou/agent/presentation/widgets/assistant_picker_sheet.dart';
 import 'package:baishou/agent/presentation/widgets/chat_cost_dialog.dart';
 import 'package:baishou/agent/presentation/widgets/chat_input_bar.dart';
 import 'package:baishou/agent/presentation/widgets/chat_message_bubble.dart';
+import 'package:baishou/agent/presentation/widgets/recall_bottom_sheet.dart';
 import 'package:baishou/agent/presentation/widgets/streaming_bubble.dart';
 import 'package:baishou/features/settings/presentation/widgets/provider_icon.dart';
 import 'package:baishou/i18n/strings.g.dart';
+import 'package:baishou/core/widgets/app_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -401,6 +403,24 @@ class _AgentChatPageState extends ConsumerState<AgentChatPage> {
             assistantName: assistantName,
             onStop: () {
               ref.read(agentChatProvider.notifier).stopGeneration();
+            },
+            onRecall: () {
+              RecallBottomSheet.show(
+                context,
+                ref,
+                onConfirm: (contextText, months) {
+                  // 将回忆作为用户消息发送给 AI
+                  ref.read(agentChatProvider.notifier).sendMessage(
+                    text: contextText,
+                  );
+                  AppToast.showSuccess(
+                    context,
+                    t.settings.recall_injected(months: months.toString()),
+                  );
+                  setState(() => _isAtBottom = true);
+                  _scrollToBottom();
+                },
+              );
             },
             onAssistantTap: () async {
               final (didSelect, selected) = await AssistantPickerSheet.show(

@@ -1,8 +1,9 @@
 // 记忆存储工具
 //
 // Agent 工具：主动存储重要信息为长期记忆。
-// 参考 OpenClaw 的 memory_search/memory_get 模式。
+// 自动去重：存储前通过 MemoryDeduplicationService 检测并合并相似记忆。
 
+import 'package:baishou/agent/rag/memory_deduplication_service.dart';
 import 'package:baishou/agent/tools/agent_tool.dart';
 import 'package:baishou/agent/tools/tool_config_param.dart';
 import 'package:baishou/i18n/strings.g.dart';
@@ -73,6 +74,33 @@ class MemoryStoreTool extends AgentTool {
       // 如果有标签，附加到内容后面帮助检索
       final fullContent = tags.isNotEmpty ? '$content\n[标签: $tags]' : content;
 
+      // ── 去重检查 ──
+      final dedupService = context.deduplicationService;
+      if (dedupService != null) {
+        final result = await dedupService.checkAndMerge(
+          newMemoryContent: fullContent,
+          sessionId: context.sessionId,
+        );
+
+        switch (result.action) {
+          case DeduplicationAction.skipped:
+            return ToolResult(
+              output: '该记忆已存在（相似度 ${(result.highestSimilarity * 100).toStringAsFixed(1)}%），已跳过重复存储。',
+            );
+
+          case DeduplicationAction.merged:
+            return ToolResult(
+              output: '已与已有记忆合并更新（相似度 ${(result.highestSimilarity * 100).toStringAsFixed(1)}%）。\n'
+                  '合并后内容: ${result.mergedContent ?? fullContent}',
+            );
+
+          case DeduplicationAction.stored:
+            // 通过去重检查，继续正常存储
+            break;
+        }
+      }
+
+      // ── 正常存储 ──
       await embeddingService.embedText(
         text: fullContent,
         sessionId: context.sessionId,
@@ -91,3 +119,4 @@ class MemoryStoreTool extends AgentTool {
   @override
   List<ToolConfigParam> get configurableParams => [];
 }
+

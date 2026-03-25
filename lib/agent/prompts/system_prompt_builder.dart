@@ -1,4 +1,4 @@
-﻿/// Agent System Prompt 构建器
+/// Agent System Prompt 构建器
 ///
 /// 根据上下文动态构建 Agent 的系统提示词
 /// 所有文案从外部传入（i18n 或用户设置），不硬编码任何内容
@@ -15,6 +15,7 @@ class SystemPromptBuilder {
   static String build({
     String? persona,
     String? guidelines,
+    String? userProfileBlock,
     required String vaultName,
     required ToolRegistry tools,
   }) {
@@ -23,6 +24,12 @@ class SystemPromptBuilder {
     // 人设（可能为空，伙伴未设置提示词时）
     if (persona != null && persona.isNotEmpty) {
       buffer.writeln(persona);
+      buffer.writeln();
+    }
+
+    // 用户身份卡（常驻）
+    if (userProfileBlock != null && userProfileBlock.isNotEmpty) {
+      buffer.writeln(userProfileBlock);
       buffer.writeln();
     }
 

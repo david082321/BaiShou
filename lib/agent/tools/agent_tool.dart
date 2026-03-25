@@ -3,6 +3,7 @@
 
 import 'package:baishou/agent/models/tool_definition.dart';
 import 'package:baishou/agent/rag/embedding_service.dart';
+import 'package:baishou/agent/rag/memory_deduplication_service.dart';
 import 'package:baishou/agent/tools/tool_config_param.dart';
 import 'package:flutter/material.dart';
 
@@ -17,11 +18,15 @@ class ToolContext {
   /// 嵌入服务（由 Notifier 在执行时注入，保证 Ref 有效）
   final EmbeddingService? embeddingService;
 
+  /// 记忆去重服务（由 Notifier 在执行时注入）
+  final MemoryDeduplicationService? deduplicationService;
+
   const ToolContext({
     required this.sessionId,
     required this.vaultPath,
     this.userConfig = const {},
     this.embeddingService,
+    this.deduplicationService,
   });
 }
 
