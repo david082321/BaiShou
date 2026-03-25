@@ -255,6 +255,14 @@ class ChatMessageBubble extends ConsumerWidget {
                         selectable: true,
                         styleSheet: MarkdownStyleSheet.fromTheme(theme).copyWith(
                           p: theme.textTheme.bodyMedium?.copyWith(height: 1.6),
+                          // 中文斜体优化：不使用 FontStyle.italic（CJK 字体倾斜很丑），
+                          // 改用降低透明度 + 略小字号来表达"弱化/附注"语义
+                          em: theme.textTheme.bodyMedium?.copyWith(
+                            height: 1.6,
+                            fontStyle: FontStyle.normal,
+                            color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                            fontSize: (theme.textTheme.bodyMedium?.fontSize ?? 14) * 0.92,
+                          ),
                           code: theme.textTheme.bodySmall?.copyWith(
                             backgroundColor: theme.colorScheme.surfaceContainerLow,
                             fontFamily: 'monospace',
