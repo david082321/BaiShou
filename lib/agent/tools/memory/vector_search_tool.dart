@@ -107,8 +107,8 @@ class VectorSearchTool extends AgentTool {
         final vectorResults = vectorRaw
             .map(
               (r) => SearchResult(
-                messageId: r['message_id'] as String,
-                sessionId: r['session_id'] as String,
+                messageId: r['source_type'] == 'diary' ? 'diary_' + (r['source_id'] as String) : (r['source_id'] as String),
+                sessionId: r['group_id'] as String,
                 chunkText: r['chunk_text'] as String,
                 sessionTitle: r['session_title'] as String,
                 score: 1.0 - (r['distance'] as double),
@@ -159,8 +159,8 @@ class VectorSearchTool extends AgentTool {
         results = vectorRaw
             .map(
               (r) => SearchResult(
-                messageId: r['message_id'] as String,
-                sessionId: r['session_id'] as String,
+                messageId: r['source_type'] == 'diary' ? 'diary_' + (r['source_id'] as String) : (r['source_id'] as String),
+                sessionId: r['group_id'] as String,
                 chunkText: r['chunk_text'] as String,
                 sessionTitle: r['session_title'] as String,
                 score: 1.0 - (r['distance'] as double),

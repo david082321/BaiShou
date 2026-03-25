@@ -23,7 +23,7 @@ class AgentDatabase extends _$AgentDatabase {
   AgentDatabase(super.executor);
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -50,6 +50,43 @@ class AgentDatabase extends _$AgentDatabase {
           if (from < 5) {
             // v4 → v5: AgentAssistants 新增拖动排序字段
             await m.addColumn(agentAssistants, agentAssistants.sortOrder);
+          }
+          if (from < 6) {
+            // v5 → v6: 迁移 message_embeddings 到 memory_embeddings
+            await customStatement('''
+              CREATE TABLE IF NOT EXISTS memory_embeddings (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                embedding_id TEXT NOT NULL UNIQUE,
+                source_type TEXT NOT NULL,
+                source_id TEXT NOT NULL,
+                group_id TEXT NOT NULL,
+                chunk_index INTEGER NOT NULL DEFAULT 0,
+                chunk_text TEXT NOT NULL,
+                metadata_json TEXT NOT NULL DEFAULT '{}',
+                embedding BLOB NOT NULL,
+                dimension INTEGER NOT NULL,
+                model_id TEXT NOT NULL DEFAULT '',
+                created_at INTEGER NOT NULL
+              )
+            ''');
+            await customStatement('CREATE INDEX IF NOT EXISTS idx_memory_group ON memory_embeddings(group_id)');
+            await customStatement('CREATE INDEX IF NOT EXISTS idx_memory_source ON memory_embeddings(source_type, source_id)');
+
+            // 迁移旧数据
+            await customStatement('''
+              INSERT INTO memory_embeddings (
+                embedding_id, source_type, source_id, group_id, 
+                chunk_index, chunk_text, metadata_json, embedding, 
+                dimension, model_id, created_at
+              )
+              SELECT 
+                embedding_id, 
+                CASE WHEN message_id LIKE 'diary_%' THEN 'diary' ELSE 'chat' END,
+                CASE WHEN message_id LIKE 'diary_%' THEN SUBSTR(message_id, 7) ELSE message_id END,
+                session_id, chunk_index, chunk_text, '{}', embedding, dimension, model_id, created_at
+              FROM message_embeddings
+            ''');
+            await customStatement('DROP TABLE IF EXISTS message_embeddings');
           }
         },
       );
@@ -121,13 +158,15 @@ class AgentDatabase extends _$AgentDatabase {
   Future<void> _createEmbeddingTable() async {
     // 元数据表：存储 chunk 文本和关联信息
     await customStatement('''
-      CREATE TABLE IF NOT EXISTS message_embeddings (
+      CREATE TABLE IF NOT EXISTS memory_embeddings (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         embedding_id TEXT NOT NULL UNIQUE,
-        message_id TEXT NOT NULL,
-        session_id TEXT NOT NULL,
+        source_type TEXT NOT NULL,
+        source_id TEXT NOT NULL,
+        group_id TEXT NOT NULL,
         chunk_index INTEGER NOT NULL DEFAULT 0,
         chunk_text TEXT NOT NULL,
+        metadata_json TEXT NOT NULL DEFAULT '{}',
         embedding BLOB NOT NULL,
         dimension INTEGER NOT NULL,
         model_id TEXT NOT NULL DEFAULT '',
@@ -135,12 +174,12 @@ class AgentDatabase extends _$AgentDatabase {
       )
     ''');
     await customStatement('''
-      CREATE INDEX IF NOT EXISTS idx_embeddings_session
-      ON message_embeddings(session_id)
+      CREATE INDEX IF NOT EXISTS idx_memory_group
+      ON memory_embeddings(group_id)
     ''');
     await customStatement('''
-      CREATE INDEX IF NOT EXISTS idx_embeddings_message
-      ON message_embeddings(message_id)
+      CREATE INDEX IF NOT EXISTS idx_memory_source
+      ON memory_embeddings(source_type, source_id)
     ''');
   }
 
@@ -150,7 +189,7 @@ class AgentDatabase extends _$AgentDatabase {
   Future<void> initVectorIndex(int dimension) async {
     try {
       await customStatement(
-        "SELECT vector_init('message_embeddings', 'embedding', "
+        "SELECT vector_init('memory_embeddings', 'embedding', "
         "'type=FLOAT32,dimension=$dimension,distance=COSINE')",
       );
       debugPrint('sqlite-vector: vector index initialized (dim=$dimension, distance=COSINE)');
@@ -163,10 +202,12 @@ class AgentDatabase extends _$AgentDatabase {
   /// 使用原生 vector_as_f32 插入向量嵌入
   Future<void> insertEmbedding({
     required String id,
-    required String messageId,
-    required String sessionId,
+    required String sourceType,
+    required String sourceId,
+    required String groupId,
     required int chunkIndex,
     required String chunkText,
+    String metadataJson = '{}',
     required List<double> embedding,
     required String modelId,
   }) async {
@@ -174,16 +215,18 @@ class AgentDatabase extends _$AgentDatabase {
     final vectorJson = '[${embedding.join(',')}]';
 
     await customStatement(
-      '''INSERT OR REPLACE INTO message_embeddings
-         (embedding_id, message_id, session_id, chunk_index, chunk_text,
-          embedding, dimension, model_id, created_at)
-         VALUES (?, ?, ?, ?, ?, vector_as_f32(?), ?, ?, ?)''',
+      '''INSERT OR REPLACE INTO memory_embeddings
+         (embedding_id, source_type, source_id, group_id, chunk_index, chunk_text,
+          metadata_json, embedding, dimension, model_id, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, vector_as_f32(?), ?, ?, ?)''',
       [
         id,
-        messageId,
-        sessionId,
+        sourceType,
+        sourceId,
+        groupId,
         chunkIndex,
         chunkText,
+        metadataJson,
         vectorJson,
         embedding.length,
         modelId,
@@ -216,18 +259,20 @@ class AgentDatabase extends _$AgentDatabase {
         '''
         SELECT
           e.embedding_id,
-          e.message_id,
-          e.session_id,
+          e.source_type,
+          e.source_id,
+          e.group_id,
           e.chunk_index,
           e.chunk_text,
+          e.metadata_json,
           e.dimension,
           e.model_id,
           v.distance,
           e.created_at,
           s.title AS session_title
-        FROM vector_full_scan('message_embeddings', 'embedding', vector_as_f32(?), ?) AS v
-        JOIN message_embeddings AS e ON e.id = v.rowid
-        LEFT JOIN agent_sessions AS s ON e.session_id = s.id
+        FROM vector_full_scan('memory_embeddings', 'embedding', vector_as_f32(?), ?) AS v
+        JOIN memory_embeddings AS e ON e.id = v.rowid
+        LEFT JOIN agent_sessions AS s ON e.group_id = s.id AND e.source_type = 'chat'
         WHERE e.dimension = ?
         ''',
         variables: [
@@ -237,16 +282,17 @@ class AgentDatabase extends _$AgentDatabase {
         ],
       ).get();
 
-      debugPrint('searchSimilar: got ${results.length} results, '
-          'best distance=${results.isNotEmpty ? results.first.read<double>('distance') : 'N/A'}');
+      debugPrint('searchSimilar: got ${results.length} results');
 
       return results.map((row) {
         return {
           'embedding_id': row.read<String>('embedding_id'),
-          'message_id': row.read<String>('message_id'),
-          'session_id': row.read<String>('session_id'),
+          'source_type': row.read<String>('source_type'),
+          'source_id': row.read<String>('source_id'),
+          'group_id': row.read<String>('group_id'),
           'chunk_index': row.read<int>('chunk_index'),
           'chunk_text': row.read<String>('chunk_text'),
+          'metadata_json': row.read<String>('metadata_json'),
           'dimension': row.read<int>('dimension'),
           'model_id': row.read<String>('model_id'),
           'distance': row.read<double>('distance'),
@@ -277,10 +323,12 @@ class AgentDatabase extends _$AgentDatabase {
     await customStatement('''
       CREATE TABLE IF NOT EXISTS _embedding_migration_backup (
         embedding_id  TEXT NOT NULL,
-        message_id    TEXT NOT NULL,
-        session_id    TEXT NOT NULL,
+        source_type   TEXT NOT NULL,
+        source_id     TEXT NOT NULL,
+        group_id      TEXT NOT NULL,
         chunk_index   INTEGER NOT NULL,
         chunk_text    TEXT NOT NULL,
+        metadata_json TEXT NOT NULL DEFAULT '{}',
         old_model_id  TEXT NOT NULL,
         old_dimension INTEGER NOT NULL,
         migrated      INTEGER NOT NULL DEFAULT 0,
@@ -289,11 +337,11 @@ class AgentDatabase extends _$AgentDatabase {
     ''');
     await customStatement('''
       INSERT INTO _embedding_migration_backup
-        (embedding_id, message_id, session_id, chunk_index, chunk_text,
-         old_model_id, old_dimension, migrated, created_at)
-      SELECT embedding_id, message_id, session_id, chunk_index, chunk_text,
-             model_id, dimension, 0, created_at
-      FROM message_embeddings
+        (embedding_id, source_type, source_id, group_id, chunk_index, chunk_text,
+         metadata_json, old_model_id, old_dimension, migrated, created_at)
+      SELECT embedding_id, source_type, source_id, group_id, chunk_index, chunk_text,
+             metadata_json, model_id, dimension, 0, created_at
+      FROM memory_embeddings
     ''');
     final result = await customSelect(
       'SELECT COUNT(*) AS cnt FROM _embedding_migration_backup',
@@ -303,7 +351,7 @@ class AgentDatabase extends _$AgentDatabase {
 
   /// 清空向量表 + 用新维度重建索引（原子操作）
   Future<void> clearAndReinitEmbeddings(int newDimension) async {
-    await customStatement('DELETE FROM message_embeddings');
+    await customStatement('DELETE FROM memory_embeddings');
     if (newDimension > 0) {
       await initVectorIndex(newDimension);
     }
@@ -312,17 +360,19 @@ class AgentDatabase extends _$AgentDatabase {
   /// 获取未迁移的备份 chunk 列表
   Future<List<Map<String, dynamic>>> getUnmigratedBackupChunks() async {
     final results = await customSelect('''
-      SELECT embedding_id, message_id, session_id, chunk_index, chunk_text
+      SELECT embedding_id, source_type, source_id, group_id, chunk_index, chunk_text, metadata_json
       FROM _embedding_migration_backup
       WHERE migrated = 0
       ORDER BY created_at, chunk_index
     ''').get();
     return results.map((row) => {
       'embedding_id': row.read<String>('embedding_id'),
-      'message_id': row.read<String>('message_id'),
-      'session_id': row.read<String>('session_id'),
+      'source_type': row.read<String>('source_type'),
+      'source_id': row.read<String>('source_id'),
+      'group_id': row.read<String>('group_id'),
       'chunk_index': row.read<int>('chunk_index'),
       'chunk_text': row.read<String>('chunk_text'),
+      'metadata_json': row.read<String>('metadata_json'),
     }).toList();
   }
 
@@ -341,7 +391,7 @@ class AgentDatabase extends _$AgentDatabase {
       'SELECT COUNT(*) AS cnt FROM _embedding_migration_backup WHERE migrated = 0',
     ).getSingle();
     final stale = await customSelect(
-      'SELECT COUNT(*) AS cnt FROM message_embeddings WHERE model_id != ?',
+      'SELECT COUNT(*) AS cnt FROM memory_embeddings WHERE model_id != ?',
       variables: [Variable.withString(newModelId)],
     ).getSingle();
     return (
@@ -367,18 +417,18 @@ class AgentDatabase extends _$AgentDatabase {
     }
   }
 
-  /// 删除某条消息的所有嵌入
-  Future<void> deleteEmbeddingsByMessage(String messageId) async {
+  /// 根据唯一匹配来源信息删除相应的嵌入碎片
+  Future<void> deleteEmbeddingsBySource(String sourceType, String sourceId) async {
     await customStatement(
-      'DELETE FROM message_embeddings WHERE message_id = ?',
-      [messageId],
+      'DELETE FROM memory_embeddings WHERE source_type = ? AND source_id = ?',
+      [sourceType, sourceId],
     );
   }
 
   /// 根据嵌入 ID 删除单条嵌入
   Future<void> deleteEmbeddingById(String embeddingId) async {
     await customStatement(
-      'DELETE FROM message_embeddings WHERE embedding_id = ?',
+      'DELETE FROM memory_embeddings WHERE embedding_id = ?',
       [embeddingId],
     );
   }
@@ -386,28 +436,40 @@ class AgentDatabase extends _$AgentDatabase {
   /// 获取当前嵌入总数
   Future<int> getEmbeddingCount() async {
     final result = await customSelect(
-      'SELECT COUNT(*) AS cnt FROM message_embeddings',
+      'SELECT COUNT(*) AS cnt FROM memory_embeddings',
     ).getSingle();
     return result.read<int>('cnt');
   }
 
   /// 清空全部向量嵌入
   Future<void> clearEmbeddings() async {
-    await customStatement('DELETE FROM message_embeddings');
+    await customStatement('DELETE FROM memory_embeddings');
   }
 
   /// 清空特定维度的向量嵌入
   Future<int> clearEmbeddingsByDimension(int dimension) async {
     final count = await customSelect(
-      'SELECT COUNT(*) AS cnt FROM message_embeddings WHERE dimension = ?',
+      'SELECT COUNT(*) AS cnt FROM memory_embeddings WHERE dimension = ?',
       variables: [Variable.withInt(dimension)],
     ).getSingle();
     final deleted = count.read<int>('cnt');
     await customStatement(
-      'DELETE FROM message_embeddings WHERE dimension = ?',
+      'DELETE FROM memory_embeddings WHERE dimension = ?',
       [dimension],
     );
     return deleted;
+  }
+
+  /// 获取某种特换类型的嵌入实体集合映射表
+  /// Returns: Map<String, String> => { sourceId : metadataJson }
+  Future<Map<String, String>> getEmbeddedSourceMetadataByType(String sourceType) async {
+    final results = await customSelect(
+      'SELECT DISTINCT source_id, metadata_json FROM memory_embeddings WHERE source_type = ?',
+      variables: [Variable.withString(sourceType)],
+    ).get();
+    return {
+      for (final row in results) row.read<String>('source_id'): row.read<String>('metadata_json')
+    };
   }
 
   /// 获取嵌入统计信息
@@ -417,13 +479,13 @@ class AgentDatabase extends _$AgentDatabase {
         COUNT(*) AS total_count,
         COUNT(DISTINCT model_id) AS model_count,
         COUNT(DISTINCT dimension) AS dimension_count
-      FROM message_embeddings
+      FROM memory_embeddings
     ''').getSingle();
 
     // 获取当前使用的模型详情
     final models = await customSelect('''
       SELECT model_id, dimension, COUNT(*) AS count
-      FROM message_embeddings
+      FROM memory_embeddings
       GROUP BY model_id, dimension
     ''').get();
 
@@ -441,22 +503,24 @@ class AgentDatabase extends _$AgentDatabase {
 
   /// 获取所有已嵌入的 chunk（用于迁移重嵌入）
   ///
-  /// 返回每条 chunk 的 id、message_id、session_id、chunk_index、chunk_text。
+  /// 返回每条 chunk 的 id、source_id、group_id、chunk_index、chunk_text。
   Future<List<Map<String, dynamic>>> getAllEmbeddingChunks() async {
     final results = await customSelect('''
-      SELECT embedding_id, message_id, session_id, chunk_index, chunk_text,
-             model_id, dimension, created_at
-      FROM message_embeddings
+      SELECT embedding_id, source_type, source_id, group_id, chunk_index, chunk_text,
+             model_id, dimension, created_at, metadata_json
+      FROM memory_embeddings
       ORDER BY created_at DESC, chunk_index
     ''').get();
 
     return results.map((row) {
       return {
         'embedding_id': row.read<String>('embedding_id'),
-        'message_id': row.read<String>('message_id'),
-        'session_id': row.read<String>('session_id'),
+        'source_type': row.read<String>('source_type'),
+        'source_id': row.read<String>('source_id'),
+        'group_id': row.read<String>('group_id'),
         'chunk_index': row.read<int>('chunk_index'),
         'chunk_text': row.read<String>('chunk_text'),
+        'metadata_json': row.read<String>('metadata_json'),
         'model_id': row.read<String>('model_id'),
         'dimension': row.read<int>('dimension'),
         'created_at': row.read<int>('created_at'),
@@ -475,7 +539,7 @@ class AgentDatabase extends _$AgentDatabase {
       await delete(agentAssistants).go();
       await delete(compressionSnapshots).go();
       
-      await customStatement('DELETE FROM message_embeddings');
+      await customStatement('DELETE FROM memory_embeddings');
       await customStatement('DELETE FROM agent_messages_fts');
     });
   }
@@ -484,17 +548,19 @@ class AgentDatabase extends _$AgentDatabase {
   Future<List<Map<String, dynamic>>> getAllEmbeddingsForExport() async {
     final results = await customSelect('''
       SELECT *
-      FROM message_embeddings
+      FROM memory_embeddings
     ''').get();
 
     return results.map((row) {
       return {
         'id': row.read<int>('id'),
         'embedding_id': row.read<String>('embedding_id'),
-        'message_id': row.read<String>('message_id'),
-        'session_id': row.read<String>('session_id'),
+        'source_type': row.read<String>('source_type'),
+        'source_id': row.read<String>('source_id'),
+        'group_id': row.read<String>('group_id'),
         'chunk_index': row.read<int>('chunk_index'),
         'chunk_text': row.read<String>('chunk_text'),
+        'metadata_json': row.read<String>('metadata_json'),
         'dimension': row.read<int>('dimension'),
         'model_id': row.read<String>('model_id'),
         'created_at': row.read<int>('created_at'),
@@ -508,15 +574,15 @@ class AgentDatabase extends _$AgentDatabase {
   Future<void> importEmbeddingsRaw(List<Map<String, dynamic>> embeddings) async {
     await transaction(() async {
       // 在原生插入时由于使用 (?, ?) 语法，Uint8List 会自动由 drift 绑定为 sqlite3 BLOB
-      final stmt = 'INSERT INTO message_embeddings '
-          '(id, embedding_id, message_id, session_id, chunk_index, chunk_text, '
-          'embedding, dimension, model_id, created_at) '
-          'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)';
+      final stmt = 'INSERT INTO memory_embeddings '
+          '(id, embedding_id, source_type, source_id, group_id, chunk_index, chunk_text, '
+          'metadata_json, embedding, dimension, model_id, created_at) '
+          'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)';
       
       for (final e in embeddings) {
         await customStatement(stmt, [
-          e['id'], e['embedding_id'], e['message_id'], e['session_id'],
-          e['chunk_index'], e['chunk_text'], 
+          e['id'], e['embedding_id'], e['source_type'], e['source_id'], e['group_id'],
+          e['chunk_index'], e['chunk_text'], e['metadata_json'], 
           e['embedding'], // Uint8List
           e['dimension'], e['model_id'], e['created_at'],
         ]);

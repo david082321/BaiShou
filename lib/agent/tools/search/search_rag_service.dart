@@ -1,6 +1,5 @@
 /// 搜索结果 RAG 压缩服务
 ///
-/// 参考 AI Assistant 的实现，将搜索结果进行向量化检索压缩：
 /// 1. 搜索结果文本分块 → embedding
 /// 2. 用户原始查询 embedding → 余弦相似度 KNN
 /// 3. Round Robin 选择（避免单源垄断）
