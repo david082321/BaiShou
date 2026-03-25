@@ -231,6 +231,7 @@ class GeminiClient extends BaseAiClient {
           'function_calling_config': <String, dynamic>{
             'mode': 'AUTO',
           },
+          'include_server_side_tool_invocations': true,
         };
       }
     }
