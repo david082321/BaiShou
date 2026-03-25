@@ -31,6 +31,8 @@ import 'package:baishou/core/storage/storage_path_provider.dart';
 import 'package:baishou/core/storage/vault_service.dart';
 import 'package:baishou/features/diary/data/vault_index_notifier.dart';
 import 'package:baishou/features/index/data/shadow_index_sync_service.dart';
+import 'package:baishou/features/settings/domain/services/user_profile_service.dart';
+import 'package:baishou/agent/rag/memory_deduplication_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -411,11 +413,15 @@ class AgentChatNotifier extends _$AgentChatNotifier {
       resolvedPersona = persona ?? apiConfig.agentPersona;
     }
 
+    // 读取用户身份卡
+    final userProfile = ref.read(userProfileProvider);
+
     final systemPrompt = SystemPromptBuilder.build(
       persona: resolvedPersona,
       guidelines: hasAssistant
           ? null
           : (guidelines ?? apiConfig.agentGuidelines),
+      userProfileBlock: userProfile.toMarkdownBlock(),
       vaultName: vaultName,
       tools: tools,
     );
@@ -492,6 +498,11 @@ class AgentChatNotifier extends _$AgentChatNotifier {
           embeddingService: EmbeddingService(
             ref.read(apiConfigServiceProvider),
             ref.read(agentDatabaseProvider),
+          ),
+          deduplicationService: MemoryDeduplicationService(
+            ref.read(embeddingServiceProvider),
+            ref.read(agentDatabaseProvider),
+            ref.read(apiConfigServiceProvider),
           ),
         ),
         askId: askId,

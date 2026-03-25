@@ -21,6 +21,9 @@ class ChatInputBar extends StatefulWidget {
   /// 点击伙伴 chip 的回调
   final VoidCallback? onAssistantTap;
 
+  /// 唤醒回忆按钮回调
+  final VoidCallback? onRecall;
+
   const ChatInputBar({
     super.key,
     required this.isLoading,
@@ -28,6 +31,7 @@ class ChatInputBar extends StatefulWidget {
     this.onStop,
     this.assistantName,
     this.onAssistantTap,
+    this.onRecall,
   });
 
   @override
@@ -170,6 +174,14 @@ class _ChatInputBarState extends State<ChatInputBar> {
                       label: t.agent.tools.tool_call,
                       onTap: _openToolManager,
                     ),
+                    if (widget.onRecall != null) ...[
+                      const SizedBox(width: 8),
+                      _QuickActionChip(
+                        icon: Icons.auto_stories_rounded,
+                        label: t.settings.recall_memories,
+                        onTap: widget.onRecall!,
+                      ),
+                    ],
                   ],
                 ),
               ),

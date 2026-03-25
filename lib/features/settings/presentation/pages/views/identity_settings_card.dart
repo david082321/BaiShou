@@ -1,0 +1,210 @@
+import 'package:baishou/features/settings/domain/services/user_profile_service.dart';
+import 'package:baishou/i18n/strings.g.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+/// 身份卡设置卡片
+class IdentitySettingsCard extends ConsumerStatefulWidget {
+  const IdentitySettingsCard({super.key});
+
+  @override
+  ConsumerState<IdentitySettingsCard> createState() =>
+      _IdentitySettingsCardState();
+}
+
+class _IdentitySettingsCardState extends ConsumerState<IdentitySettingsCard> {
+  @override
+  Widget build(BuildContext context) {
+    final userProfile = ref.watch(userProfileProvider);
+    final facts = userProfile.identityFacts;
+
+    return Card(
+      elevation: 0,
+      margin: const EdgeInsets.only(bottom: 16),
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.badge_outlined,
+                    size: 20, color: Theme.of(context).colorScheme.primary),
+                const SizedBox(width: 8),
+                Text(
+                  t.settings.identity_card,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                ),
+                const Spacer(),
+                IconButton(
+                  icon: const Icon(Icons.add_circle_outline, size: 20),
+                  tooltip: t.settings.add_identity_entry,
+                  onPressed: () => _showIdentityEntryDialog(),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              t.settings.identity_card_desc,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+            ),
+            const SizedBox(height: 12),
+            if (facts.isEmpty)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 24),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surfaceContainerLow,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  children: [
+                    Icon(Icons.person_add_alt_1_outlined,
+                        size: 32,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant),
+                    const SizedBox(height: 8),
+                    Text(
+                      t.settings.identity_card_empty_hint,
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                    ),
+                  ],
+                ),
+              )
+            else
+              ...facts.entries.map((entry) => ListTile(
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    leading: Icon(Icons.label_outline,
+                        size: 18, color: Theme.of(context).colorScheme.primary),
+                    title: Text(entry.key,
+                        style: const TextStyle(fontWeight: FontWeight.w600)),
+                    subtitle: Text(entry.value),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.edit_outlined, size: 16),
+                          onPressed: () => _showIdentityEntryDialog(
+                            existingKey: entry.key,
+                            existingValue: entry.value,
+                          ),
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.delete_outline,
+                              size: 16,
+                              color: Theme.of(context).colorScheme.error),
+                          onPressed: () => _confirmDeleteFact(entry.key),
+                        ),
+                      ],
+                    ),
+                  )),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showIdentityEntryDialog({
+    String? existingKey,
+    String? existingValue,
+  }) async {
+    final keyController = TextEditingController(text: existingKey ?? '');
+    final valueController = TextEditingController(text: existingValue ?? '');
+    final isEditing = existingKey != null;
+
+    final result = await showDialog<Map<String, String>>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(isEditing
+            ? t.settings.edit_identity_entry
+            : t.settings.add_identity_entry),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: keyController,
+              decoration: InputDecoration(
+                labelText: t.settings.identity_key,
+                hintText: t.settings.identity_key_hint,
+              ),
+              enabled: !isEditing,
+              autofocus: !isEditing,
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: valueController,
+              decoration: InputDecoration(
+                labelText: t.settings.identity_value,
+                hintText: t.settings.identity_value_hint,
+              ),
+              autofocus: isEditing,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(t.common.cancel),
+          ),
+          FilledButton(
+            onPressed: () {
+              final key = keyController.text.trim();
+              final value = valueController.text.trim();
+              if (key.isNotEmpty && value.isNotEmpty) {
+                Navigator.pop(context, {'key': key, 'value': value});
+              }
+            },
+            child: Text(t.common.save),
+          ),
+        ],
+      ),
+    );
+
+    if (result != null) {
+      if (isEditing && existingKey != result['key']) {
+        await ref.read(userProfileProvider.notifier).removeFact(existingKey);
+      }
+      await ref
+          .read(userProfileProvider.notifier)
+          .addFact(result['key']!, result['value']!);
+    }
+  }
+
+  Future<void> _confirmDeleteFact(String key) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(t.settings.delete_identity_confirm(key: key)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(t.common.cancel),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(t.common.delete),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await ref.read(userProfileProvider.notifier).removeFact(key);
+    }
+  }
+}
