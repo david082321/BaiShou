@@ -3,6 +3,7 @@ import 'package:baishou/features/diary/data/repositories/diary_repository_impl.d
 import 'package:baishou/core/theme/app_theme.dart';
 import 'package:baishou/core/widgets/app_toast.dart';
 import 'package:baishou/core/services/data_refresh_notifier.dart';
+import 'package:baishou/features/diary/data/vault_index_notifier.dart';
 import 'package:baishou/features/index/data/shadow_index_database.dart';
 import 'package:baishou/features/summary/data/repositories/summary_repository_impl.dart';
 import 'package:baishou/features/summary/domain/entities/summary.dart';
@@ -156,6 +157,15 @@ class _SummaryDashboardViewState extends ConsumerState<SummaryDashboardView>
     ref.listen(shadowIndexDatabaseProvider, (previous, next) {
       if (next is AsyncData) {
         _loadAllData();
+      }
+    });
+
+    // 监听Vault主列表变动刷新统计
+    ref.listen(vaultIndexProvider, (prev, next) {
+      if (next is AsyncData) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _loadAllData();
+        });
       }
     });
     ref.listen(summaryFilterProvider.select((s) => s.lookbackMonths), (

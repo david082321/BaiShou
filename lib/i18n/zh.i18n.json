@@ -53,6 +53,8 @@
     "title": "标题",
     "data_sync": "数据同步",
     "view_all": "查看全部",
+    "view_this_month": "查看本月",
+    "switch_vault": "快速切换工作空间",
     "date": "日期",
     "time": "时间",
     "exit_hint": "再按一次回到桌面",

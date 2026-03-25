@@ -53,6 +53,8 @@
     "title": "タイトル",
     "data_sync": "数据同期",
     "view_all": "すべて表示",
+    "view_this_month": "今月を見る",
+    "switch_vault": "ワークスペースを切り替える",
     "date": "日付",
     "time": "時間",
     "exit_hint": "もう一度押すと終了します",

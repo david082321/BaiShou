@@ -5,22 +5,25 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:baishou/features/diary/presentation/pages/diary_list_page.dart';
+import 'package:baishou/core/storage/vault_service.dart';
 
 /// 桌面端自定义标题栏
 ///
 /// 放在 MaterialApp.builder 层级，始终显示在所有路由之上。
 /// 包含标签切换（记忆/Agent）、设置按钮、窗口控制按钮。
-class DesktopTitleBar extends StatefulWidget {
+class DesktopTitleBar extends ConsumerStatefulWidget {
   final Widget child;
   final GoRouter router;
 
   const DesktopTitleBar({super.key, required this.child, required this.router});
 
   @override
-  State<DesktopTitleBar> createState() => _DesktopTitleBarState();
+  ConsumerState<DesktopTitleBar> createState() => _DesktopTitleBarState();
 }
 
-class _DesktopTitleBarState extends State<DesktopTitleBar>
+class _DesktopTitleBarState extends ConsumerState<DesktopTitleBar>
     with SingleTickerProviderStateMixin {
   late final TabController _tabController;
   String _currentLocation = '/';
@@ -47,6 +50,9 @@ class _DesktopTitleBarState extends State<DesktopTitleBar>
     if (_tabController.index == 0) {
       // 根据侧边栏排序首位决定默认路由
       final route = await _getDefaultRoute();
+      if (route == '/') {
+        ref.read(diaryScrollToTopProvider.notifier).trigger();
+      }
       widget.router.go(route);
     } else {
       widget.router.go('/agent');
@@ -188,6 +194,17 @@ class _DesktopTitleBarState extends State<DesktopTitleBar>
               ),
 
               const Spacer(),
+
+              // 工作空间切换
+              Consumer(
+                builder: (context, ref, child) {
+                  final activeVault = ref.watch(vaultServiceProvider).value;
+                  return _VaultSwitcher(
+                    activeVaultName: activeVault?.name,
+                    theme: theme,
+                  );
+                },
+              ),
 
               // 设置按钮（不用 IconButton 因为 builder 层没有 Overlay）
               _TitleBarButton(
@@ -338,3 +355,86 @@ class _WindowButtonState extends State<_WindowButton> {
     );
   }
 }
+
+// ─── 工作空间切换组件 ──────────────────────────────────────────
+
+class _VaultSwitcher extends ConsumerStatefulWidget {
+  final String? activeVaultName;
+  final ThemeData theme;
+
+  const _VaultSwitcher({required this.activeVaultName, required this.theme});
+
+  @override
+  ConsumerState<_VaultSwitcher> createState() => _VaultSwitcherState();
+}
+
+class _VaultSwitcherState extends ConsumerState<_VaultSwitcher> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.activeVaultName == null) return const SizedBox.shrink();
+
+    return PopupMenuButton<String>(
+      tooltip: t.common.switch_vault,
+      position: PopupMenuPosition.under,
+      color: widget.theme.colorScheme.surfaceContainerHigh,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      onSelected: (name) {
+        if (name != widget.activeVaultName) {
+           ref.read(vaultServiceProvider.notifier).switchVault(name);
+        }
+      },
+      itemBuilder: (context) {
+        final service = ref.read(vaultServiceProvider.notifier);
+        final vaults = service.getAllVaults();
+        return vaults.map((v) => PopupMenuItem<String>(
+           value: v.name,
+           child: Row(
+             children: [
+               Icon(
+                 v.name == widget.activeVaultName ? Icons.check : Icons.circle_outlined, 
+                 size: 16, 
+                 color: widget.theme.colorScheme.primary
+               ),
+               const SizedBox(width: 8),
+               Text(v.name),
+             ],
+           ),
+        )).toList();
+      },
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        onEnter: (_) => setState(() => _isHovered = true),
+        onExit: (_) => setState(() => _isHovered = false),
+        child: Container(
+          height: 36,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          decoration: BoxDecoration(
+            color: _isHovered
+                ? widget.theme.colorScheme.onSurface.withValues(alpha: 0.08)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.folder_shared_outlined, size: 16, color: widget.theme.colorScheme.onSurfaceVariant),
+              const SizedBox(width: 8),
+              Text(
+                widget.activeVaultName!, 
+                style: widget.theme.textTheme.bodySmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: widget.theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(width: 4),
+              Icon(Icons.arrow_drop_down, size: 16, color: widget.theme.colorScheme.onSurfaceVariant),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+

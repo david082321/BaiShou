@@ -19,6 +19,13 @@ import 'package:baishou/features/index/data/shadow_index_sync_service.dart';
 import 'package:baishou/i18n/strings.g.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 
+class DiaryScrollToTopNotifier extends Notifier<int> {
+  @override
+  int build() => 0;
+  void trigger() => state++;
+}
+final diaryScrollToTopProvider = NotifierProvider<DiaryScrollToTopNotifier, int>(DiaryScrollToTopNotifier.new);
+
 /// 日记列表页面
 /// 架构：UI 直接绑定内存 VaultIndex（Obsidian 模式），无游标分页，无 StreamSubscription。
 /// VaultIndex 全量持有元数据，CRUD 直接更新内存，watcher 只处理外部变化。
@@ -50,6 +57,17 @@ class _DiaryListPageState extends ConsumerState<DiaryListPage> {
 
     // 直接绑定内存 VaultIndex：现在是 AsyncValue
     final allMetaAsync = ref.watch(vaultIndexProvider);
+
+    // 监听回到首位事件
+    ref.listen(diaryScrollToTopProvider, (prev, next) {
+      if (next > 0 && _scrollController.hasClients) {
+        _scrollController.animateTo(
+          0,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
 
     bool isMobile = false;
     try {

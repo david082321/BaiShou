@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:baishou/features/diary/presentation/pages/diary_list_page.dart';
 
 // ─── 侧边栏菜单项排序持久化 ──────────────────────────────────
 
@@ -181,8 +182,12 @@ class _DesktopSidebarState extends ConsumerState<DesktopSidebar> {
                                 isSelected: widget.navigationShell
                                         .currentIndex ==
                                     _order[i],
-                                onTap: () =>
-                                    widget.onBranchChange(_order[i]),
+                                onTap: () {
+                                  if (_order[i] == 0) {
+                                    ref.read(diaryScrollToTopProvider.notifier).trigger();
+                                  }
+                                  widget.onBranchChange(_order[i]);
+                                },
                               ),
                           ],
                         ),

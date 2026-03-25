@@ -23,7 +23,7 @@ final globalHotkeyServiceProvider = Provider<GlobalHotkeyService>((ref) {
   return GlobalHotkeyService.instance;
 });
 
-class GlobalHotkeyService {
+class GlobalHotkeyService with WindowListener {
   GlobalHotkeyService._();
   static final GlobalHotkeyService instance = GlobalHotkeyService._();
 
@@ -43,6 +43,8 @@ class GlobalHotkeyService {
         !(Platform.isWindows || Platform.isMacOS || Platform.isLinux)) {
       return;
     }
+    
+    windowManager.addListener(this);
     
     _isEnabled = prefs.getBool(_kHotkeyEnabled) ?? false;
     _modifier = prefs.getString(_kHotkeyModifier) ?? 'alt';
@@ -138,7 +140,15 @@ class GlobalHotkeyService {
   }
 
 
+  @override
+  void onWindowFocus() {
+    if (_isEnabled && _currentHotKey != null) {
+      _unregister().then((_) => _register());
+    }
+  }
+
   void dispose() {
+    windowManager.removeListener(this);
     _unregister();
   }
 

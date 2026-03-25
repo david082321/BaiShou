@@ -53,6 +53,8 @@
     "title": "Title",
     "data_sync": "Data Sync",
     "view_all": "View All",
+    "view_this_month": "View This Month",
+    "switch_vault": "Switch Workspace",
     "date": "Date",
     "time": "Time",
     "exit_hint": "Press again to exit",

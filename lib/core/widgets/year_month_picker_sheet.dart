@@ -116,24 +116,46 @@ class _YearMonthPickerSheetState extends State<YearMonthPickerSheet> {
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.all(16.0),
-              child: SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: TextButton(
-                  onPressed: () {
-                    // 返回 DateTime(0) 表示“清除筛选”或“查看全部”
-                    Navigator.pop(context, DateTime(0));
-                  },
-                  style: TextButton.styleFrom(
-                    backgroundColor: Theme.of(
-                      context,
-                    ).dividerColor.withOpacity(0.1),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: SizedBox(
+                      height: 48,
+                      child: TextButton(
+                        onPressed: () {
+                          final now = DateTime.now();
+                          Navigator.pop(context, DateTime(now.year, now.month));
+                        },
+                        style: TextButton.styleFrom(
+                          backgroundColor: Theme.of(context).primaryColor.withOpacity(0.1),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        child: Text(t.common.view_this_month, style: TextStyle(color: Theme.of(context).primaryColor, fontWeight: FontWeight.bold)),
+                      ),
                     ),
                   ),
-                  child: Text(t.common.view_all),
-                ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: SizedBox(
+                      height: 48,
+                      child: TextButton(
+                        onPressed: () {
+                          // 返回 DateTime(0) 表示“清除筛选”或“查看全部”
+                          Navigator.pop(context, DateTime(0));
+                        },
+                        style: TextButton.styleFrom(
+                          backgroundColor: Theme.of(
+                            context,
+                          ).dividerColor.withOpacity(0.1),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: Text(t.common.view_all),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
