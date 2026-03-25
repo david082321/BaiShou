@@ -74,3 +74,6 @@ BaiShou.code-workspace
 scripts/
 DART_START_GUIDE.md
 .agents/
+
+# Test output logs
+*.txt
