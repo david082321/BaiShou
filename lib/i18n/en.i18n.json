@@ -679,7 +679,13 @@
       "param_rag_enabled": "RAG Compression",
       "param_rag_enabled_desc": "Filter search results by semantic relevance using vector search (requires embedding model)",
       "param_tavily_api_key": "Tavily API Key",
-      "param_tavily_api_key_desc": "Tavily search API key (get free at https://app.tavily.com)"
+      "param_tavily_api_key_desc": "Tavily search API key (get free at https://app.tavily.com)",
+      "shortcuts": {
+        "translate_name": "Translate",
+        "translate_content": "Please translate the following text into Chinese faithfully and elegantly (including explanations of professional terms):\n\n",
+        "summarize_name": "Summarize",
+        "summarize_content": "Please summarize the core meaning behind the following content:\n\n"
+      }
     },
     "chat": {
       "companion_mode": "Deep Companion",

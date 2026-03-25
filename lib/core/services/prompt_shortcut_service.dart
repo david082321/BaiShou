@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:baishou/agent/models/prompt_shortcut.dart';
 import 'package:baishou/core/providers/shared_preferences_provider.dart';
+import 'package:baishou/i18n/strings.g.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'prompt_shortcut_service.g.dart';
@@ -20,8 +21,8 @@ class PromptShortcutService extends _$PromptShortcutService {
     if (jsonStr == null || jsonStr.isEmpty) {
       // 默认快捷指令
       return [
-        PromptShortcut(icon: '🌐', name: '翻译', content: '请把下面这段话信达雅地翻译为中文（含专业术语解释）：\n\n'),
-        PromptShortcut(icon: '📝', name: '总结', content: '请总结以下内容背后的核心要义：\n\n'),
+        PromptShortcut(icon: '🌐', name: t.agent.tools.shortcuts.translate_name, content: t.agent.tools.shortcuts.translate_content),
+        PromptShortcut(icon: '📝', name: t.agent.tools.shortcuts.summarize_name, content: t.agent.tools.shortcuts.summarize_content),
       ];
     }
     

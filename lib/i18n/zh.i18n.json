@@ -679,7 +679,13 @@
       "param_rag_enabled": "RAG 向量压缩",
       "param_rag_enabled_desc": "启用后搜索结果将通过向量检索筛选最相关内容（需配置嵌入模型）",
       "param_tavily_api_key": "Tavily API Key",
-      "param_tavily_api_key_desc": "Tavily 搜索 API 密钥（https://app.tavily.com 免费获取）"
+      "param_tavily_api_key_desc": "Tavily 搜索 API 密钥（https://app.tavily.com 免费获取）",
+      "shortcuts": {
+        "translate_name": "翻译",
+        "translate_content": "请把下面这段话信达雅地翻译为中文（含专业术语解释）：\n\n",
+        "summarize_name": "总结",
+        "summarize_content": "请总结以下内容背后的核心要义：\n\n"
+      }
     },
     "chat": {
       "companion_mode": "深度陪伴",

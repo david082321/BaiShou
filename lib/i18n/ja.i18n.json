@@ -679,7 +679,13 @@
       "param_rag_enabled": "RAG ベクトル圧縮",
       "param_rag_enabled_desc": "ベクトル検索で最も関連性の高い内容をフィルタリング（埋め込みモデル設定が必要）",
       "param_tavily_api_key": "Tavily API キー",
-      "param_tavily_api_key_desc": "Tavily 検索 API キー（https://app.tavily.com で無料取得）"
+      "param_tavily_api_key_desc": "Tavily 検索 API キー（https://app.tavily.com で無料取得）",
+      "shortcuts": {
+        "translate_name": "翻訳",
+        "translate_content": "次の文章を中国語に忠実かつ正確に翻訳してください（専門用語の解説を含む）：\n\n",
+        "summarize_name": "要約",
+        "summarize_content": "以下の内容の背後にある核心的な要点を要約してください：\n\n"
+      }
     },
     "chat": {
       "companion_mode": "ディープ・コンパニオン",
