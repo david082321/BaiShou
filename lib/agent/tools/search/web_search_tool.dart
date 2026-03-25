@@ -278,8 +278,7 @@ class WebSearchTool extends AgentTool {
     String engineStr,
   ) {
     final engineName = switch (engineStr) {
-      'bing' => 'Bing',
-      'google' => 'Google',
+      'tavily' => 'Tavily API',
       _ => 'DuckDuckGo',
     };
 

@@ -1,7 +1,6 @@
 /// Web 搜索服务 — 负责执行搜索并解析结果
 ///
-/// 支持引擎：Bing（默认）、Google
-/// 支持 Multi-Query：并行多个查询词后去重合并
+/// 支持引擎：Tavily、DuckDuckGo
 ///
 /// SOLID: 单一职责 — 仅处理搜索请求和 HTML 解析
 
