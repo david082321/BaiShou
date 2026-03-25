@@ -155,8 +155,10 @@ class _RecallBottomSheetState extends ConsumerState<RecallBottomSheet> {
               final newMonths = v.round();
               if (newMonths != _months) {
                 setState(() => _months = newMonths);
-                _loadPreview();
               }
+            },
+            onChangeEnd: (v) {
+              _loadPreview();
             },
           ),
 

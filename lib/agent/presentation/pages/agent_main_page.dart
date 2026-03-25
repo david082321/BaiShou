@@ -157,6 +157,12 @@ class _AgentMainPageState extends ConsumerState<AgentMainPage> {
         body: const AgentChatPage(),
         drawerEdgeDragWidth: 120,
         drawer: Drawer(child: sidebar),
+        onDrawerChanged: (isOpened) {
+          if (!isOpened) {
+            // 侧边栏关闭时取消焦点，防止自动聚焦输入框
+            FocusManager.instance.primaryFocus?.unfocus();
+          }
+        },
       );
     }
 

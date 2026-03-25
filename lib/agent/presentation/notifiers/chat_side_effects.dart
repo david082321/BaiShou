@@ -51,9 +51,13 @@ class ChatTitleService {
       title = title.trim();
       if (title.isNotEmpty && title.length <= 30) {
         await manager.updateSessionTitle(sessionId, title);
+        debugPrint('Auto-generate title success: "$title"');
+      } else {
+        debugPrint('Auto-generate title skipped: title="${title}" (len=${title.length})');
       }
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint('Auto-generate title failed: $e');
+      debugPrint('Stack: $stack');
     }
   }
 }

@@ -40,7 +40,9 @@ class WebSearchTool extends AgentTool {
       'Search the internet for current information, news, and real-time data. '
       'Use this when the user asks about recent events, current facts, or anything '
       'that requires up-to-date information beyond your training data.\n\n'
-      'IMPORTANT: You should provide 2-3 search queries with different angles/keywords '
+      'IMPORTANT: This tool searches the PUBLIC INTERNET only. '
+      'Do NOT use this to search the user\'s personal diary entries — use diary_search for that.\n\n'
+      'You should provide 2-3 search queries with different angles/keywords '
       'to get comprehensive results. For example, if the user asks about "iPhone 16 vs Samsung S25", '
       'you could search ["iPhone 16 specs review", "Samsung S25 specs review", "iPhone 16 vs Samsung S25 comparison"].\n\n'
       'Results include clickable [title](url) citations — use the url_read tool to read specific pages in detail.';

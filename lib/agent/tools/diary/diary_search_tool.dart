@@ -42,8 +42,11 @@ class DiarySearchTool extends AgentTool {
 
   @override
   String get description =>
-      'Search diary entries by keyword. Returns matching diary dates and content snippets. '
-      'Useful when the user asks about a topic but does not specify a date.';
+      'Search the user\'s PERSONAL DIARY/JOURNAL entries by keyword. '
+      'Returns matching diary dates and content snippets. '
+      'Use this when the user asks about their own past experiences, memories, or personal records.\n\n'
+      'IMPORTANT: This tool ONLY searches the user\'s personal diary entries stored locally, '
+      'NOT the internet. To search the internet for public information, use the web_search tool instead.';
 
   @override
   Map<String, dynamic> get parameterSchema => {

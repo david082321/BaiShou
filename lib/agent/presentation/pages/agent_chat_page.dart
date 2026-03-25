@@ -130,14 +130,14 @@ class _AgentChatPageState extends ConsumerState<AgentChatPage> {
     return ListenableBuilder(
       listenable: apiConfig,
       builder: (context, _) {
-        // 优先显示伙伴绑定模型，否则回退到全局模型
-        final currentModel =
-            assistantData?.modelId ?? apiConfig.globalDialogueModelId;
+        // 优先显示会话级别的模型，其次伙伴绑定模型，最后全局模型
+        final currentModel = chatState.currentModelId
+            ?? assistantData?.modelId
+            ?? apiConfig.globalDialogueModelId;
 
         return Scaffold(
           appBar: AgentChatAppBar(
             isMobile: isMobile,
-            assistantName: assistantName,
             currentModel: currentModel,
             chatState: chatState,
             onMenuTap: isMobile ? () => Scaffold.of(context).openDrawer() : null,

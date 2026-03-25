@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:baishou/core/storage/vault_service.dart';
 import 'package:baishou/core/theme/app_theme.dart';
 import 'package:baishou/core/widgets/year_month_picker_sheet.dart';
 import 'package:baishou/features/diary/data/repositories/diary_repository_impl.dart';
@@ -87,6 +88,7 @@ class _DiaryListPageState extends ConsumerState<DiaryListPage> {
           ).colorScheme.surface.withOpacity(0.8),
           surfaceTintColor: Colors.transparent,
           elevation: 0,
+          leading: isMobile ? _buildVaultSwitchButton(context) : null,
           title: _isSearching && !isDesktop
               ? TextField(
                   autofocus: true,
@@ -223,6 +225,52 @@ class _DiaryListPageState extends ConsumerState<DiaryListPage> {
     if (width > 1200) return 3;
     if (width > 700) return 2;
     return 1;
+  }
+
+  /// 移动端空间切换按钮
+  Widget _buildVaultSwitchButton(BuildContext context) {
+    final theme = Theme.of(context);
+    final vaultState = ref.watch(vaultServiceProvider);
+    final activeVaultName = vaultState.value?.name;
+    final service = ref.read(vaultServiceProvider.notifier);
+    final vaults = service.getAllVaults();
+
+    if (vaults.length <= 1) {
+      return const SizedBox.shrink();
+    }
+
+    return PopupMenuButton<String>(
+      icon: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.folder_rounded, size: 18, color: theme.colorScheme.primary),
+          const SizedBox(width: 2),
+          Icon(Icons.arrow_drop_down, size: 16, color: theme.colorScheme.onSurfaceVariant),
+        ],
+      ),
+      tooltip: t.common.switch_vault,
+      onSelected: (name) {
+        if (name != activeVaultName) {
+          service.switchVault(name);
+        }
+      },
+      itemBuilder: (context) => vaults.map((v) => PopupMenuItem<String>(
+        value: v.name,
+        child: Row(
+          children: [
+            Icon(
+              v.name == activeVaultName ? Icons.check_circle : Icons.circle_outlined,
+              size: 16,
+              color: v.name == activeVaultName
+                  ? theme.colorScheme.primary
+                  : theme.colorScheme.onSurfaceVariant,
+            ),
+            const SizedBox(width: 8),
+            Text(v.name),
+          ],
+        ),
+      )).toList(),
+    );
   }
 
   Widget _buildHeader(BuildContext context, bool isDesktop) {

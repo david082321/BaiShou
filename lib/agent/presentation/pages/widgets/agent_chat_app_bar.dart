@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 
 class AgentChatAppBar extends StatelessWidget implements PreferredSizeWidget {
   final bool isMobile;
-  final String? assistantName;
   final String currentModel;
   final AgentChatState chatState;
   final VoidCallback? onMenuTap;
@@ -13,7 +12,6 @@ class AgentChatAppBar extends StatelessWidget implements PreferredSizeWidget {
   const AgentChatAppBar({
     super.key,
     required this.isMobile,
-    required this.assistantName,
     required this.currentModel,
     required this.chatState,
     required this.onTitleTap,
@@ -40,7 +38,7 @@ class AgentChatAppBar extends StatelessWidget implements PreferredSizeWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (currentModel.isNotEmpty || assistantName != null)
+            if (currentModel.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(top: 2),
                 child: Row(
@@ -48,10 +46,7 @@ class AgentChatAppBar extends StatelessWidget implements PreferredSizeWidget {
                   children: [
                     Flexible(
                       child: Text(
-                        [
-                          if (assistantName != null) '✨ $assistantName',
-                          if (currentModel.isNotEmpty) currentModel,
-                        ].join(' · '),
+                        currentModel,
                         style: theme.textTheme.labelSmall?.copyWith(
                           color: theme.colorScheme.outline,
                           fontSize: 10,
