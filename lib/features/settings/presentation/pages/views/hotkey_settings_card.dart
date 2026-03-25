@@ -333,7 +333,7 @@ class _HotkeySettingsCardState extends ConsumerState<HotkeySettingsCard> {
     }
   }
 
-  /// 应用内所有快捷键定义（AI Assistant 模式）
+  /// 应用内所有快捷键定义
   List<(String id, String modifier, String key)> get _appShortcuts {
     final service = ref.read(globalHotkeyServiceProvider);
     return [('global_show_hide', service.currentModifier, service.currentKey)];
