@@ -1,5 +1,6 @@
 import 'package:baishou/core/services/api_config_service.dart';
 import 'package:baishou/core/services/mcp_server_service.dart';
+import 'package:baishou/core/widgets/app_toast.dart';
 import 'package:baishou/i18n/strings.g.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -76,6 +77,7 @@ class _McpSettingsCardState extends ConsumerState<McpSettingsCard> {
                     child: TextField(
                       controller: _portController,
                       keyboardType: TextInputType.number,
+                      textAlign: TextAlign.center,
                       decoration: InputDecoration(
                         isDense: true,
                         contentPadding: const EdgeInsets.symmetric(
@@ -94,7 +96,7 @@ class _McpSettingsCardState extends ConsumerState<McpSettingsCard> {
                     icon: const Icon(Icons.refresh_rounded, size: 20),
                     tooltip: t.settings.mcp_restart,
                     onPressed: mcpService.isRunning
-                        ? () => _restartServer()
+                        ? () => _updatePort(_portController.text)
                         : null,
                   ),
                 ],
@@ -147,9 +149,7 @@ class _McpSettingsCardState extends ConsumerState<McpSettingsCard> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('MCP Server error: $e')));
+        AppToast.showError(context, 'MCP Server error: $e');
         await configService.setMcpEnabled(false);
       }
     }
@@ -159,19 +159,22 @@ class _McpSettingsCardState extends ConsumerState<McpSettingsCard> {
 
   Future<void> _updatePort(String value) async {
     final port = int.tryParse(value);
+    final configService = ref.read(apiConfigServiceProvider);
+    final currentPort = configService.mcpPort;
+
     if (port == null || port < 1024 || port > 65535) {
-      _portController.text = ref
-          .read(apiConfigServiceProvider)
-          .mcpPort
-          .toString();
+      _portController.text = currentPort.toString();
       return;
     }
 
-    final configService = ref.read(apiConfigServiceProvider);
-    await configService.setMcpPort(port);
-
-    if (configService.mcpEnabled) {
-      await _restartServer();
+    if (port != currentPort) {
+      // 端口改变：写入配置后，mcpAutoStarterProvider 会自动触发重启
+      await configService.setMcpPort(port);
+    } else {
+      // 端口未改变：显式手动重启
+      if (configService.mcpEnabled) {
+        await _restartServer();
+      }
     }
   }
 
@@ -181,9 +184,7 @@ class _McpSettingsCardState extends ConsumerState<McpSettingsCard> {
       await ref.read(mcpServerServiceProvider).restart();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('MCP restart failed: $e')));
+        AppToast.showError(context, 'MCP restart failed: $e');
       }
     }
     if (mounted) setState(() => _isStarting = false);

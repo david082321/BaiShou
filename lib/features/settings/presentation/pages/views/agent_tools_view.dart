@@ -52,7 +52,7 @@ class _AgentToolsViewState extends ConsumerState<AgentToolsView> {
       case 'summary':
         return Icons.summarize_outlined;
       case 'memory':
-        return Icons.psychology_outlined;
+        return Icons.color_lens;
       case 'search':
         return Icons.travel_explore_rounded;
       default:

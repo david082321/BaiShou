@@ -63,28 +63,23 @@ class _AiGlobalModelsViewState extends ConsumerState<AiGlobalModelsView> {
   /// 继续上次未完成的迁移
   void _continuePendingMigration() {
     final embeddingService = ref.read(embeddingServiceProvider);
-    final messenger = ScaffoldMessenger.of(context);
 
     embeddingService.continueMigration().listen(
       (progress) {
         if (!mounted) return;
-        messenger.hideCurrentSnackBar();
-        messenger.showSnackBar(
-          SnackBar(
-            content: Text(progress.status),
-            duration: progress.isDone
-                ? const Duration(seconds: 3)
-                : const Duration(seconds: 30),
-          ),
+        AppToast.show(
+          context,
+          progress.status,
+          duration: progress.isDone
+              ? const Duration(seconds: 3)
+              : const Duration(seconds: 30),
         );
       },
       onError: (e) {
         if (!mounted) return;
-        messenger.hideCurrentSnackBar();
-        messenger.showSnackBar(
-          SnackBar(
-            content: Text(t.agent.rag.migration_error(error: e.toString())),
-          ),
+        AppToast.showError(
+          context,
+          t.agent.rag.migration_error(error: e.toString()),
         );
       },
     );
@@ -208,35 +203,29 @@ class _AiGlobalModelsViewState extends ConsumerState<AiGlobalModelsView> {
   /// 启动异步迁移并显示进度
   void _startMigration() {
     final embeddingService = ref.read(embeddingServiceProvider);
-    final messenger = ScaffoldMessenger.of(context);
 
-    messenger.showSnackBar(
-      SnackBar(
-        content: Text(t.agent.rag.migration_preparing),
-        duration: Duration(seconds: 2),
-      ),
+    AppToast.show(
+      context,
+      t.agent.rag.migration_preparing,
+      duration: const Duration(seconds: 2),
     );
 
     embeddingService.migrateEmbeddings().listen(
       (progress) {
         if (!mounted) return;
-        messenger.hideCurrentSnackBar();
-        messenger.showSnackBar(
-          SnackBar(
-            content: Text(progress.status),
-            duration: progress.isDone
-                ? const Duration(seconds: 3)
-                : const Duration(seconds: 30),
-          ),
+        AppToast.show(
+          context,
+          progress.status,
+          duration: progress.isDone
+              ? const Duration(seconds: 3)
+              : const Duration(seconds: 30),
         );
       },
       onError: (e) {
         if (!mounted) return;
-        messenger.hideCurrentSnackBar();
-        messenger.showSnackBar(
-          SnackBar(
-            content: Text(t.agent.rag.migration_error(error: e.toString())),
-          ),
+        AppToast.showError(
+          context,
+          t.agent.rag.migration_error(error: e.toString()),
         );
       },
     );

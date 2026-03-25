@@ -143,11 +143,7 @@ class _RagMemoryViewState extends ConsumerState<RagMemoryView> {
               runSpacing: 8,
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                Icon(
-                  Icons.psychology_outlined,
-                  size: 24,
-                  color: colorScheme.primary,
-                ),
+                Icon(Icons.color_lens, size: 24, color: colorScheme.primary),
                 Text(
                   t.agent.rag.title,
                   style: textTheme.titleLarge?.copyWith(

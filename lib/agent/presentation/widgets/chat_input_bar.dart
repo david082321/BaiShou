@@ -268,6 +268,7 @@ class _ChatInputBarState extends State<ChatInputBar> {
                             maxLines: 6,
                             minLines: 1,
                             textInputAction: TextInputAction.newline,
+                            textAlignVertical: TextAlignVertical.center,
                             decoration: InputDecoration(
                               hintText: t.agent.chat.input_hint,
                               border: InputBorder.none,

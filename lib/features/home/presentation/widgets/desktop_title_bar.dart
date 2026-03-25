@@ -14,11 +14,7 @@ class DesktopTitleBar extends StatefulWidget {
   final Widget child;
   final GoRouter router;
 
-  const DesktopTitleBar({
-    super.key,
-    required this.child,
-    required this.router,
-  });
+  const DesktopTitleBar({super.key, required this.child, required this.router});
 
   @override
   State<DesktopTitleBar> createState() => _DesktopTitleBarState();
@@ -79,8 +75,7 @@ class _DesktopTitleBarState extends State<DesktopTitleBar>
   }
 
   void _syncTabFromRoute() {
-    final location =
-        widget.router.routeInformationProvider.value.uri.path;
+    final location = widget.router.routeInformationProvider.value.uri.path;
 
     // 延迟到 build 之后再更新状态，避免在 build 阶段调用 setState
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -89,7 +84,8 @@ class _DesktopTitleBarState extends State<DesktopTitleBar>
     });
 
     // 只在主标签路由间同步，覆盖层路由（settings/diary/edit）不改标签
-    final isMainRoute = location == '/' ||
+    final isMainRoute =
+        location == '/' ||
         location.startsWith('/summary') ||
         location.startsWith('/sync') ||
         location.startsWith('/agent') ||
@@ -97,8 +93,7 @@ class _DesktopTitleBarState extends State<DesktopTitleBar>
     if (!isMainRoute) return;
 
     final newIndex = location.startsWith('/agent') ? 1 : 0;
-    if (_tabController.index != newIndex &&
-        !_tabController.indexIsChanging) {
+    if (_tabController.index != newIndex && !_tabController.indexIsChanging) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _tabController.animateTo(newIndex);
       });
@@ -184,7 +179,7 @@ class _DesktopTitleBarState extends State<DesktopTitleBar>
                         children: [
                           const Icon(Icons.auto_awesome_rounded, size: 16),
                           const SizedBox(width: 6),
-                          const Text('Agent'),
+                          Text(t.agent.partner_label),
                         ],
                       ),
                     ),
@@ -324,9 +319,10 @@ class _WindowButtonState extends State<_WindowButton> {
           decoration: BoxDecoration(
             color: _isHovered
                 ? (widget.isClose
-                    ? Colors.red
-                    : widget.theme.colorScheme.onSurface
-                          .withValues(alpha: 0.08))
+                      ? Colors.red
+                      : widget.theme.colorScheme.onSurface.withValues(
+                          alpha: 0.08,
+                        ))
                 : Colors.transparent,
             borderRadius: BorderRadius.circular(4),
           ),

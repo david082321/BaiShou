@@ -242,7 +242,7 @@ class _SettingsPageState extends State<SettingsPage> {
                         // ─── 功能 ───
                         _buildSidebarTab(
                           t.agent.rag.title,
-                          Icons.psychology_outlined,
+                          Icons.color_lens,
                           4,
                         ),
                         _buildSidebarTab(

@@ -75,7 +75,8 @@ class McpServerService {
   /// 停止 MCP Server
   Future<void> stop() async {
     if (!_running) return;
-    for (final controller in _connections.values) {
+    final controllers = _connections.values.toList();
+    for (final controller in controllers) {
       await controller.close();
     }
     _connections.clear();
@@ -427,3 +428,31 @@ McpServerService mcpServerService(Ref ref) {
   ref.onDispose(() => service.stop());
   return service;
 }
+
+/// 自动管理 MCP 服务器生命周期的启动器（不使用 Generator 因为它不需要返回值）
+final mcpAutoStarterProvider = Provider<void>((ref) {
+  // 监听启用状态，启动时立刻触发一次（应用恢复上一次状态）
+  ref.listen(
+    apiConfigServiceProvider.select((c) => c.mcpEnabled),
+    (previous, isEnabled) {
+      final service = ref.read(mcpServerServiceProvider);
+      if (isEnabled) {
+        if (!service.isRunning) service.start();
+      } else {
+        if (service.isRunning) service.stop();
+      }
+    },
+    fireImmediately: true,
+  );
+
+  // 监听端口变化：如果 MCP 正在运行，则重启以应用新端口
+  ref.listen(
+    apiConfigServiceProvider.select((c) => c.mcpPort),
+    (previous, newPort) {
+      final service = ref.read(mcpServerServiceProvider);
+      if (service.isRunning && previous != newPort) {
+        service.stop().then((_) => service.start());
+      }
+    },
+  );
+});

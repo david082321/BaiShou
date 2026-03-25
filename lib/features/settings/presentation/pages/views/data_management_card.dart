@@ -110,10 +110,9 @@ class _DataManagementCardState extends ConsumerState<DataManagementCard> {
     } catch (e) {
       if (mounted) {
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(t.settings.export_failed(error: e.toString())),
-          ),
+        AppToast.showError(
+          context,
+          t.settings.export_failed(error: e.toString()),
         );
       }
     }
@@ -176,32 +175,25 @@ class _DataManagementCardState extends ConsumerState<DataManagementCard> {
       if (importResult.success) {
         if (!mounted) return;
         ref.read(baishou_refresh.dataRefreshProvider.notifier).refresh();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              t.settings.restore_success(
-                diaries: importResult.diariesImported,
-                summaries: importResult.summariesImported,
-              ),
-            ),
+        AppToast.showSuccess(
+          context,
+          t.settings.restore_success(
+            diaries: importResult.diariesImported,
+            summaries: importResult.summariesImported,
           ),
         );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              importResult.error ?? t.settings.restore_failed_generic,
-            ),
-          ),
+        AppToast.showError(
+          context,
+          importResult.error ?? t.settings.restore_failed_generic,
         );
       }
     } catch (e) {
       if (mounted) {
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(t.settings.restore_failed(error: e.toString())),
-          ),
+        AppToast.showError(
+          context,
+          t.settings.restore_failed(error: e.toString()),
         );
       }
     }

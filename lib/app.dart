@@ -8,6 +8,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:baishou/core/localization/locale_service.dart';
+import 'package:baishou/core/services/mcp_server_service.dart';
 
 class BaiShouApp extends ConsumerWidget {
   const BaiShouApp({super.key});
@@ -15,6 +16,7 @@ class BaiShouApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     ref.watch(localeProvider);
+    ref.watch(mcpAutoStarterProvider);
     final router = ref.watch(goRouterProvider);
 
     final themeState = ref.watch(themeProvider);
