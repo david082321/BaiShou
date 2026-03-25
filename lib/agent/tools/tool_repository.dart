@@ -8,6 +8,7 @@
 import 'package:baishou/agent/tools/agent_tool.dart';
 import 'package:baishou/agent/tools/built_in_tool_provider.dart';
 import 'package:baishou/agent/tools/community_tool_provider.dart';
+import 'package:baishou/agent/models/ai_provider_model.dart';
 import 'package:baishou/core/services/api_config_service.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -40,9 +41,18 @@ class ToolRepository extends _$ToolRepository {
     final ragEnabled = apiConfig.ragEnabled;
     // RAG 关闭时自动排除 memory_store 和 vector_search
     const ragToolIds = {'memory_store', 'vector_search'};
+
+    // 根据活跃 Provider 的 webSearchMode 决定是否启用外部搜索工具
+    final activeProvider = apiConfig.getActiveProvider();
+    final searchMode = activeProvider?.webSearchMode ?? WebSearchMode.off;
+    // 外部搜索工具 ID（仅在 tavily 模式下启用）
+    const externalSearchToolIds = {'web_search', 'url_read'};
+
     return state.where((t) {
       if (disabledIds.contains(t.id)) return false;
       if (!ragEnabled && ragToolIds.contains(t.id)) return false;
+      // 非 tavily 模式时，自动排除外部搜索工具
+      if (searchMode != WebSearchMode.tavily && externalSearchToolIds.contains(t.id)) return false;
       return true;
     }).toList();
   }
