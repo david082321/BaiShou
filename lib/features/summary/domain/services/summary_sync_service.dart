@@ -13,6 +13,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:baishou/features/storage/domain/services/file_state_scheduler.dart';
 
 import 'package:baishou/core/providers/shared_preferences_provider.dart';
+import 'package:baishou/core/services/data_refresh_notifier.dart';
 
 part 'summary_sync_service.g.dart';
 
@@ -198,6 +199,9 @@ class SummarySyncService extends _$SummarySyncService {
       debugPrint(
         'SummarySyncService: Sync complete. Updated DB with ${summaries.length} summaries from disk.',
       );
+      
+      // 通知 UI 刷新，尤其是 SummaryDashboardView，因为它使用的是强制加载机制而不是 stream 流。
+      ref.read(dataRefreshProvider.notifier).refresh();
     } catch (e) {
       debugPrint('SummarySyncService: File->DB sync failed: $e');
     } finally {
