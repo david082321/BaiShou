@@ -169,42 +169,57 @@ class _ChatInputBarState extends ConsumerState<ChatInputBar> {
             mainAxisSize: MainAxisSize.min,
             children: [
               // 工具栏 — 在输入卡片上方
-              if (ref.watch(apiConfigServiceProvider).showChatToolbar)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Row(
-                    children: [
-                      _QuickActionChip(
-                        icon: Icons.bolt_rounded,
-                        label: '快捷指令',
-                        onTap: () async {
-                          final text = await PromptShortcutSheet.show(context);
-                          if (text != null && text.isNotEmpty) {
-                            _controller.text = text;
-                            _controller.selection = TextSelection.fromPosition(
-                              TextPosition(offset: _controller.text.length),
-                            );
-                            FocusScope.of(context).requestFocus(_focusNode);
-                          }
-                        },
-                      ),
-                      const SizedBox(width: 8),
-                      _QuickActionChip(
-                        icon: Icons.extension_outlined,
-                        label: t.agent.tools.tool_call,
-                        onTap: _openToolManager,
-                      ),
-                      if (widget.onRecall != null) ...[
-                        const SizedBox(width: 8),
-                        _QuickActionChip(
-                          icon: Icons.auto_stories_rounded,
-                          label: t.settings.recall_memories,
-                          onTap: widget.onRecall!,
+              AnimatedSize(
+                duration: const Duration(milliseconds: 250),
+                alignment: Alignment.bottomCenter,
+                curve: Curves.easeOutCubic,
+                child: ref.watch(apiConfigServiceProvider).showChatToolbar
+                  ? Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: [
+                            _QuickActionChip(
+                              icon: Icons.attach_file_rounded,
+                              label: '上传附件',
+                              onTap: _pickFiles,
+                            ),
+                            const SizedBox(width: 8),
+                            _QuickActionChip(
+                              icon: Icons.bolt_rounded,
+                              label: '快捷指令',
+                              onTap: () async {
+                                final text = await PromptShortcutSheet.show(context);
+                                if (text != null && text.isNotEmpty) {
+                                  _controller.text = text;
+                                  _controller.selection = TextSelection.fromPosition(
+                                    TextPosition(offset: _controller.text.length),
+                                  );
+                                  FocusScope.of(context).requestFocus(_focusNode);
+                                }
+                              },
+                            ),
+                            const SizedBox(width: 8),
+                            _QuickActionChip(
+                              icon: Icons.extension_outlined,
+                              label: t.agent.tools.tool_call,
+                              onTap: _openToolManager,
+                            ),
+                            if (widget.onRecall != null) ...[
+                              const SizedBox(width: 8),
+                              _QuickActionChip(
+                                icon: Icons.auto_stories_rounded,
+                                label: t.settings.recall_memories,
+                                onTap: widget.onRecall!,
+                              ),
+                            ],
+                          ],
                         ),
-                      ],
-                    ],
-                  ),
-                ),
+                      ),
+                    )
+                  : const SizedBox.shrink(),
+              ),
 
               // 附件预览栏
               if (_attachments.isNotEmpty)
@@ -243,52 +258,26 @@ class _ChatInputBarState extends ConsumerState<ChatInputBar> {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Container(
+                      width: 36,
                       height: 36,
                       margin: const EdgeInsets.only(right: 6),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Material(
-                            color: Colors.transparent,
-                            shape: const CircleBorder(),
-                            clipBehavior: Clip.hardEdge,
-                            child: InkWell(
-                              onTap: () {
-                                final config = ref.read(apiConfigServiceProvider);
-                                config.setShowChatToolbar(!config.showChatToolbar);
-                              },
-                              child: Container(
-                                width: 36,
-                                height: 36,
-                                alignment: Alignment.center,
-                                child: Icon(
-                                  ref.read(apiConfigServiceProvider).showChatToolbar ? Icons.apps_rounded : Icons.apps_outlined,
-                                  color: theme.colorScheme.outline,
-                                  size: 24,
-                                ),
-                              ),
+                      child: Material(
+                        color: Colors.transparent,
+                        shape: const CircleBorder(),
+                        clipBehavior: Clip.hardEdge,
+                        child: InkWell(
+                          onTap: () {
+                            final config = ref.read(apiConfigServiceProvider);
+                            config.setShowChatToolbar(!config.showChatToolbar);
+                          },
+                          child: Center(
+                            child: Icon(
+                              ref.read(apiConfigServiceProvider).showChatToolbar ? Icons.apps_rounded : Icons.apps_outlined,
+                              color: theme.colorScheme.outline,
+                              size: 24,
                             ),
                           ),
-                          const SizedBox(width: 4),
-                          Material(
-                            color: Colors.transparent,
-                            shape: const CircleBorder(),
-                            clipBehavior: Clip.hardEdge,
-                            child: InkWell(
-                              onTap: _pickFiles,
-                              child: Container(
-                                width: 36,
-                                height: 36,
-                                alignment: Alignment.center,
-                                child: Icon(
-                                  Icons.add_circle_outline_rounded,
-                                  color: theme.colorScheme.outline,
-                                  size: 26,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
                     ),
 

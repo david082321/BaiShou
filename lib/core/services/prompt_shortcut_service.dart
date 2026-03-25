@@ -7,7 +7,7 @@ part 'prompt_shortcut_service.g.dart';
 
 @riverpod
 class PromptShortcutService extends _$PromptShortcutService {
-  static const String _storageKey = 'prompt_shortcuts_v1';
+  static const String _storageKey = 'prompt_shortcuts_v2';
 
   @override
   List<PromptShortcut> build() {
@@ -20,10 +20,8 @@ class PromptShortcutService extends _$PromptShortcutService {
     if (jsonStr == null || jsonStr.isEmpty) {
       // 默认快捷指令
       return [
-        PromptShortcut(icon: '📝', name: '总结', content: '请总结以下内容背后的核心要义：\n\n'),
         PromptShortcut(icon: '🌐', name: '翻译', content: '请把下面这段话信达雅地翻译为中文（含专业术语解释）：\n\n'),
-        PromptShortcut(icon: '🐞', name: '找 Bug', content: '这是一段代码，帮我找出为何报错以及优化的写法：\n\n'),
-        PromptShortcut(icon: '🧠', name: '大纲', content: '我正在构思一篇文章/项目，请帮我拟定一个逻辑严密的大纲架构：\n\n'),
+        PromptShortcut(icon: '📝', name: '总结', content: '请总结以下内容背后的核心要义：\n\n'),
       ];
     }
     

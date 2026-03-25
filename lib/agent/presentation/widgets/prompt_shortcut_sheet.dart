@@ -3,11 +3,29 @@ import 'package:baishou/core/services/prompt_shortcut_service.dart';
 import 'package:baishou/i18n/strings.g.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/foundation.dart' as foundation;
 
 class PromptShortcutSheet extends ConsumerWidget {
-  const PromptShortcutSheet({super.key});
+  final bool isDialog;
+  const PromptShortcutSheet({super.key, this.isDialog = false});
 
   static Future<String?> show(BuildContext context) {
+    if (foundation.defaultTargetPlatform == foundation.TargetPlatform.windows || 
+        foundation.defaultTargetPlatform == foundation.TargetPlatform.macOS || 
+        foundation.defaultTargetPlatform == foundation.TargetPlatform.linux) {
+      return showDialog<String>(
+        context: context,
+        builder: (ctx) => Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          clipBehavior: Clip.antiAlias,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 400, maxHeight: 600),
+            child: const PromptShortcutSheet(isDialog: true),
+          ),
+        ),
+      );
+    }
+
     return showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
@@ -18,9 +36,15 @@ class PromptShortcutSheet extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final shortcuts = ref.watch(promptShortcutServiceProvider);
     final theme = Theme.of(context);
     
+    if (isDialog) {
+      return Container(
+        color: theme.colorScheme.surface,
+        child: _buildContent(context, ref, null),
+      );
+    }
+
     return DraggableScrollableSheet(
       initialChildSize: 0.6,
       minChildSize: 0.4,
@@ -31,148 +55,156 @@ class PromptShortcutSheet extends ConsumerWidget {
             color: theme.colorScheme.surface,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           ),
-          child: Column(
+          child: _buildContent(context, ref, scrollController),
+        );
+      },
+    );
+  }
+
+  Widget _buildContent(BuildContext context, WidgetRef ref, ScrollController? scrollController) {
+    final shortcuts = ref.watch(promptShortcutServiceProvider);
+    final theme = Theme.of(context);
+
+    return Column(
+      children: [
+        if (!isDialog)
+          // 拖拽控制条
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+        
+        // 标题与操作栏
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+          child: Row(
             children: [
-              // 拖拽控制条
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
+              Icon(
+                Icons.bolt_rounded,
+                color: theme.colorScheme.primary,
+                size: 24,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '快捷指令',
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
                 ),
               ),
-              
-              // 标题与操作栏
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.bolt_rounded,
-                      color: theme.colorScheme.primary,
-                      size: 24,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      '快捷指令',
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const Spacer(),
-                    IconButton(
-                      onPressed: () => _showEditDialog(context, ref),
-                      icon: const Icon(Icons.add_circle_outline),
-                      tooltip: t.common.add,
-                    ),
-                  ],
-                ),
-              ),
-              const Divider(height: 1),
-              
-              // 列表区域
-              Expanded(
-                child: shortcuts.isEmpty
-                    ? Center(
-                        child: Text(
-                          '暂无快捷指令',
-                          style: TextStyle(color: theme.colorScheme.outline),
-                        ),
-                      )
-                    : ReorderableListView.builder(
-                        scrollController: scrollController,
-                        padding: const EdgeInsets.only(bottom: 24),
-                        itemCount: shortcuts.length,
-                        onReorder: (oldIdx, newIdx) {
-                          ref
-                              .read(promptShortcutServiceProvider.notifier)
-                              .reorderShortcuts(oldIdx, newIdx);
-                        },
-                        itemBuilder: (context, index) {
-                          final item = shortcuts[index];
-                          return ListTile(
-                            key: ValueKey(item.id),
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 24,
-                              vertical: 4,
-                            ),
-                            leading: Container(
-                              width: 40,
-                              height: 40,
-                              decoration: BoxDecoration(
-                                color: theme.colorScheme.secondaryContainer,
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              alignment: Alignment.center,
-                              child: Text(
-                                item.icon,
-                                style: const TextStyle(fontSize: 20),
-                              ),
-                            ),
-                            title: Text(
-                              item.name,
-                              style: const TextStyle(fontWeight: FontWeight.w600),
-                            ),
-                            subtitle: Text(
-                              item.content,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(color: theme.colorScheme.outline),
-                            ),
-                            trailing: PopupMenuButton<String>(
-                              icon: const Icon(Icons.more_vert, size: 20),
-                              onSelected: (val) {
-                                if (val == 'edit') {
-                                  _showEditDialog(context, ref, shortcut: item);
-                                } else if (val == 'delete') {
-                                  ref
-                                      .read(promptShortcutServiceProvider.notifier)
-                                      .removeShortcut(item.id);
-                                }
-                              },
-                              itemBuilder: (context) => [
-                                PopupMenuItem(
-                                  value: 'edit',
-                                  child: Row(
-                                    children: [
-                                      const Icon(Icons.edit_outlined, size: 18),
-                                      const SizedBox(width: 8),
-                                      Text(t.common.edit),
-                                    ],
-                                  ),
-                                ),
-                                PopupMenuItem(
-                                  value: 'delete',
-                                  child: Row(
-                                    children: [
-                                      Icon(Icons.delete_outline,
-                                          size: 18, 
-                                          color: theme.colorScheme.error),
-                                      const SizedBox(width: 8),
-                                      Text(t.common.delete,
-                                          style: TextStyle(
-                                            color: theme.colorScheme.error,
-                                          )),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                            onTap: () {
-                              Navigator.of(context).pop(item.content);
-                            },
-                          );
-                        },
-                      ),
+              const Spacer(),
+              IconButton(
+                onPressed: () => _showEditDialog(context, ref),
+                icon: const Icon(Icons.add_circle_outline),
+                tooltip: t.common.add,
               ),
             ],
           ),
-        );
-      },
+        ),
+        const Divider(height: 1),
+        
+        // 列表区域
+        Expanded(
+          child: shortcuts.isEmpty
+              ? Center(
+                  child: Text(
+                    '暂无快捷指令',
+                    style: TextStyle(color: theme.colorScheme.outline),
+                  ),
+                )
+              : ReorderableListView.builder(
+                  scrollController: scrollController,
+                  padding: const EdgeInsets.only(bottom: 24),
+                  itemCount: shortcuts.length,
+                  onReorder: (oldIdx, newIdx) {
+                    ref
+                        .read(promptShortcutServiceProvider.notifier)
+                        .reorderShortcuts(oldIdx, newIdx);
+                  },
+                  itemBuilder: (context, index) {
+                    final item = shortcuts[index];
+                    return ListTile(
+                      key: ValueKey(item.id),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 4,
+                      ),
+                      leading: Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.secondaryContainer,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          item.icon,
+                          style: const TextStyle(fontSize: 20),
+                        ),
+                      ),
+                      title: Text(
+                        item.name,
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      subtitle: Text(
+                        item.content,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(color: theme.colorScheme.outline),
+                      ),
+                      trailing: PopupMenuButton<String>(
+                        icon: const Icon(Icons.more_vert, size: 20),
+                        onSelected: (val) {
+                          if (val == 'edit') {
+                            _showEditDialog(context, ref, shortcut: item);
+                          } else if (val == 'delete') {
+                            ref
+                                .read(promptShortcutServiceProvider.notifier)
+                                .removeShortcut(item.id);
+                          }
+                        },
+                        itemBuilder: (context) => [
+                          PopupMenuItem(
+                            value: 'edit',
+                            child: Row(
+                              children: [
+                                const Icon(Icons.edit_outlined, size: 18),
+                                const SizedBox(width: 8),
+                                Text(t.common.edit),
+                              ],
+                            ),
+                          ),
+                          PopupMenuItem(
+                            value: 'delete',
+                            child: Row(
+                              children: [
+                                Icon(Icons.delete_outline,
+                                    size: 18, 
+                                    color: theme.colorScheme.error),
+                                const SizedBox(width: 8),
+                                Text(t.common.delete,
+                                    style: TextStyle(
+                                      color: theme.colorScheme.error,
+                                    )),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      onTap: () {
+                        Navigator.of(context).pop(item.content);
+                      },
+                    );
+                  },
+                ),
+        ),
+      ],
     );
   }
 
