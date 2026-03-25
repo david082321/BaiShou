@@ -300,7 +300,15 @@
     "mcp_running": "運行中 · 連接埠 $port",
     "mcp_stopped": "已停止",
     "mcp_port": "連接埠",
-    "mcp_restart": "重新啟動服務"
+    "mcp_restart": "重新啟動服務",
+    "web_search_mode_title": "網路搜尋模式",
+    "web_search_mode_desc": "選擇此供應商進行網路搜尋時使用的方式",
+    "web_search_mode_off": "關閉搜尋",
+    "web_search_mode_off_desc": "不使用任何網路搜尋功能",
+    "web_search_mode_builtin": "內建搜尋",
+    "web_search_mode_builtin_desc": "使用供應商原生搜尋（如 Google Grounding）",
+    "web_search_mode_tool": "外部工具搜尋",
+    "web_search_mode_tool_desc": "使用 Tavily / DuckDuckGo 等外部搜尋工具"
   },
   "data_sync": {
     "title": "資料同步",

@@ -88,7 +88,8 @@ class _DiaryListPageState extends ConsumerState<DiaryListPage> {
           ).colorScheme.surface.withOpacity(0.8),
           surfaceTintColor: Colors.transparent,
           elevation: 0,
-          leading: isMobile ? _buildVaultSwitchButton(context) : null,
+          leading: isMobile ? const SizedBox.shrink() : null,
+          leadingWidth: isMobile ? 0 : null,
           title: _isSearching && !isDesktop
               ? TextField(
                   autofocus: true,
@@ -102,6 +103,7 @@ class _DiaryListPageState extends ConsumerState<DiaryListPage> {
           actions: isDesktop
               ? null
               : [
+                  _buildVaultSwitchButton(context),
                   IconButton(
                     onPressed: () {
                       setState(() {

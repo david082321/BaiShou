@@ -300,7 +300,15 @@
     "mcp_running": "実行中 · ポート $port",
     "mcp_stopped": "停止中",
     "mcp_port": "ポート",
-    "mcp_restart": "サーバー再起動"
+    "mcp_restart": "サーバー再起動",
+    "web_search_mode_title": "ウェブ検索モード",
+    "web_search_mode_desc": "このプロバイダーがウェブ検索を行う方法を選択",
+    "web_search_mode_off": "オフ",
+    "web_search_mode_off_desc": "ウェブ検索機能を無効にする",
+    "web_search_mode_builtin": "内蔵検索",
+    "web_search_mode_builtin_desc": "プロバイダーのネイティブ検索を使用（Google Grounding等）",
+    "web_search_mode_tool": "外部ツール検索",
+    "web_search_mode_tool_desc": "Tavily / DuckDuckGo 等の外部検索ツールを使用"
   },
   "data_sync": {
     "title": "データ同期",

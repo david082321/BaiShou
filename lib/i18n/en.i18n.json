@@ -300,7 +300,15 @@
     "mcp_running": "Running · Port $port",
     "mcp_stopped": "Stopped",
     "mcp_port": "Port",
-    "mcp_restart": "Restart Server"
+    "mcp_restart": "Restart Server",
+    "web_search_mode_title": "Web Search Mode",
+    "web_search_mode_desc": "Choose how this provider performs web searches",
+    "web_search_mode_off": "Off",
+    "web_search_mode_off_desc": "Disable all web search features",
+    "web_search_mode_builtin": "Built-in Search",
+    "web_search_mode_builtin_desc": "Use provider's native search (e.g. Google Grounding)",
+    "web_search_mode_tool": "External Tool Search",
+    "web_search_mode_tool_desc": "Use Tavily / DuckDuckGo external search tools"
   },
   "data_sync": {
     "title": "Data Sync",
