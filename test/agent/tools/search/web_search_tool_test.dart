@@ -10,13 +10,29 @@
 import 'package:baishou/agent/tools/search/web_search_service.dart';
 import 'package:baishou/agent/tools/search/web_search_tool.dart';
 import 'package:baishou/agent/tools/agent_tool.dart';
+import 'package:baishou/core/services/api_config_service.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mockito/mockito.dart';
+
+class MockApiConfigService extends Mock implements ApiConfigService {
+  @override
+  String get webSearchEngine => 'tavily';
+  @override
+  int get webSearchMaxResults => 5;
+  @override
+  bool get webSearchRagEnabled => false;
+  @override
+  String get tavilyApiKey => '';
+}
 
 void main() {
   late WebSearchTool tool;
 
+  late MockApiConfigService mockApiConfig;
+
   setUp(() {
-    tool = WebSearchTool();
+    mockApiConfig = MockApiConfigService();
+    tool = WebSearchTool(mockApiConfig);
   });
 
   // ════════════════════════════════════════════════════════════
@@ -43,34 +59,6 @@ void main() {
       expect(queriesDef['maxItems'], 3);
     });
 
-    test('默认引擎应该是 tavily', () {
-      final params = tool.configurableParams;
-      final engineParam = params.firstWhere((p) => p.key == 'engine');
-      expect(engineParam.defaultValue, 'tavily');
-      expect((engineParam.options as List), contains('tavily'));
-      expect((engineParam.options as List), contains('bing'));
-      expect((engineParam.options as List), contains('google'));
-    });
-
-    test('应该有 tavily_api_key 配置参数', () {
-      final params = tool.configurableParams;
-      final apiKeyParam = params.firstWhere((p) => p.key == 'tavily_api_key');
-      expect(apiKeyParam.defaultValue, '');
-    });
-
-    test('应该有 max_results 配置参数', () {
-      final params = tool.configurableParams;
-      final maxResultsParam = params.firstWhere((p) => p.key == 'max_results');
-      expect(maxResultsParam.defaultValue, 5);
-      expect(maxResultsParam.min, 1);
-      expect(maxResultsParam.max, 10);
-    });
-
-    test('应该有 rag_enabled 配置参数', () {
-      final params = tool.configurableParams;
-      final ragParam = params.firstWhere((p) => p.key == 'rag_enabled');
-      expect(ragParam.defaultValue, false);
-    });
   });
 
   // ════════════════════════════════════════════════════════════

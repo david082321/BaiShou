@@ -13,6 +13,7 @@ import 'package:baishou/agent/tools/search/html_to_markdown.dart';
 import 'package:baishou/agent/tools/search/search_rag_service.dart';
 import 'package:baishou/agent/tools/search/web_search_service.dart';
 import 'package:baishou/agent/tools/tool_config_param.dart';
+import 'package:baishou/core/services/api_config_service.dart';
 import 'package:baishou/i18n/strings.g.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -20,6 +21,9 @@ import 'package:http/http.dart' as http;
 
 class WebSearchTool extends AgentTool {
   static const _fetchTimeout = Duration(seconds: 12);
+  final ApiConfigService apiConfig;
+
+  WebSearchTool(this.apiConfig);
 
   @override
   String get id => 'web_search';
@@ -34,43 +38,7 @@ class WebSearchTool extends AgentTool {
   IconData get icon => Icons.travel_explore_rounded;
 
   @override
-  List<ToolConfigParam> get configurableParams => [
-        ToolConfigParam(
-          key: 'engine',
-          label: t.agent.tools.param_search_engine,
-          description: t.agent.tools.param_search_engine_desc,
-          type: ParamType.select,
-          defaultValue: 'tavily',
-          options: ['tavily', 'bing', 'google'],
-          icon: Icons.search,
-        ),
-        ToolConfigParam(
-          key: 'max_results',
-          label: t.agent.tools.param_max_results,
-          description: t.agent.tools.param_max_results_desc,
-          type: ParamType.integer,
-          defaultValue: 5,
-          min: 1,
-          max: 10,
-          icon: Icons.format_list_numbered,
-        ),
-        ToolConfigParam(
-          key: 'rag_enabled',
-          label: t.agent.tools.param_rag_enabled,
-          description: t.agent.tools.param_rag_enabled_desc,
-          type: ParamType.boolean,
-          defaultValue: false,
-          icon: Icons.auto_awesome,
-        ),
-        ToolConfigParam(
-          key: 'tavily_api_key',
-          label: t.agent.tools.param_tavily_api_key,
-          description: t.agent.tools.param_tavily_api_key_desc,
-          type: ParamType.string,
-          defaultValue: '',
-          icon: Icons.key,
-        ),
-      ];
+  List<ToolConfigParam> get configurableParams => [];
 
   @override
   String get description =>
@@ -124,11 +92,10 @@ class WebSearchTool extends AgentTool {
       return ToolResult.error('At least one search query is required.');
     }
 
-    final engineStr = context.userConfig['engine'] as String? ?? 'tavily';
-    final maxResults =
-        (context.userConfig['max_results'] as num?)?.toInt() ?? 5;
-    final ragEnabled = context.userConfig['rag_enabled'] as bool? ?? false;
-    final tavilyApiKey = context.userConfig['tavily_api_key'] as String? ?? '';
+    final engineStr = apiConfig.webSearchEngine;
+    final maxResults = apiConfig.webSearchMaxResults;
+    final ragEnabled = apiConfig.webSearchRagEnabled;
+    final tavilyApiKey = apiConfig.tavilyApiKey;
 
     final engine = _parseEngine(engineStr);
 
@@ -153,7 +120,7 @@ class WebSearchTool extends AgentTool {
       } catch (primaryError) {
         debugPrint('WebSearch: primary engine $engineStr failed: $primaryError');
 
-        final fallbackEngines = [SearchEngine.tavily, SearchEngine.bing, SearchEngine.google]
+        final fallbackEngines = [SearchEngine.tavily, SearchEngine.duckduckgo]
             .where((e) => e != engine)
             .toList();
 
@@ -220,12 +187,9 @@ class WebSearchTool extends AgentTool {
   /// 解析搜索引擎枚举
   SearchEngine _parseEngine(String str) {
     switch (str) {
-      case 'google':
-        return SearchEngine.google;
-      case 'bing':
-        return SearchEngine.bing;
+      case 'duckduckgo':
+        return SearchEngine.duckduckgo;
       case 'tavily':
-        return SearchEngine.tavily;
       default:
         return SearchEngine.tavily;
     }
@@ -332,21 +296,28 @@ class WebSearchTool extends AgentTool {
 
       // 提取 <article> / <main> / <body>
       String bodyHtml = html;
-      final articleMatch = RegExp(
-        r'<(article|main)[^>]*>(.*?)</\1>',
-        dotAll: true,
-        caseSensitive: false,
-      ).firstMatch(html);
-      if (articleMatch != null) {
-        bodyHtml = articleMatch.group(2) ?? html;
+      
+      int startIdx = html.indexOf(RegExp(r'<article', caseSensitive: false));
+      if (startIdx != -1) {
+        int endIdx = html.indexOf(RegExp(r'</article>', caseSensitive: false), startIdx);
+        if (endIdx != -1) {
+          bodyHtml = html.substring(startIdx, endIdx + 10);
+        }
       } else {
-        final bodyMatch = RegExp(
-          r'<body[^>]*>(.*?)</body>',
-          dotAll: true,
-          caseSensitive: false,
-        ).firstMatch(html);
-        if (bodyMatch != null) {
-          bodyHtml = bodyMatch.group(1) ?? html;
+        startIdx = html.indexOf(RegExp(r'<main', caseSensitive: false));
+        if (startIdx != -1) {
+          int endIdx = html.indexOf(RegExp(r'</main>', caseSensitive: false), startIdx);
+          if (endIdx != -1) {
+            bodyHtml = html.substring(startIdx, endIdx + 7);
+          }
+        } else {
+          startIdx = html.indexOf(RegExp(r'<body', caseSensitive: false));
+          if (startIdx != -1) {
+            int endIdx = html.indexOf(RegExp(r'</body>', caseSensitive: false), startIdx);
+            if (endIdx != -1) {
+              bodyHtml = html.substring(startIdx, endIdx + 7);
+            }
+          }
         }
       }
 

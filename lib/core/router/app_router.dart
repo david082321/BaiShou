@@ -17,6 +17,7 @@ import 'package:baishou/features/summary/presentation/pages/summary_page.dart';
 import 'package:baishou/features/settings/presentation/pages/views/summary_settings_view.dart';
 import 'package:baishou/features/settings/presentation/pages/views/rag_memory_view.dart';
 import 'package:baishou/agent/presentation/pages/assistant_management_page.dart';
+import 'package:baishou/features/settings/presentation/pages/views/web_search_settings_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -172,6 +173,16 @@ GoRouter goRouter(Ref ref) {
         builder: (context, state) => Scaffold(
           appBar: AppBar(title: Text(t.agent.rag.title)),
           body: const RagMemoryView(),
+        ),
+      ),
+      GoRoute(
+        parentNavigatorKey: rootNavigatorKey,
+        path: '/settings/web-search',
+        builder: (context, state) => Scaffold(
+          appBar: AppBar(
+            title: Text(t.agent.tools.web_search),
+          ),
+          body: const WebSearchSettingsView(),
         ),
       ),
       GoRoute(

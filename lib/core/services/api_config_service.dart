@@ -43,6 +43,12 @@ class ApiConfigService extends ChangeNotifier {
   static const String _keyMcpEnabled = 'mcp_server_enabled';
   static const String _keyMcpPort = 'mcp_server_port';
 
+  // 网络搜索配置
+  static const String _keyWebSearchEngine = 'web_search_engine';
+  static const String _keyWebSearchMaxResults = 'web_search_max_results';
+  static const String _keyWebSearchRagEnabled = 'web_search_rag_enabled';
+  static const String _keyTavilyApiKey = 'tavily_api_key';
+
   final SharedPreferences _prefs;
 
   ApiConfigService(this._prefs) {
@@ -550,6 +556,54 @@ class ApiConfigService extends ChangeNotifier {
   /// 设置 MCP Server 端口
   Future<void> setMcpPort(int port) async {
     await _prefs.setInt(_keyMcpPort, port.clamp(1024, 65535));
+  }
+
+  // --- 网络搜索专门配置 (Web Search) ---
+
+  /// 使用的搜索引擎：'duckduckgo' 或 'tavily'
+  String get webSearchEngine {
+    return _prefs.getString(_keyWebSearchEngine) ?? 'duckduckgo';
+  }
+
+  Future<void> setWebSearchEngine(String engine) async {
+    if (webSearchEngine == engine) return;
+    await _prefs.setString(_keyWebSearchEngine, engine);
+    notifyListeners();
+  }
+
+  /// 搜索返回的最大结果数 (1-10)
+  int get webSearchMaxResults {
+    return _prefs.getInt(_keyWebSearchMaxResults) ?? 5;
+  }
+
+  Future<void> setWebSearchMaxResults(int results) async {
+    final clamped = results.clamp(1, 10);
+    if (webSearchMaxResults == clamped) return;
+    await _prefs.setInt(_keyWebSearchMaxResults, clamped);
+    notifyListeners();
+  }
+
+  /// 是否启用了 Web-RAG (网页压缩读取)
+  bool get webSearchRagEnabled {
+    return _prefs.getBool(_keyWebSearchRagEnabled) ?? false;
+  }
+
+  Future<void> setWebSearchRagEnabled(bool enabled) async {
+    if (webSearchRagEnabled == enabled) return;
+    await _prefs.setBool(_keyWebSearchRagEnabled, enabled);
+    notifyListeners();
+  }
+
+  /// Tavily API Key
+  String get tavilyApiKey {
+    return _prefs.getString(_keyTavilyApiKey) ?? '';
+  }
+
+  Future<void> setTavilyApiKey(String key) async {
+    final sanitized = key.trim();
+    if (tavilyApiKey == sanitized) return;
+    await _prefs.setString(_keyTavilyApiKey, sanitized);
+    notifyListeners();
   }
 
   // --- 兼容性占位符 (Legacy Support) ---

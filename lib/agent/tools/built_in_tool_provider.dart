@@ -14,6 +14,7 @@ import 'package:baishou/agent/tools/search/web_search_tool.dart';
 import 'package:baishou/agent/tools/search/url_read_tool.dart';
 import 'package:baishou/agent/tools/summary/summary_read_tool.dart';
 import 'package:baishou/core/database/app_database.dart';
+import 'package:baishou/core/services/api_config_service.dart';
 import 'package:baishou/features/index/data/shadow_index_database.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -49,7 +50,7 @@ List<AgentTool> builtInTools(Ref ref) {
     MemoryDeleteTool(ref.read(agentDatabaseProvider)),
 
     // ── 网络搜索工具 ──
-    WebSearchTool(),
+    WebSearchTool(ref.read(apiConfigServiceProvider)),
 
     // ── 网页读取工具 ──
     UrlReadTool(),

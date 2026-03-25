@@ -63,16 +63,14 @@ void main() {
   // 搜索引擎枚举
   // ════════════════════════════════════════════════════════════
   group('SearchEngine 枚举', () {
-    test('包含 bing、google 和 tavily 三个选项', () {
-      expect(SearchEngine.values.length, 3);
-      expect(SearchEngine.values, contains(SearchEngine.bing));
-      expect(SearchEngine.values, contains(SearchEngine.google));
+    test('包含 duckduckgo 和 tavily 两选项', () {
+      expect(SearchEngine.values.length, 2);
+      expect(SearchEngine.values, contains(SearchEngine.duckduckgo));
       expect(SearchEngine.values, contains(SearchEngine.tavily));
     });
 
     test('name 应返回正确字符串', () {
-      expect(SearchEngine.bing.name, 'bing');
-      expect(SearchEngine.google.name, 'google');
+      expect(SearchEngine.duckduckgo.name, 'duckduckgo');
       expect(SearchEngine.tavily.name, 'tavily');
     });
   });
@@ -243,127 +241,6 @@ void main() {
 
       expect(merged.length, 4); // A, B, C, D
       expect(merged.map((r) => r.title).toList(), ['A', 'B', 'C', 'D']);
-    });
-  });
-
-  // ════════════════════════════════════════════════════════════
-  // Bing HTML 解析（通过 parseBingResults 暴露）
-  // ════════════════════════════════════════════════════════════
-  group('Bing HTML 解析', () {
-    test('应正确解析标准 b_algo 结构', () {
-      const html = '''
-<html><body>
-<li class="b_algo"><a href="https://flutter.dev/docs" h="ID=SERP,5001"><h2>Flutter Documentation</h2></a>
-<p>Flutter is Google's UI toolkit for building natively compiled applications.</p></li>
-<li class="b_algo"><a href="https://dart.dev/guides" h="ID=SERP,5002"><h2>Dart Language Guide</h2></a>
-<p>Dart is a client-optimized language for fast apps on any platform.</p></li>
-</body></html>
-''';
-
-      final results = WebSearchService.parseBingResults(html, 10);
-
-      expect(results.length, 2);
-      expect(results[0].url, 'https://flutter.dev/docs');
-      expect(results[0].title, 'Flutter Documentation');
-      expect(results[0].snippet, contains('UI toolkit'));
-      expect(results[1].url, 'https://dart.dev/guides');
-      expect(results[1].title, 'Dart Language Guide');
-    });
-
-    test('应跳过缺少 <p> 摘要或摘要过短的结果', () {
-      const html = '''
-<li class="b_algo"><a href="https://short.com"><h2>Short Snippet</h2></a>
-<p>Too short</p></li>
-<li class="b_algo"><a href="https://ok.com"><h2>OK Result</h2></a>
-<p>This snippet is long enough to pass the length threshold check.</p></li>
-''';
-
-      final results = WebSearchService.parseBingResults(html, 10);
-
-      // "Too short" 少于 10 字符，应被跳过
-      expect(results.length, 1);
-      expect(results[0].url, 'https://ok.com');
-    });
-
-    test('应尊重 maxResults 限制', () {
-      final buffer = StringBuffer();
-      for (int i = 0; i < 20; i++) {
-        buffer.writeln(
-          '<li class="b_algo"><a href="https://r$i.com"><h2>Result $i</h2></a>'
-          '<p>This is a sufficiently long snippet for result number $i.</p></li>',
-        );
-      }
-
-      final results = WebSearchService.parseBingResults(buffer.toString(), 5);
-      expect(results.length, 5);
-    });
-
-    test('空 HTML 返回空列表', () {
-      final results = WebSearchService.parseBingResults('', 10);
-      expect(results, isEmpty);
-    });
-
-    test('无匹配结构的 HTML 返回空列表', () {
-      const html = '<html><body><div>No search results here</div></body></html>';
-      final results = WebSearchService.parseBingResults(html, 10);
-      expect(results, isEmpty);
-    });
-  });
-
-  // ════════════════════════════════════════════════════════════
-  // Google HTML 解析（通过 parseGoogleResults 暴露）
-  // ════════════════════════════════════════════════════════════
-  group('Google HTML 解析', () {
-    test('应正确解析 <a><h3> 结构', () {
-      const html = '''
-<div>
-<a href="https://flutter.dev" data-ved="abc"><h3 class="LC20lb">Flutter - Build apps for any screen</h3></a>
-<span>Flutter transforms the development process. Build, test, and deploy beautiful mobile, web, desktop, and embedded apps from a single codebase.</span>
-</div>
-<div>
-<a href="https://dart.dev" data-ved="def"><h3 class="LC20lb">Dart programming language</h3></a>
-<span>Dart is a client-optimized language for developing fast apps on any platform.</span>
-</div>
-''';
-
-      final results = WebSearchService.parseGoogleResults(html, 10);
-
-      expect(results.length, 2);
-      expect(results[0].url, 'https://flutter.dev');
-      expect(results[0].title, 'Flutter - Build apps for any screen');
-      expect(results[0].snippet, contains('Flutter transforms'));
-      expect(results[1].url, 'https://dart.dev');
-    });
-
-    test('应过滤 google.com 自身的链接', () {
-      const html = '''
-<a href="https://www.google.com/settings"><h3>Google Settings</h3></a>
-<span>Manage your Google preferences and account.</span>
-<a href="https://example.com/real"><h3>Real Result</h3></a>
-<span>This is a real search result with enough text.</span>
-''';
-
-      final results = WebSearchService.parseGoogleResults(html, 10);
-      // google.com 链接应被过滤
-      expect(results.every((r) => !r.url.contains('google.com')), isTrue);
-    });
-
-    test('应尊重 maxResults 限制', () {
-      final buffer = StringBuffer();
-      for (int i = 0; i < 20; i++) {
-        buffer.writeln(
-          '<a href="https://result$i.com"><h3>Result $i</h3></a>'
-          '<span>A sufficiently long snippet for result number $i here.</span>',
-        );
-      }
-
-      final results = WebSearchService.parseGoogleResults(buffer.toString(), 3);
-      expect(results.length, 3);
-    });
-
-    test('空 HTML 返回空列表', () {
-      final results = WebSearchService.parseGoogleResults('', 10);
-      expect(results, isEmpty);
     });
   });
 

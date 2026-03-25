@@ -36,7 +36,7 @@ class SearchResult {
 }
 
 /// 支持的搜索引擎
-enum SearchEngine { bing, google, tavily, duckduckgo }
+enum SearchEngine { tavily, duckduckgo }
 
 /// Web 搜索服务
 class WebSearchService {
@@ -74,10 +74,6 @@ class WebSearchService {
     String? apiKey,
   }) async {
     switch (engine) {
-      case SearchEngine.google:
-        return _searchGoogle(query, maxResults);
-      case SearchEngine.bing:
-        return _searchBing(query, maxResults);
       case SearchEngine.duckduckgo:
         return _searchDuckDuckGo(query, maxResults);
       case SearchEngine.tavily:
@@ -197,69 +193,6 @@ class WebSearchService {
     return results;
   }
 
-
-  // ── Google 搜索 ─────────────────────────────────────────────
-
-  /// Google 搜索 — 通过 google.com/search 抓取
-  static Future<List<SearchResult>> _searchGoogle(
-    String query,
-    int maxResults,
-  ) async {
-    final uri = Uri.https('www.google.com', '/search', {
-      'q': query,
-      'num': maxResults.toString(),
-      'hl': 'zh-CN',
-    });
-
-    final response = await http.get(uri, headers: _browserHeaders).timeout(_timeout);
-
-    if (response.statusCode != 200) {
-      throw Exception('Google search failed: ${response.statusCode}');
-    }
-
-    final html = utf8.decode(response.bodyBytes);
-    return parseGoogleResults(html, maxResults);
-  }
-
-  /// 解析 Google 搜索结果 HTML
-  @visibleForTesting
-  static List<SearchResult> parseGoogleResults(String html, int maxResults) {
-    final results = <SearchResult>[];
-
-    final linkPattern = RegExp(
-      r'<a[^>]+href="(https?://[^"]+)"[^>]*><h3[^>]*>(.*?)</h3>',
-      dotAll: true,
-    );
-
-    final matches = linkPattern.allMatches(html);
-    for (final match in matches) {
-      if (results.length >= maxResults) break;
-
-      final url = match.group(1) ?? '';
-      final rawTitle = match.group(2) ?? '';
-      final title = stripHtml(rawTitle);
-
-      // 跳过 Google 自身的链接
-      if (url.contains('google.com') || title.isEmpty) continue;
-
-      // 尝试找相邻的摘要文本
-      final snippetStart = match.end;
-      final snippetEnd = (snippetStart + 500).clamp(0, html.length);
-      final snippetRegion = html.substring(snippetStart, snippetEnd);
-      final snippetMatch = RegExp(r'<span[^>]*>(.*?)</span>', dotAll: true)
-          .firstMatch(snippetRegion);
-      final snippet = snippetMatch != null
-          ? stripHtml(snippetMatch.group(1) ?? '')
-          : '';
-
-      if (snippet.length > 10) {
-        results.add(SearchResult(title: title, url: url, snippet: snippet));
-      }
-    }
-
-    return results;
-  }
-
   // ── DuckDuckGo 搜索 ────────────────────────────────────────
 
   /// DuckDuckGo 搜索 — 通过 html.duckduckgo.com 抓取
@@ -286,19 +219,38 @@ class WebSearchService {
   static List<SearchResult> parseDuckDuckGoResults(String html, int maxResults) {
     final results = <SearchResult>[];
 
-    final resultPattern = RegExp(
-      r'<h2 class="result__title">\s*<a[^>]*href="([^"]+)"[^>]*>(.*?)</a>.*?</h2\s*>.*?<a class="result__snippet"[^>]*>(.*?)</a>',
-      dotAll: true,
-    );
+    // Split by the start of each result title to isolate blocks and prevent catastrophic backtracking
+    final blocks = html.split('class="result__title"');
 
-    final matches = resultPattern.allMatches(html);
-    for (final match in matches) {
+    for (int i = 1; i < blocks.length; i++) {
       if (results.length >= maxResults) break;
+      final block = blocks[i];
 
-      final rawUrl = match.group(1) ?? '';
-      final title = stripHtml(match.group(2) ?? '').trim();
-      final snippetDelimiterHtml = stripHtml(match.group(3) ?? '').trim();
-      final snippet = snippetDelimiterHtml.replaceAll(RegExp(r'\s+'), ' ');
+      // Find URL and Title anchor tag
+      final aTagStart = block.indexOf('<a');
+      if (aTagStart == -1) continue;
+      final aTagEnd = block.indexOf('</a>', aTagStart);
+      if (aTagEnd == -1) continue;
+
+      final aTag = block.substring(aTagStart, aTagEnd + 4);
+      final hrefMatch = RegExp(r'href="([^"]+)"').firstMatch(aTag);
+      final rawUrl = hrefMatch?.group(1) ?? '';
+
+      final titleMatch = RegExp(r'>(.*?)</a>', dotAll: true).firstMatch(aTag);
+      final title = stripHtml(titleMatch?.group(1) ?? '').trim();
+
+      // Find Snippet anchor tag
+      final snippetStart = block.indexOf('class="result__snippet"');
+      String snippet = '';
+      if (snippetStart != -1) {
+        final snippetEnd = block.indexOf('</a>', snippetStart);
+        if (snippetEnd != -1) {
+          final snippetTag = block.substring(snippetStart, snippetEnd + 4);
+          final snippetMatch = RegExp(r'>(.*?)</a>', dotAll: true).firstMatch(snippetTag);
+          final snippetHtml = snippetMatch?.group(1) ?? '';
+          snippet = stripHtml(snippetHtml).replaceAll(RegExp(r'\s+'), ' ').trim();
+        }
+      }
 
       // DuckDuckGo redirects urls via uddg parameter (e.g. //duckduckgo.com/l/?uddg=...)
       String actualUrl = rawUrl;
@@ -312,76 +264,8 @@ class WebSearchService {
         // Fallback to raw url
       }
 
-      if (actualUrl.isEmpty || title.isEmpty) continue;
-
-      if (snippet.length > 10) {
-        results.add(SearchResult(title: title, url: actualUrl, snippet: snippet));
-      }
-    }
-
-    return results;
-  }
-
-  // ── Bing 搜索 ──────────────────────────────────────────────
-
-  /// Bing 搜索 — 通过 bing.com/search 抓取
-  static Future<List<SearchResult>> _searchBing(
-    String query,
-    int maxResults,
-  ) async {
-    final uri = Uri.https('www.bing.com', '/search', {
-      'q': query,
-      'count': maxResults.toString(),
-      'ensearch': '1',
-    });
-
-    final response = await http.get(uri, headers: _browserHeaders).timeout(_timeout);
-
-    if (response.statusCode != 200) {
-      throw Exception('Bing search failed: ${response.statusCode}');
-    }
-
-    final html = utf8.decode(response.bodyBytes);
-    return parseBingResults(html, maxResults);
-  }
-
-  /// 解析 Bing 搜索结果 HTML
-  @visibleForTesting
-  static List<SearchResult> parseBingResults(String html, int maxResults) {
-    final results = <SearchResult>[];
-
-    final blockPattern = RegExp(
-      r'<li class="b_algo">(.*?)</li>',
-      dotAll: true,
-    );
-
-    for (final blockMatch in blockPattern.allMatches(html)) {
-      if (results.length >= maxResults) break;
-
-      final block = blockMatch.group(1) ?? '';
-
-      final linkMatch = RegExp(
-        r'<a[^>]+href="(https?://[^"]+)"[^>]*>(.*?)</a>',
-        dotAll: true,
-      ).firstMatch(block);
-
-      if (linkMatch == null) continue;
-
-      final url = linkMatch.group(1) ?? '';
-      final title = stripHtml(linkMatch.group(2) ?? '');
-
-      // 提取摘要
-      final snippetMatch = RegExp(
-        r'<p[^>]*>(.*?)</p>',
-        dotAll: true,
-      ).firstMatch(block);
-      final snippet = snippetMatch != null
-          ? stripHtml(snippetMatch.group(1) ?? '')
-          : '';
-
-      if (title.isNotEmpty && snippet.length > 10) {
-        results.add(SearchResult(title: title, url: url, snippet: snippet));
-      }
+      if (actualUrl.isEmpty || title.isEmpty || snippet.length <= 10) continue;
+      results.add(SearchResult(title: title, url: actualUrl, snippet: snippet));
     }
 
     return results;

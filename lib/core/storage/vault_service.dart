@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:baishou/core/storage/storage_path_provider.dart';
+import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -58,20 +59,68 @@ class VaultService extends _$VaultService {
     _registryFile = File(p.join(globalDir.path, 'vault_registry.json'));
 
     if (!_registryFile!.existsSync()) {
-      // 首次启动，创建一个名为 "Personal" 的默认空间
+      // 首次启动（或本次迁移），创建一个名为 "Personal" 的默认空间
+      final defaultVaultName = 'Personal';
+      final defaultVaultDir = await _pathProvider.getVaultDirectory(defaultVaultName);
       final defaultVault = VaultInfo(
-        name: 'Personal',
-        path: (await _pathProvider.getVaultDirectory('Personal')).path,
+        name: defaultVaultName,
+        path: defaultVaultDir.path,
         createdAt: DateTime.now(),
         lastAccessedAt: DateTime.now(),
       );
       _vaults = [defaultVault];
       await _saveRegistry();
+
+      // 执行向后兼容物理文件迁移：全局 sqlite 文件 -> Personal 空间
+      try {
+        final globalSysDir = await _pathProvider.getGlobalRegistryDirectory();
+        final personalSysDir = await _pathProvider.getVaultSystemDirectory(defaultVaultName);
+
+        final oldBaishouDb = File(p.join(globalSysDir.path, 'baishou.sqlite'));
+        final oldAgentDb = File(p.join(globalSysDir.path, 'agent.sqlite'));
+
+        for (final file in [oldBaishouDb, oldAgentDb]) {
+          if (file.existsSync()) {
+            final newPath = p.join(personalSysDir.path, p.basename(file.path));
+            if (!File(newPath).existsSync()) {
+              await file.rename(newPath);
+              debugPrint('VaultService: Migrated ${file.path} to $newPath');
+              
+              final walFile = File('${file.path}-wal');
+              final shmFile = File('${file.path}-shm');
+              if (walFile.existsSync()) {
+                await walFile.rename('${newPath}-wal');
+              }
+              if (shmFile.existsSync()) {
+                await shmFile.rename('${newPath}-shm');
+              }
+            }
+          }
+        }
+      } catch (e) {
+        debugPrint('VaultService: Failed to migrate old sqlite databases: $e');
+      }
+
     } else {
       final content = await _registryFile!.readAsString();
       if (content.trim().isNotEmpty) {
-        final List<dynamic> jsonList = jsonDecode(content);
-        _vaults = jsonList.map((e) => VaultInfo.fromJson(e)).toList();
+        try {
+          final List<dynamic> jsonList = jsonDecode(content);
+          _vaults = jsonList.map((e) => VaultInfo.fromJson(e)).toList();
+        } catch (e) {
+          debugPrint('VaultService: Corrupted registry file detected, resetting to Personal: $e');
+          // If registry is corrupted, fallback to a clean slate rather than crashing the app
+          final defaultVaultDir = await _pathProvider.getVaultDirectory('Personal');
+          _vaults = [
+            VaultInfo(
+              name: 'Personal',
+              path: defaultVaultDir.path,
+              createdAt: DateTime.now(),
+              lastAccessedAt: DateTime.now(),
+            )
+          ];
+          await _saveRegistry();
+        }
       }
     }
   }

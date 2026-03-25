@@ -7,6 +7,7 @@ import 'package:baishou/features/settings/presentation/pages/data_sync_page.dart
 import 'package:baishou/features/settings/presentation/pages/lan_transfer_page.dart';
 import 'package:baishou/features/settings/presentation/pages/views/general_settings_view.dart';
 import 'package:baishou/features/settings/presentation/pages/views/summary_settings_view.dart';
+import 'package:baishou/features/settings/presentation/pages/views/web_search_settings_view.dart';
 import 'package:baishou/agent/presentation/pages/assistant_management_page.dart';
 import 'package:baishou/i18n/strings.g.dart';
 import 'package:flutter/material.dart';
@@ -84,12 +85,14 @@ class _SettingsPageState extends State<SettingsPage> {
       case 4:
         return const RagMemoryView(key: ValueKey('tab_rag'));
       case 5:
-        return const AgentToolsView(key: ValueKey('tab_tools'));
+        return const WebSearchSettingsView(key: ValueKey('tab_web_search'));
       case 6:
-        return const SummarySettingsView(key: ValueKey('tab_summary'));
+        return const AgentToolsView(key: ValueKey('tab_tools'));
       case 7:
-        return const LanTransferPage(key: ValueKey('tab_lan'));
+        return const SummarySettingsView(key: ValueKey('tab_summary'));
       case 8:
+        return const LanTransferPage(key: ValueKey('tab_lan'));
+      case 9:
         return const DataSyncPage(key: ValueKey('tab_sync'));
       default:
         return const SizedBox();
@@ -137,6 +140,12 @@ class _SettingsPageState extends State<SettingsPage> {
             title: Text(t.agent.rag.title),
             trailing: const Icon(Icons.chevron_right),
             onTap: () => context.push('/settings/rag'),
+          ),
+          ListTile(
+            leading: const Icon(Icons.travel_explore_rounded),
+            title: Text(t.agent.tools.web_search),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => context.push('/settings/web-search'),
           ),
           ListTile(
             leading: const Icon(Icons.extension_outlined),
@@ -246,26 +255,31 @@ class _SettingsPageState extends State<SettingsPage> {
                           4,
                         ),
                         _buildSidebarTab(
+                          t.agent.tools.web_search,
+                          Icons.travel_explore_rounded,
+                          5,
+                        ),
+                        _buildSidebarTab(
                           t.settings.agent_tools_title,
                           Icons.extension_outlined,
-                          5,
+                          6,
                         ),
                         _buildSidebarTab(
                           t.settings.summary_settings_title,
                           Icons.auto_awesome_outlined,
-                          6,
+                          7,
                         ),
                         const Divider(height: 1, indent: 20, endIndent: 20),
                         // ─── 数据 ───
                         _buildSidebarTab(
                           t.settings.lan_transfer,
                           Icons.wifi_protected_setup_outlined,
-                          7,
+                          8,
                         ),
                         _buildSidebarTab(
                           t.data_sync.title,
                           Icons.sync_rounded,
-                          8,
+                          9,
                         ),
                       ],
                     ),
