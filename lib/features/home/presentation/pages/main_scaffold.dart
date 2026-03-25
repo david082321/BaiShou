@@ -27,9 +27,8 @@ class _MainScaffoldState extends ConsumerState<MainScaffold>
     with SingleTickerProviderStateMixin {
   late final AnimationController _overlayController;
 
-  bool _isNavigating = false;
-
   void _goBranch(int index) {
+    NavigationGuard.markUserNavigation();
     widget.navigationShell.goBranch(
       index,
       initialLocation: false,
@@ -155,9 +154,6 @@ class _MainScaffoldState extends ConsumerState<MainScaffold>
 
   // ─── 移动端布局 ──────────────────────────────────────────────
 
-  /// 记录最后一次底边栏点击时间，用于过滤手势冲突
-  DateTime? _lastBottomBarTap;
-
   Widget _buildMobileLayout(BuildContext context) {
     final currentIndex = widget.navigationShell.currentIndex;
 
@@ -172,32 +168,29 @@ class _MainScaffoldState extends ConsumerState<MainScaffold>
 
     final navState = activeKey?.currentState;
     final bool canPopNested = navState?.canPop() ?? false;
-    final bool shouldPopRoute = canPopNested;
 
+    // ⚠️ canPop 必须恒为 false！
+    // MIUI 的 WindowOnBackDispatcher 在 canPop 从 true→false 变化时
+    // 会向 Flutter Router 发送虚假的路由重置通知（'/'），导致 GoRouter
+    // 的 StatefulShellRoute 回到初始分支。固定为 false 可避免此问题。
     Widget content = PopScope(
-      canPop: shouldPopRoute,
+      canPop: false,
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
 
-        // 如果刚刚点了底边栏（500ms 内），忽略此次 pop（手势误触）
-        if (_lastBottomBarTap != null &&
-            DateTime.now().difference(_lastBottomBarTap!) <
-                const Duration(milliseconds: 500)) {
+        // 1. 如果当前分支有嵌套页面可以 pop，优先 pop 嵌套页面
+        if (canPopNested) {
+          navState?.pop();
           return;
         }
 
-        // 防止连续 pop
-        if (_isNavigating) return;
-        _isNavigating = true;
-        Future.delayed(const Duration(milliseconds: 500), () {
-          _isNavigating = false;
-        });
-
+        // 2. 如果不在默认分支，返回默认分支
         if (currentIndex != _defaultBranch) {
           _goBranch(_defaultBranch);
           return;
         }
 
+        // 3. 在默认分支按两次退出
         final now = DateTime.now();
         if (_lastBackPress == null ||
             now.difference(_lastBackPress!) > const Duration(seconds: 2)) {
@@ -220,10 +213,7 @@ class _MainScaffoldState extends ConsumerState<MainScaffold>
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _getMobileNavIndex(),
-        onDestinationSelected: (index) {
-          _lastBottomBarTap = DateTime.now();
-          _goBranch(index);
-        },
+        onDestinationSelected: _goBranch,
         destinations: [
           NavigationDestination(
             icon: const Icon(Icons.timeline_outlined),

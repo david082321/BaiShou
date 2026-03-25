@@ -31,9 +31,25 @@ final syncNavKey = GlobalKey<NavigatorState>(debugLabel: 'sync');
 final settingsNavKey = GlobalKey<NavigatorState>(debugLabel: 'settings');
 final agentNavKey = GlobalKey<NavigatorState>(debugLabel: 'agent');
 
+/// 导航守卫：防止 Android 平台（尤其 MIUI）通过 RouteInformationProvider
+/// 发送虚假路由重置通知。所有用户主动导航必须先设置此标记。
+class NavigationGuard {
+  static bool isUserNavigation = false;
+  static String lastUserRoute = '/';
+
+  /// 标记即将发生的导航是用户主动发起的
+  static void markUserNavigation() {
+    isUserNavigation = true;
+    // 在下一个微任务中重置标志
+    Future.microtask(() {
+      isUserNavigation = false;
+    });
+  }
+}
+
 /// 全局路由配置
 /// 使用 GoRouter 处理页面导航、重定向（如开启引导页）以及子路由嵌套。
-@riverpod
+@Riverpod(keepAlive: true)
 GoRouter goRouter(Ref ref) {
   final rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -53,7 +69,7 @@ GoRouter goRouter(Ref ref) {
     }
   }
 
-  return GoRouter(
+  final router = GoRouter(
     navigatorKey: rootNavigatorKey,
     initialLocation: initialLoc,
     debugLogDiagnostics: true,
@@ -67,6 +83,17 @@ GoRouter goRouter(Ref ref) {
       if (onboardingCompleted && isGoingToOnboarding) {
         return initialLoc;
       }
+
+      // 拦截 MIUI 虚假路由重置：非用户主动导航到 '/' 时，
+      // 保持当前路由不变。
+      if (state.matchedLocation == '/' &&
+          !NavigationGuard.isUserNavigation &&
+          NavigationGuard.lastUserRoute != '/') {
+        return NavigationGuard.lastUserRoute;
+      }
+
+      // 记录用户的正常路由
+      NavigationGuard.lastUserRoute = state.matchedLocation;
 
       return null;
     },
@@ -237,4 +264,6 @@ GoRouter goRouter(Ref ref) {
       ),
     ],
   );
+
+  return router;
 }
