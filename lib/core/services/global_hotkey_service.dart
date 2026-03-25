@@ -43,10 +43,7 @@ class GlobalHotkeyService {
         !(Platform.isWindows || Platform.isMacOS || Platform.isLinux)) {
       return;
     }
-
-    // 清理可能残留的各种全局热键（特别是开发期热重载后，或上一次异常退出）
-    await hotKeyManager.unregisterAll();
-
+    
     _isEnabled = prefs.getBool(_kHotkeyEnabled) ?? false;
     _modifier = prefs.getString(_kHotkeyModifier) ?? 'alt';
     _key = prefs.getString(_kHotkeyKey) ?? 'keyS';
@@ -98,8 +95,6 @@ class GlobalHotkeyService {
       scope: HotKeyScope.system,
     );
 
-    // 注册前先尝试注销确保唯一性
-    await hotKeyManager.unregister(_currentHotKey!);
     await hotKeyManager.register(
       _currentHotKey!,
       keyDownHandler: (_) => _toggleWindow(),
