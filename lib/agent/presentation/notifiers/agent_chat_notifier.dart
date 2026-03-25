@@ -529,8 +529,9 @@ class AgentChatNotifier extends _$AgentChatNotifier {
               ),
             );
 
-            // 日记写入成功后，异步刷新索引使日记页面即时可见
-            if (toolCall.name == 'diary_write' && result.success) {
+            // 日记编辑/删除成功后，异步刷新索引使日记页面即时可见
+            if ((toolCall.name == 'diary_edit' || toolCall.name == 'diary_delete') 
+                && result.success) {
               _refreshDiaryIndexAfterWrite(toolCall.arguments);
             }
             break;

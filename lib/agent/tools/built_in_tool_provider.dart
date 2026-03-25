@@ -1,10 +1,12 @@
 import 'package:baishou/agent/database/agent_database.dart';
 import 'package:baishou/agent/session/session_manager.dart';
 import 'package:baishou/agent/tools/agent_tool.dart';
+import 'package:baishou/agent/tools/diary/diary_delete_tool.dart';
+import 'package:baishou/agent/tools/diary/diary_edit_tool.dart';
 import 'package:baishou/agent/tools/diary/diary_list_tool.dart';
 import 'package:baishou/agent/tools/diary/diary_read_tool.dart';
 import 'package:baishou/agent/tools/diary/diary_search_tool.dart';
-import 'package:baishou/agent/tools/diary/diary_write_tool.dart';
+import 'package:baishou/agent/tools/memory/memory_delete_tool.dart';
 import 'package:baishou/agent/tools/memory/memory_store_tool.dart';
 import 'package:baishou/agent/tools/memory/vector_search_tool.dart';
 import 'package:baishou/agent/tools/message/message_search_tool.dart';
@@ -26,7 +28,8 @@ List<AgentTool> builtInTools(Ref ref) {
   return [
     // ── 日记工具 ──
     DiaryReadTool(),
-    DiaryWriteTool(),
+    DiaryEditTool(),
+    DiaryDeleteTool(),
     DiaryListTool(),
     DiarySearchTool(ref.read(shadowIndexDatabaseProvider.notifier)),
 
@@ -41,8 +44,9 @@ List<AgentTool> builtInTools(Ref ref) {
       ref.read(agentDatabaseProvider),
     ),
 
-    // ── 记忆存储工具 ──
+    // ── 记忆存储 / 删除工具 ──
     MemoryStoreTool(),
+    MemoryDeleteTool(ref.read(agentDatabaseProvider)),
 
     // ── 网络搜索工具 ──
     WebSearchTool(),

@@ -4,6 +4,7 @@ import 'package:baishou/features/settings/presentation/pages/views/about_setting
 import 'package:baishou/features/settings/presentation/pages/views/appearance_settings_card.dart';
 import 'package:baishou/features/settings/presentation/pages/views/data_management_card.dart';
 import 'package:baishou/features/settings/presentation/pages/views/hotkey_settings_card.dart';
+import 'package:baishou/features/settings/presentation/pages/views/mcp_settings_card.dart';
 import 'package:baishou/features/settings/presentation/pages/views/profile_settings_card.dart';
 import 'package:baishou/features/settings/presentation/pages/views/storage_settings_card.dart';
 import 'package:flutter/material.dart';
@@ -25,6 +26,7 @@ class GeneralSettingsView extends ConsumerWidget {
         const ProfileSettingsCard(),
         const AppearanceSettingsCard(),
         if (isDesktop) const HotkeySettingsCard(),
+        if (isDesktop) const McpSettingsCard(),
         const StorageSettingsCard(),
         const DataManagementCard(),
         const AboutSettingsCard(),

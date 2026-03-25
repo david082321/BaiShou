@@ -37,6 +37,10 @@ class ApiConfigService {
   static const String _keyRagTopK = 'rag_top_k';
   static const String _keyRagSimilarityThreshold = 'rag_similarity_threshold';
 
+  // MCP Server 配置
+  static const String _keyMcpEnabled = 'mcp_server_enabled';
+  static const String _keyMcpPort = 'mcp_server_port';
+
   final SharedPreferences _prefs;
 
   ApiConfigService(this._prefs) {
@@ -516,6 +520,28 @@ class ApiConfigService {
     } catch (e) {
       throw Exception(t.ai_config.fetch_models_failed(e: e.toString()));
     }
+  }
+
+  // --- MCP Server 配置 ---
+
+  /// MCP Server 是否启用（默认关闭）
+  bool get mcpEnabled {
+    return _prefs.getBool(_keyMcpEnabled) ?? false;
+  }
+
+  /// 设置 MCP Server 启用状态
+  Future<void> setMcpEnabled(bool enabled) async {
+    await _prefs.setBool(_keyMcpEnabled, enabled);
+  }
+
+  /// MCP Server 端口（默认 31004）
+  int get mcpPort {
+    return _prefs.getInt(_keyMcpPort) ?? 31004;
+  }
+
+  /// 设置 MCP Server 端口
+  Future<void> setMcpPort(int port) async {
+    await _prefs.setInt(_keyMcpPort, port.clamp(1024, 65535));
   }
 
   // --- 兼容性占位符 (Legacy Support) ---

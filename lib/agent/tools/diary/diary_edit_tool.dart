@@ -1,4 +1,4 @@
-/// DiaryWriteTool — AI 写入/追加日记内容
+/// DiaryEditTool — AI 写入/追加/编辑日记内容
 ///
 /// Agent 通过此工具将内容写入指定日期的 Markdown 日记文件。
 /// 如果日记已存在，默认追加；可设置 overwrite 覆盖。
@@ -9,12 +9,12 @@ import 'package:baishou/agent/tools/agent_tool.dart';
 import 'package:baishou/i18n/strings.g.dart';
 import 'package:flutter/material.dart';
 
-class DiaryWriteTool extends AgentTool {
+class DiaryEditTool extends AgentTool {
   @override
-  String get id => 'diary_write';
+  String get id => 'diary_edit';
 
   @override
-  String get displayName => t.agent.tools.diary_write;
+  String get displayName => t.agent.tools.diary_edit;
 
   @override
   String get category => 'diary';
@@ -27,7 +27,7 @@ class DiaryWriteTool extends AgentTool {
 
   @override
   String get description =>
-      'Write or append content to a diary entry for a specific date. '
+      'Write, append, or edit content in a diary entry for a specific date. '
       'The diary file is a Markdown file located at Journals/YYYY/MM/YYYY-MM-DD.md. '
       'IMPORTANT: Always use diary_read first to check existing content before writing, '
       'to avoid overwriting important entries. '
@@ -43,7 +43,7 @@ class DiaryWriteTool extends AgentTool {
           'date': {
             'type': 'string',
             'description':
-                'The date of the diary to write, in YYYY-MM-DD format. '
+                'The date of the diary to edit, in YYYY-MM-DD format. '
                 'If omitted, the current date will be used.',
           },
           'content': {
@@ -146,7 +146,7 @@ class DiaryWriteTool extends AgentTool {
         );
       }
     } catch (e) {
-      return ToolResult.error('Failed to write diary: $e');
+      return ToolResult.error('Failed to edit diary: $e');
     }
   }
 }
