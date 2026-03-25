@@ -472,4 +472,3 @@ class _DiaryListPageState extends ConsumerState<DiaryListPage> {
     );
   }
 }
-

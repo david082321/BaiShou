@@ -4,9 +4,11 @@ import 'package:baishou/features/diary/data/repositories/diary_repository_impl.d
 import 'package:baishou/features/diary/presentation/widgets/markdown_toolbar.dart';
 import 'package:baishou/features/diary/presentation/widgets/tag_input_widget.dart';
 import 'package:baishou/core/database/tables/summaries.dart';
+import 'package:baishou/features/diary/presentation/pages/widgets/diary_editor_app_bar_title.dart';
+import 'package:baishou/features/diary/presentation/pages/widgets/diary_editor_content_area.dart';
+import 'package:baishou/features/diary/presentation/pages/widgets/diary_exit_dialog.dart';
 import 'package:baishou/features/summary/data/repositories/summary_repository_impl.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -360,7 +362,7 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
           return;
         }
 
-        final shouldPop = await _showExitConfirmation();
+        final shouldPop = await showDiaryExitConfirmationDialog(context);
         if (shouldPop && mounted) {
           context.pop();
         }
@@ -376,7 +378,26 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
                 icon: const Icon(Icons.arrow_back_ios_new),
                 onPressed: () => Navigator.maybePop(context),
               ),
-              title: _buildAppBarTitle(context),
+              title: DiaryEditorAppBarTitle(
+                isSummaryMode: _isSummaryMode,
+                summaryType: _summaryType,
+                selectedDate: _selectedDate,
+                summaryStartDate: _summaryStartDate,
+                summaryEndDate: _summaryEndDate,
+                onDateChanged: (date) {
+                  setState(() {
+                    _selectedDate = date;
+                    _isDirty = true;
+                  });
+                },
+                onSummaryDateChanged: (start, end) {
+                  setState(() {
+                    _summaryStartDate = start;
+                    _summaryEndDate = end;
+                    _isDirty = true;
+                  });
+                },
+              ),
               actions: [
                 Padding(
                   padding: const EdgeInsets.only(left: 8, right: 16),
@@ -417,106 +438,10 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
 
                             const SizedBox(height: 16),
 
-                            // 内容：在编辑和预览之间切换
-                            if (_isPreview)
-                              _contentController.text.trim().isEmpty
-                                  ? Padding(
-                                      padding: const EdgeInsets.only(top: 24),
-                                      child: Center(
-                                        child: Text(
-                                          t.diary.no_content_preview,
-                                          style: TextStyle(
-                                            color: Colors.grey[400],
-                                            fontSize: 14,
-                                          ),
-                                        ),
-                                      ),
-                                    )
-                                  : MarkdownBody(
-                                      data: _contentController.text,
-                                      selectable: true,
-                                      styleSheet: MarkdownStyleSheet(
-                                        p: TextStyle(
-                                          fontSize: 16,
-                                          height: 1.6,
-                                          color: Theme.of(
-                                            context,
-                                          ).textTheme.bodyLarge?.color,
-                                        ),
-                                        h1: TextStyle(
-                                          fontSize: 24,
-                                          fontWeight: FontWeight.bold,
-                                          color: Theme.of(
-                                            context,
-                                          ).textTheme.bodyLarge?.color,
-                                        ),
-                                        h2: TextStyle(
-                                          fontSize: 20,
-                                          fontWeight: FontWeight.bold,
-                                          color: Theme.of(
-                                            context,
-                                          ).textTheme.bodyLarge?.color,
-                                        ),
-                                        h3: TextStyle(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.w600,
-                                          color: Theme.of(
-                                            context,
-                                          ).textTheme.bodyLarge?.color,
-                                        ),
-                                        code: TextStyle(
-                                          fontSize: 14,
-                                          backgroundColor: Theme.of(
-                                            context,
-                                          ).colorScheme.surfaceContainerHighest,
-                                          color: AppTheme.primary,
-                                        ),
-                                        codeblockDecoration: BoxDecoration(
-                                          color: Theme.of(
-                                            context,
-                                          ).colorScheme.surfaceContainerHighest,
-                                          borderRadius: BorderRadius.circular(
-                                            8,
-                                          ),
-                                        ),
-                                        blockquoteDecoration: BoxDecoration(
-                                          border: Border(
-                                            left: BorderSide(
-                                              color: AppTheme.primary
-                                                  .withOpacity(0.5),
-                                              width: 3,
-                                            ),
-                                          ),
-                                        ),
-                                        listBullet: TextStyle(
-                                          fontSize: 16,
-                                          color: Theme.of(
-                                            context,
-                                          ).textTheme.bodyLarge?.color,
-                                        ),
-                                        checkbox: TextStyle(
-                                          color: AppTheme.primary,
-                                        ),
-                                      ),
-                                    )
-                            else
-                              TextField(
-                                controller: _contentController,
-                                maxLines: null,
-                                minLines: 10,
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  height: 1.6,
-                                  color: Theme.of(
-                                    context,
-                                  ).textTheme.bodyLarge?.color,
-                                ),
-                                decoration: InputDecoration(
-                                  hintText: t.diary.editor_hint,
-                                  hintStyle: TextStyle(color: Colors.grey[400]),
-                                  border: InputBorder.none,
-                                ),
-                              ),
+                            DiaryEditorContentArea(
+                              isPreview: _isPreview,
+                              contentController: _contentController,
+                            ),
                           ],
                         ),
                       ),
@@ -565,300 +490,5 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
         ],
       ),
     );
-  }
-
-  // ─── 总结日期逻辑 ─────────────────────────────
-
-  /// 构建 AppBar 标题
-  /// 总结模式显示周期类型和日期范围；日记模式显示星期、时间和日期。
-  Widget _buildAppBarTitle(BuildContext context) {
-    if (_isSummaryMode && _summaryType != null) {
-      String dateText = '';
-      String subText = '';
-
-      switch (_summaryType!) {
-        case SummaryType.weekly:
-          subText = t.summary.stats_weekly;
-          if (_summaryStartDate != null && _summaryEndDate != null) {
-            dateText =
-                '${_summaryStartDate!.month}.${_summaryStartDate!.day} - ${_summaryEndDate!.month}.${_summaryEndDate!.day}';
-          }
-          break;
-        case SummaryType.monthly:
-          subText = t.summary.stats_monthly;
-          if (_summaryStartDate != null) {
-            dateText =
-                '${_summaryStartDate!.year}${t.common.year_suffix} ${_summaryStartDate!.month}${t.common.month_suffix}';
-          }
-          break;
-        case SummaryType.quarterly:
-          subText = t.summary.stats_quarterly;
-          if (_summaryStartDate != null) {
-            final q = (_summaryStartDate!.month / 3).ceil();
-            dateText =
-                '${_summaryStartDate!.year}${t.common.year_suffix} ${t.common.quarter_prefix}$q';
-          }
-          break;
-        case SummaryType.yearly:
-          subText = t.summary.stats_yearly;
-          if (_summaryStartDate != null) {
-            dateText = '${_summaryStartDate!.year}${t.common.year_suffix}';
-          }
-          break;
-      }
-
-      return GestureDetector(
-        onTap: _pickSummaryDate,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              subText,
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey[600],
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              dateText,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 0.5,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    // 默认日记标题
-    final dateStr = DateFormat(
-      t.diary.date_format_editor,
-    ).format(_selectedDate);
-    final weekDay = DateFormat(
-      'EEEE',
-      LocaleSettings.instance.currentLocale.languageCode,
-    ).format(_selectedDate);
-
-    return GestureDetector(
-      onTap: _pickDate,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            weekDay,
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey[600],
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            dateStr,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 0.5,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _pickDate() async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: _selectedDate,
-      firstDate: DateTime(2000),
-      lastDate: DateTime(2100),
-    );
-    if (picked != null && picked != _selectedDate) {
-      setState(() {
-        _selectedDate = picked;
-        _isDirty = true;
-      });
-    }
-  }
-
-  Future<void> _pickSummaryDate() async {
-    if (_summaryType == null) return;
-
-    final now = DateTime.now();
-    switch (_summaryType!) {
-      case SummaryType.weekly:
-        final result = await showDateRangePicker(
-          context: context,
-          firstDate: DateTime(2020),
-          lastDate: DateTime(2030),
-          initialDateRange:
-              (_summaryStartDate != null && _summaryEndDate != null)
-              ? DateTimeRange(start: _summaryStartDate!, end: _summaryEndDate!)
-              : null,
-        );
-        if (result != null) {
-          setState(() {
-            _summaryStartDate = result.start;
-            _summaryEndDate = result.end;
-            _isDirty = true;
-          });
-        }
-        break;
-
-      case SummaryType.monthly:
-        final date = await showDatePicker(
-          context: context,
-          firstDate: DateTime(2020),
-          lastDate: DateTime(2030),
-          initialDate: _summaryStartDate ?? now,
-          initialDatePickerMode: DatePickerMode.year,
-          helpText: t.diary.select_month,
-        );
-        if (date != null) {
-          setState(() {
-            _summaryStartDate = DateTime(date.year, date.month, 1);
-            _summaryEndDate = DateTime(
-              date.year,
-              date.month + 1,
-              0,
-            ); // End of month
-            _isDirty = true;
-          });
-        }
-        break;
-
-      case SummaryType.quarterly:
-        // 简单的季度选择逻辑
-        int year = _summaryStartDate?.year ?? now.year;
-        int quarter = _summaryStartDate != null
-            ? (_summaryStartDate!.month / 3).ceil()
-            : 1;
-
-        await showDialog(
-          context: context,
-          builder: (ctx) => StatefulBuilder(
-            builder: (context, setDialogState) {
-              return AlertDialog(
-                title: Text(t.diary.select_quarter),
-                content: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    DropdownButton<int>(
-                      value: year,
-                      items: List.generate(10, (i) => 2020 + i)
-                          .map(
-                            (y) => DropdownMenuItem(
-                              value: y,
-                              child: Text('$y${t.common.year_suffix}'),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (v) => setDialogState(() => year = v!),
-                    ),
-                    const SizedBox(height: 16),
-                    Wrap(
-                      spacing: 8,
-                      children: [1, 2, 3, 4]
-                          .map(
-                            (q) => ChoiceChip(
-                              label: Text('Q$q'),
-                              selected: quarter == q,
-                              onSelected: (b) {
-                                if (b) setDialogState(() => quarter = q);
-                              },
-                            ),
-                          )
-                          .toList(),
-                    ),
-                  ],
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: Text(t.common.cancel),
-                  ),
-                  TextButton(
-                    onPressed: () {
-                      setState(() {
-                        _summaryStartDate = DateTime(
-                          year,
-                          (quarter - 1) * 3 + 1,
-                          1,
-                        );
-                        _summaryEndDate = DateTime(
-                          year,
-                          (quarter - 1) * 3 + 3 + 1,
-                          0,
-                        ); // End of quarter
-                        _isDirty = true;
-                      });
-                      Navigator.pop(context);
-                    },
-                    child: Text(t.common.confirm),
-                  ),
-                ],
-              );
-            },
-          ),
-        );
-        break;
-
-      case SummaryType.yearly:
-        showDialog(
-          context: context,
-          builder: (BuildContext context) {
-            return AlertDialog(
-              title: Text(t.summary.filter_year),
-              content: SizedBox(
-                width: 300,
-                height: 300,
-                child: YearPicker(
-                  firstDate: DateTime(2020),
-                  lastDate: DateTime(2030),
-                  selectedDate: _summaryStartDate ?? now,
-                  onChanged: (DateTime dateTime) {
-                    setState(() {
-                      _summaryStartDate = DateTime(dateTime.year, 1, 1);
-                      _summaryEndDate = DateTime(dateTime.year, 12, 31);
-                      _isDirty = true;
-                    });
-                    Navigator.pop(context);
-                  },
-                ),
-              ),
-            );
-          },
-        );
-        break;
-    }
-  }
-
-  /// 显示退出确认对话框
-  Future<bool> _showExitConfirmation() async {
-    final result = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(t.diary.exit_without_saving),
-        content: Text(t.diary.exit_confirmation_hint),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(t.common.cancel),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(
-              foregroundColor: Theme.of(context).colorScheme.error,
-            ),
-            child: Text(t.diary.exit_without_saving_confirm),
-          ),
-        ],
-      ),
-    );
-    return result ?? false;
   }
 }

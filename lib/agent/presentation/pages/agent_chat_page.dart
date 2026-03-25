@@ -10,7 +10,6 @@ import 'package:baishou/agent/session/session_manager.dart';
 import 'package:baishou/agent/presentation/notifiers/agent_chat_notifier.dart';
 import 'package:baishou/agent/presentation/notifiers/assistant_notifier.dart';
 import 'package:baishou/agent/presentation/widgets/assistant_picker_sheet.dart';
-import 'package:baishou/agent/presentation/widgets/chat_cost_dialog.dart';
 import 'package:baishou/agent/presentation/widgets/chat_input_bar.dart';
 import 'package:baishou/agent/presentation/widgets/chat_message_bubble.dart';
 import 'package:baishou/agent/presentation/widgets/model_switcher_popup.dart';
@@ -20,6 +19,10 @@ import 'package:baishou/i18n/strings.g.dart';
 import 'package:baishou/core/widgets/app_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:baishou/agent/presentation/pages/widgets/agent_chat_app_bar.dart';
+import 'package:baishou/agent/presentation/pages/widgets/agent_chat_empty_state.dart';
+import 'package:baishou/agent/presentation/pages/widgets/agent_chat_error_panel.dart';
+import 'package:baishou/agent/presentation/pages/helpers/agent_chat_message_grouper.dart';
 
 class AgentChatPage extends ConsumerStatefulWidget {
   final String? sessionId;
@@ -129,102 +132,20 @@ class _AgentChatPageState extends ConsumerState<AgentChatPage> {
         && MediaQuery.of(context).size.width < 700;
 
     return Scaffold(
-      appBar: AppBar(
-        leading: isMobile
-            ? IconButton(
-                icon: const Icon(Icons.menu_rounded),
-                onPressed: () => Scaffold.of(context).openDrawer(),
-              )
-            : null,
-        automaticallyImplyLeading: false,
-        title: GestureDetector(
-          onTap: () => _showModelSwitcher(context, ref, chatState),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (currentModel.isNotEmpty || assistantName != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 2),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Flexible(
-                        child: Text(
-                          [
-                            if (assistantName != null) '✨ $assistantName',
-                            if (currentModel.isNotEmpty) currentModel,
-                          ].join(' · '),
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            color: theme.colorScheme.outline,
-                            fontSize: 10,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                      Icon(
-                        Icons.unfold_more,
-                        size: 14,
-                        color: theme.colorScheme.outline,
-                      ),
-                    ],
-                  ),
-                ),
-            ],
-          ),
-        ),
-        centerTitle: true,
-        elevation: 0,
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1),
-          child: Container(
-            height: 1,
-            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
-          ),
-        ),
-        actions: [
-          if (chatState.totalCostMicros > 0 || chatState.totalInputTokens > 0)
-            Padding(
-              padding: const EdgeInsets.only(right: 16.0),
-              child: Center(
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(6),
-                  onTap: () => showCostDetailDialog(context, chatState),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.surfaceContainerHighest
-                          .withValues(alpha: 0.5),
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(
-                        color: theme.colorScheme.outlineVariant.withValues(
-                          alpha: 0.3,
-                        ),
-                      ),
-                    ),
-                    child: Text(
-                      '\$${(chatState.totalCostMicros / 1000000).toStringAsFixed(4)}',
-                      style: theme.textTheme.labelMedium?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                        fontWeight: FontWeight.bold,
-                        fontFamily: 'RobotoMono',
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-        ],
+      appBar: AgentChatAppBar(
+        isMobile: isMobile,
+        assistantName: assistantName,
+        currentModel: currentModel,
+        chatState: chatState,
+        onMenuTap: isMobile ? () => Scaffold.of(context).openDrawer() : null,
+        onTitleTap: () => _showModelSwitcher(context, ref, chatState),
       ),
       body: Column(
         children: [
           // 消息列表
           Expanded(
             child: chatState.messages.isEmpty && !chatState.isLoading
-                ? _buildEmptyState(theme)
+                ? const AgentChatEmptyState()
                 : Stack(
                     children: [
                       ListView.builder(
@@ -233,7 +154,7 @@ class _AgentChatPageState extends ConsumerState<AgentChatPage> {
                         cacheExtent: 999999, // 极大 cacheExtent 解决超长消息 Scrollbar 预估跳动问题
                         padding: const EdgeInsets.only(top: 20, bottom: 20),
                         itemCount:
-                            _buildDisplayItems(chatState).length +
+                            AgentChatMessageGrouper.buildDisplayItems(chatState).length +
                             (chatState.isLoading ? 1 : 0) +
                             (chatState.hasMore ? 1 : 0),
                         itemBuilder: (context, idx) {
@@ -252,10 +173,10 @@ class _AgentChatPageState extends ConsumerState<AgentChatPage> {
                           }
 
                           // 2. 正常渲染处理好的 UI 项（此时 displayItems 是随着 reverse ListView 呈倒序的）
-                          final displayItems = _buildDisplayItems(chatState);
+                          final displayItems = AgentChatMessageGrouper.buildDisplayItems(chatState);
                           if (index < displayItems.length) {
                             final item = displayItems[index];
-                            if (item is _ToolGroup) {
+                            if (item is ToolGroup) {
                               return ToolResultGroup(
                                 key: ValueKey('tg_${item.messages.first.id}'),
                                 messages: item.messages,
@@ -335,67 +256,21 @@ class _AgentChatPageState extends ConsumerState<AgentChatPage> {
 
           // 错误提示 + 重试按钮
           if (chatState.error != null)
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.errorContainer,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.error_outline_rounded,
-                        size: 16,
-                        color: theme.colorScheme.onErrorContainer,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          _friendlyError(chatState.error!),
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onErrorContainer,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: TextButton.icon(
-                      onPressed: chatState.isLoading
-                          ? null
-                          : () {
-                              final lastUserMsg = chatState.messages.lastWhere(
-                                (m) => m.role == MessageRole.user,
-                                orElse: () => ChatMessage.user(''),
-                              );
-                              if (lastUserMsg.id.isNotEmpty &&
-                                  lastUserMsg.content?.isNotEmpty == true) {
-                                ref
-                                    .read(agentChatProvider.notifier)
-                                    .resendUserMessage(lastUserMsg.id);
-                              }
-                            },
-                      icon: const Icon(Icons.refresh_rounded, size: 16),
-                      label: Text(t.agent.chat.retry),
-                      style: TextButton.styleFrom(
-                        foregroundColor: theme.colorScheme.onErrorContainer,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 4,
-                        ),
-                        visualDensity: VisualDensity.compact,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+            AgentChatErrorPanel(
+              error: chatState.error!,
+              isLoading: chatState.isLoading,
+              onRetry: () {
+                final lastUserMsg = chatState.messages.lastWhere(
+                  (m) => m.role == MessageRole.user,
+                  orElse: () => ChatMessage.user(''),
+                );
+                if (lastUserMsg.id.isNotEmpty &&
+                    lastUserMsg.content?.isNotEmpty == true) {
+                  ref
+                      .read(agentChatProvider.notifier)
+                      .resendUserMessage(lastUserMsg.id);
+                }
+              },
             ),
 
           ChatInputBar(
@@ -539,193 +414,5 @@ class _AgentChatPageState extends ConsumerState<AgentChatPage> {
     }
   }
 
-  Widget _buildEmptyState(ThemeData theme) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          // 渐变背景圆形图标
-          Container(
-            width: 88,
-            height: 88,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  theme.colorScheme.primaryContainer.withValues(alpha: 0.4),
-                  theme.colorScheme.primary.withValues(alpha: 0.15),
-                ],
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                  blurRadius: 24,
-                  spreadRadius: 4,
-                ),
-              ],
-            ),
-            child: Icon(
-              Icons.auto_awesome_rounded,
-              size: 38,
-              color: theme.colorScheme.primary.withValues(alpha: 0.7),
-            ),
-          ),
-          const SizedBox(height: 24),
-          Text(
-            t.agent.chat.start_chat,
-            style: theme.textTheme.titleMedium?.copyWith(
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            t.agent.chat.empty_hint,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.outline.withValues(alpha: 0.6),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// 将原始错误信息转换为用户友好的提示
-  String _friendlyError(String raw) {
-    // 使用正则匹配 HTTP 状态码（避免误匹配端口号/时间戳等）
-    final statusMatch = RegExp(
-      r'(?:status\s*(?:code)?|HTTP)\s*:?\s*(\d{3})',
-    ).firstMatch(raw);
-    final statusCode = statusMatch != null
-        ? int.tryParse(statusMatch.group(1)!)
-        : null;
-
-    String? friendly;
-    if (statusCode != null) {
-      if (statusCode == 400) friendly = t.agent.chat.err_format;
-      if (statusCode == 401 || statusCode == 403) {
-        friendly = t.agent.chat.err_unauthorized;
-      }
-      if (statusCode == 429) friendly = t.agent.chat.err_too_many_requests;
-      if (statusCode >= 500 && statusCode <= 503) {
-        friendly = t.agent.chat.err_server;
-      }
-    }
-    if (raw.contains('timeout') || raw.contains('TimeoutException')) {
-      friendly = t.agent.chat.err_timeout;
-    }
-    if (raw.contains('SocketException') || raw.contains('Connection refused')) {
-      friendly = t.agent.chat.err_network;
-    }
-
-    // 拼接友好提示 + 原始错误（方便排查）
-    final truncated = raw.length > 200 ? '${raw.substring(0, 200)}...' : raw;
-    return friendly != null ? '$friendly\n$truncated' : truncated;
-  }
-
-  /// 将消息列表预处理为展示项
-  ///
-  /// 核心逻辑：把 「空内容 assistant(toolCalls) + tool 结果」 这种连续序列
-  /// 合并为一个 _ToolGroup，这样多次工具调用不会拆分成多个独立卡片。
-  ///
-  /// 同时从 assistant 的 toolCalls 中提取工具名，回填到 tool 结果消息上
-  /// （兼容旧数据）。
-  List<Object> _buildDisplayItems(AgentChatState chatState) {
-    if (chatState.messages.isEmpty) return [];
-
-    final items = <Object>[];
-    // chatState.messages 目前是按时间倒序的（最新在 0）。
-    // 为了和原有的合并连续工具调用的顺时逻辑保持高度一致，我们先将其翻转为正序（先发生在前，即 index=0）。
-    final messages = chatState.messages.reversed.toList();
-
-    for (var i = 0; i < messages.length; i++) {
-      final msg = messages[i];
-
-      // 检测到空内容 assistant（仅包含 toolCalls）或 tool 消息
-      // → 开始收集一组工具调用
-      if (_isToolRelated(msg)) {
-        final toolGroup = <ChatMessage>[];
-
-        while (i < messages.length && _isToolRelated(messages[i])) {
-          final current = messages[i];
-
-          if (current.role == MessageRole.assistant &&
-              current.toolCalls != null &&
-              current.toolCalls!.isNotEmpty) {
-            // 这是一个空内容 assistant 消息，包含 toolCalls 信息
-            // 向后查找对应的 tool 结果并回填工具名
-            final callMap = {
-              for (final call in current.toolCalls!) call.id: call.name,
-            };
-
-            // 向后扫描紧邻的 tool 消息
-            i++;
-            while (i < messages.length &&
-                messages[i].role == MessageRole.tool) {
-              final toolMsg = messages[i];
-              // 如果 toolName 为空，从 callMap 中回填
-              if (toolMsg.toolName == null || toolMsg.toolName!.isEmpty) {
-                final resolvedName =
-                    callMap[toolMsg.toolCallId] ?? toolMsg.toolName;
-                // 创建带工具名的副本（避免修改原对象）
-                toolGroup.add(
-                  ChatMessage(
-                    id: toolMsg.id,
-                    role: toolMsg.role,
-                    content: toolMsg.content,
-                    toolCallId: toolMsg.toolCallId,
-                    toolName: resolvedName,
-                    timestamp: toolMsg.timestamp,
-                  ),
-                );
-              } else {
-                toolGroup.add(toolMsg);
-              }
-              i++;
-            }
-            // 不 i++，因为 while 已经移动了
-          } else if (current.role == MessageRole.tool) {
-            // 单独的 tool 消息（没有前置 assistant）
-            toolGroup.add(current);
-            i++;
-          } else {
-            break;
-          }
-        }
-
-        if (toolGroup.isNotEmpty) {
-          items.add(_ToolGroup(toolGroup));
-        }
-        // i 现在指向下一个非工具消息，但 for 的 i++ 还会执行，所以回退一步
-        i--;
-      } else {
-        items.add(msg);
-      }
-    }
-
-    // 最后，将合并好工具调用的 items 再次翻转回倒序，供 ListView(reverse: true) 使用
-    return items.reversed.toList();
-  }
-
-  /// 判断消息是否属于工具调用序列的一部分
-  bool _isToolRelated(ChatMessage msg) {
-    if (msg.role == MessageRole.tool) return true;
-    // assistant 消息只要包含 toolCalls 就属于工具序列
-    // （即使有文本内容如"让我搜索一下…"，也合入工具分组而不单独成泡）
-    if (msg.role == MessageRole.assistant &&
-        msg.toolCalls != null &&
-        msg.toolCalls!.isNotEmpty) {
-      return true;
-    }
-    return false;
-  }
-}
-
-/// 连续工具消息的分组标记
-class _ToolGroup {
-  final List<ChatMessage> messages;
-  const _ToolGroup(this.messages);
 }
 

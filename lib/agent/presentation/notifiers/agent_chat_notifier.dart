@@ -14,24 +14,22 @@ import 'package:baishou/agent/models/ai_provider_model.dart';
 import 'package:baishou/agent/models/chat_message.dart';
 import 'package:baishou/agent/models/message_attachment.dart';
 import 'package:baishou/agent/runner/agent_runner.dart';
-import 'package:baishou/agent/session/compression_service.dart';
-import 'package:baishou/agent/session/context_window.dart';
 import 'package:baishou/agent/session/session_manager.dart';
 import 'package:baishou/agent/tools/agent_tool.dart';
 import 'package:baishou/agent/tools/tool_repository.dart';
 import 'package:baishou/agent/database/agent_database.dart';
 import 'package:baishou/agent/session/assistant_repository.dart';
 import 'package:baishou/agent/rag/embedding_service.dart';
-import 'package:baishou/agent/prompts/system_prompt_builder.dart';
 import 'package:baishou/agent/presentation/notifiers/agent_chat_state.dart';
 import 'package:baishou/agent/presentation/notifiers/model_resolver.dart';
 import 'package:baishou/agent/presentation/notifiers/chat_side_effects.dart';
+import 'package:baishou/agent/presentation/notifiers/helpers/agent_context_builder.dart';
+import 'package:baishou/agent/presentation/notifiers/helpers/agent_stream_handler.dart';
 import 'package:baishou/core/services/api_config_service.dart';
 import 'package:baishou/core/storage/storage_path_provider.dart';
 import 'package:baishou/core/storage/vault_service.dart';
 import 'package:baishou/features/diary/data/vault_index_notifier.dart';
 import 'package:baishou/features/index/data/shadow_index_sync_service.dart';
-import 'package:baishou/features/settings/domain/services/user_profile_service.dart';
 import 'package:baishou/agent/rag/memory_deduplication_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -384,117 +382,35 @@ class AgentChatNotifier extends _$AgentChatNotifier {
     String? persona,
     String? guidelines,
   }) async {
-    final manager = ref.read(sessionManagerProvider);
-    final apiConfig = ref.read(apiConfigServiceProvider);
-    final tools = _buildToolRegistry();
-
-    // 解析 System Prompt
-    String? resolvedPersona;
-    int? assistantContextWindow;
-    bool hasAssistant = false;
-
-    final db = ref.read(agentDatabaseProvider);
-    final assistantRepo = ref.read(assistantRepositoryProvider);
-    final session = await (db.select(
-      db.agentSessions,
-    )..where((t) => t.id.equals(sessionId))).getSingleOrNull();
-    if (session?.assistantId != null) {
-      final assistant = await assistantRepo.get(session!.assistantId!);
-      if (assistant != null) {
-        hasAssistant = true;
-        resolvedPersona = assistant.systemPrompt.isNotEmpty
-            ? assistant.systemPrompt
-            : null;
-        assistantContextWindow = assistant.contextWindow;
-      }
-    }
-
-    if (!hasAssistant) {
-      resolvedPersona = persona ?? apiConfig.agentPersona;
-    }
-
-    // 读取用户身份卡
-    final userProfile = ref.read(userProfileProvider);
-
-    final systemPrompt = SystemPromptBuilder.build(
-      persona: resolvedPersona,
-      guidelines: hasAssistant
-          ? null
-          : (guidelines ?? apiConfig.agentGuidelines),
-      userProfileBlock: userProfile.toMarkdownBlock(),
-      vaultName: vaultName,
-      tools: tools,
-    );
-
-    // 创建 Agent Runner
-    final client = AiClientFactory.createClient(provider);
-    final runner = AgentRunner(
-      client: client,
-      tools: tools,
-      config: AgentConfig(
-        modelId: modelId,
-        systemPrompt: systemPrompt,
-        enableWebSearch: provider.webSearchMode == WebSearchMode.builtin,
-      ),
-    );
-
-    // 滑动窗口上下文
-    final windowSize =
-        assistantContextWindow ?? apiConfig.agentContextWindowSize;
-    final dbMessages = await manager.getMessages(
-      sessionId,
-      limit: windowSize,
-      descending: true,
-    );
-
-    final compressor = ref.read(compressionServiceProvider);
-    final snapshot = await compressor.getLatestSnapshot(sessionId);
-    String? compressionSummary;
-
-    List<ChatMessage> messagesForWindow = dbMessages
-        .where((m) => m.role != MessageRole.system)
-        .toList()
-        .reversed
-        .toList();
-
-    if (snapshot != null) {
-      final cutoffIndex = messagesForWindow.indexWhere(
-        (m) => m.id == snapshot.coveredUpToMessageId,
-      );
-      if (cutoffIndex >= 0 && cutoffIndex < messagesForWindow.length - 1) {
-        messagesForWindow = messagesForWindow.sublist(cutoffIndex + 1);
-        compressionSummary = snapshot.summaryText;
-      }
-    }
-
-    final contextMessages = ContextWindow.fromMemory(
-      messages: messagesForWindow,
-      config: ContextWindowConfig(recentCount: windowSize),
-      compressionSummary: compressionSummary,
-    );
-
-    // 构建工具上下文（合并全局 RAG 参数和 per-tool 用户配置）
-    final toolUserConfig = <String, dynamic>{
-      'rag_top_k': apiConfig.ragTopK,
-      'rag_similarity_threshold': apiConfig.ragSimilarityThreshold,
-    };
-    // 合并所有已启用工具的用户配置（例如 web_search 的 engine、max_results）
-    for (final tool in tools.ids) {
-      final perToolConfig = apiConfig.getToolConfig(tool);
-      if (perToolConfig.isNotEmpty) {
-        toolUserConfig.addAll(perToolConfig);
-      }
-    }
-
     try {
-      final assistantMessages = <ChatMessage>[];
+      // 1. 组装环境与上下文
+      final prep = await AgentContextBuilder.build(
+        ref: ref,
+        sessionId: sessionId,
+        vaultName: vaultName,
+        persona: persona,
+        guidelines: guidelines,
+      );
 
-      await for (final event in runner.run(
-        messages: contextMessages,
+      // 2. 创建 Runner
+      final client = AiClientFactory.createClient(provider);
+      final runner = AgentRunner(
+        client: client,
+        tools: prep.tools,
+        config: AgentConfig(
+          modelId: modelId,
+          systemPrompt: prep.systemPrompt,
+          enableWebSearch: provider.webSearchMode == WebSearchMode.builtin,
+        ),
+      );
+
+      // 3. 构建 ToolContext 并生成流
+      final stream = runner.run(
+        messages: prep.contextMessages,
         context: ToolContext(
           sessionId: sessionId,
           vaultPath: vaultPath,
-          userConfig: toolUserConfig,
+          userConfig: prep.toolUserConfig,
           embeddingService: EmbeddingService(
             ref.read(apiConfigServiceProvider),
             ref.read(agentDatabaseProvider),
@@ -506,169 +422,25 @@ class AgentChatNotifier extends _$AgentChatNotifier {
           ),
         ),
         askId: askId,
-      )) {
-        if (_currentRunId != runId) return;
+      );
 
-        final currentState = _getSessionState(sessionId);
-
-        switch (event) {
-          case AgentTextDelta(:final text):
-            _updateSessionCache(
-              sessionId,
-              currentState.copyWith(
-                streamingText: currentState.streamingText + text,
-              ),
-            );
-            break;
-
-          case AgentToolStart(:final toolCall):
-            _updateSessionCache(
-              sessionId,
-              currentState.copyWith(activeToolName: () => toolCall.name),
-            );
-            break;
-
-          case AgentToolComplete(:final toolCall, :final result, :final durationMs):
-            _updateSessionCache(
-              sessionId,
-              currentState.copyWith(
-                activeToolName: () => null,
-                completedTools: [
-                  ...currentState.completedTools,
-                  ToolExecution(name: toolCall.name, durationMs: durationMs),
-                ],
-              ),
-            );
-
-            // 日记编辑/删除成功后，异步刷新索引使日记页面即时可见
-            if ((toolCall.name == 'diary_edit' || toolCall.name == 'diary_delete') 
-                && result.success) {
-              _refreshDiaryIndexAfterWrite(toolCall.arguments);
-            }
-            break;
-
-          case AgentComplete(:final text, :final messages, :final usage):
-            assistantMessages.addAll(messages);
-
-            final annotatedMessages = <ChatMessage>[];
-            for (final msg in assistantMessages) {
-              if (msg.role == MessageRole.assistant &&
-                  msg.content != null &&
-                  msg.content!.isNotEmpty) {
-                annotatedMessages.add(
-                  msg.withUsage(
-                    inputTokens: usage?.inputTokens,
-                    outputTokens: usage?.outputTokens,
-                    contextMessages: List.unmodifiable(contextMessages),
-                  ),
-                );
-              } else {
-                annotatedMessages.add(msg);
-              }
-            }
-
-            if (annotatedMessages.isNotEmpty) {
-              await manager.addMessages(
-                sessionId,
-                annotatedMessages,
-                providerId: providerId,
-                modelId: modelId,
-              );
-            }
-
-            final latestState = _getSessionState(sessionId);
-            final newInputTokens =
-                latestState.totalInputTokens + (usage?.inputTokens ?? 0);
-            final newOutputTokens =
-                latestState.totalOutputTokens + (usage?.outputTokens ?? 0);
-
-            _updateSessionCache(
-              sessionId,
-              latestState.copyWith(
-                messages: [
-                  ...annotatedMessages.reversed,
-                  ...latestState.messages,
-                ],
-                streamingText: '',
-                isLoading: false,
-                activeToolName: () => null,
-                completedTools: const [],
-                totalInputTokens: newInputTokens,
-                totalOutputTokens: newOutputTokens,
-                lastInputTokens: usage?.inputTokens ?? latestState.lastInputTokens,
-              ),
-            );
-
-            // 异步副作用：标题生成
-            if (isNewSession && text.isNotEmpty) {
-              ChatTitleService.generate(
-                client: client,
-                modelId: modelId,
-                userMessage: userMessageContent,
-                assistantReply: text,
-                sessionId: sessionId,
-                manager: manager,
-              );
-            }
-
-            // 异步副作用：费用计算
-            if (usage != null) {
-              ChatCostService.saveUsageAndUpdateCost(
-                providerId: providerId,
-                modelId: modelId,
-                usage: usage,
-                sessionId: sessionId,
-                manager: manager,
-                currentState: _getSessionState(sessionId),
-                annotatedMessages: annotatedMessages,
-                onStateUpdate: (newState) =>
-                    _updateSessionCache(sessionId, newState),
-              );
-            }
-
-            // 异步副作用：压缩检查
-            if (usage != null && session?.assistantId != null) {
-              final assist = await assistantRepo.get(session!.assistantId!);
-              final threshold = assist?.compressTokenThreshold ?? 0;
-              if (threshold > 0) {
-                final currentContextTokens = usage.inputTokens;
-                final needs = compressor.shouldCompress(
-                  currentContextTokens,
-                  threshold,
-                );
-                if (needs) {
-                  () async {
-                    try {
-                      await compressor.compress(
-                        sessionId,
-                        threshold: threshold,
-                        keepTurns: assist?.compressKeepTurns,
-                      );
-                    } catch (e) {
-                      debugPrint('CompressionService: Error: $e');
-                    }
-                  }();
-                }
-              }
-            }
-            break;
-
-          case AgentError(:final error):
-            _updateSessionCache(
-              sessionId,
-              currentState.copyWith(
-                error: () => error.toString(),
-                isLoading: false,
-                streamingText: '',
-                activeToolName: () => null,
-              ),
-            );
-            break;
-
-          case AgentStepInfo():
-            break;
-        }
-      }
+      // 4. 重定向流到处理程序
+      await AgentStreamHandler.handleStream(
+        ref: ref,
+        stream: stream,
+        sessionId: sessionId,
+        runId: runId,
+        getCurrentRunId: () => _currentRunId,
+        getSessionState: _getSessionState,
+        updateSessionState: _updateSessionCache,
+        providerId: providerId,
+        modelId: modelId,
+        isNewSession: isNewSession,
+        userMessageContent: userMessageContent,
+        contextMessages: prep.contextMessages,
+        client: client,
+        onDiaryWriteSuccess: _refreshDiaryIndexAfterWrite,
+      );
     } catch (e) {
       debugPrint('AgentChatNotifier error: $e');
       final currentState = _getSessionState(sessionId);
@@ -713,10 +485,6 @@ class AgentChatNotifier extends _$AgentChatNotifier {
   // ========================================================================
   // 内部工具方法
   // ========================================================================
-
-  ToolRegistry _buildToolRegistry() {
-    return ref.read(toolRepositoryProvider.notifier).buildRegistry();
-  }
 
   void _updateSessionCache(String sessionId, AgentChatState newState) {
     _sessionStateCache[sessionId] = newState;
