@@ -76,7 +76,7 @@ class _MainScaffoldState extends ConsumerState<MainScaffold>
       final oldIndex = oldWidget.navigationShell.currentIndex;
       final newIndex = widget.navigationShell.currentIndex;
       // 仅在进出 Agent（大 Tab 切换）时触发渐变，侧边栏切换不需要
-      if (oldIndex == 4 || newIndex == 4) {
+      if (oldIndex == 1 || newIndex == 1) {
         _overlayController.value = 1.0;
         _overlayController.reverse();
       }
@@ -110,7 +110,7 @@ class _MainScaffoldState extends ConsumerState<MainScaffold>
 
   Widget _buildDesktopLayout(BuildContext context) {
     final theme = Theme.of(context);
-    final isAgent = widget.navigationShell.currentIndex == 4;
+    final isAgent = widget.navigationShell.currentIndex == 1;
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,

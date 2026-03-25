@@ -110,6 +110,8 @@ class DataArchiveManager extends _$DataArchiveManager {
       debugPrint('DataArchiveManager Import Error: $e');
       // 即使发生异常也尽力去恢复并重建索引，避免状态进入死锁
       try {
+        ref.read(summarySyncServiceProvider.notifier).setSyncEnabled(true);
+        shadowIndexSyncService.setSyncEnabled(true);
         await shadowIndexSyncService.fullScanVault();
         await vaultIndex.forceReload();
       } catch (_) {}

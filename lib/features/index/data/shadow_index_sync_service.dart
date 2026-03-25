@@ -97,6 +97,7 @@ class ShadowIndexSyncService extends _$ShadowIndexSyncService {
 
     // 订阅目录删除信号：整个月份文件夹被删除时，执行全量扫描清理孤立索引
     _dirDeleteSubscription = scheduler.dirDeleteEvents.listen((_) async {
+      if (_isSyncDisabled) return; // 关键修复：导入恢复期间忽略目录拓扑事件，防止海量无用的 DB reload
       debugPrint(
         'ShadowIndexSyncService: Dir delete detected, triggering fullScanVault.',
       );

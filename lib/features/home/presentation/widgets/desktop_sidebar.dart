@@ -75,7 +75,7 @@ class _DesktopSidebarState extends ConsumerState<DesktopSidebar> {
     final saved = prefs.getStringList(_kNavOrderKey);
     if (saved != null && saved.length == _defaultItems.length) {
       final parsed = saved.map(int.tryParse).toList();
-      if (parsed.every((e) => e != null)) {
+      if (parsed.every((e) => e != null && _defaultItems.any((item) => item.branchIndex == e))) {
         setState(() => _order = parsed.cast<int>());
         return;
       }
