@@ -214,7 +214,9 @@ class _CustomColorPicker extends ConsumerWidget {
   }
 
   Future<void> _showColorPickerDialog(
-      BuildContext context, WidgetRef ref) async {
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
     final themeState = ref.read(themeProvider);
     double hue = HSLColor.fromColor(themeState.seedColor).hue;
     double saturation = HSLColor.fromColor(themeState.seedColor).saturation;
@@ -224,8 +226,12 @@ class _CustomColorPicker extends ConsumerWidget {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) {
-          final previewColor =
-              HSLColor.fromAHSL(1.0, hue, saturation, lightness).toColor();
+          final previewColor = HSLColor.fromAHSL(
+            1.0,
+            hue,
+            saturation,
+            lightness,
+          ).toColor();
           return AlertDialog(
             title: const Text('自定义颜色'),
             content: Column(
@@ -270,8 +276,7 @@ class _CustomColorPicker extends ConsumerWidget {
                         min: 0,
                         max: 1,
                         activeColor: previewColor,
-                        onChanged: (v) =>
-                            setDialogState(() => saturation = v),
+                        onChanged: (v) => setDialogState(() => saturation = v),
                       ),
                     ),
                   ],
@@ -285,8 +290,7 @@ class _CustomColorPicker extends ConsumerWidget {
                         min: 0.2,
                         max: 0.9,
                         activeColor: previewColor,
-                        onChanged: (v) =>
-                            setDialogState(() => lightness = v),
+                        onChanged: (v) => setDialogState(() => lightness = v),
                       ),
                     ),
                   ],

@@ -15,8 +15,7 @@ class DataManagementCard extends ConsumerStatefulWidget {
   const DataManagementCard({super.key});
 
   @override
-  ConsumerState<DataManagementCard> createState() =>
-      _DataManagementCardState();
+  ConsumerState<DataManagementCard> createState() => _DataManagementCardState();
 }
 
 class _DataManagementCardState extends ConsumerState<DataManagementCard> {

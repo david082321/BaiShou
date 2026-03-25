@@ -77,10 +77,7 @@ class _StorageSettingsCardState extends ConsumerState<StorageSettingsCard> {
         final granted = await permissionSvc.requestStoragePermission();
         if (!granted) {
           if (mounted) {
-            AppToast.showError(
-              context,
-              t.common.permission.storage_denied,
-            );
+            AppToast.showError(context, t.common.permission.storage_denied);
           }
           return;
         }
@@ -129,7 +126,9 @@ class _StorageSettingsCardState extends ConsumerState<StorageSettingsCard> {
       if (mounted) {
         Navigator.of(context, rootNavigator: true).pop();
         AppToast.showError(
-            context, t.settings.dir_scan_failed(error: e.toString()));
+          context,
+          t.settings.dir_scan_failed(error: e.toString()),
+        );
       }
     }
   }

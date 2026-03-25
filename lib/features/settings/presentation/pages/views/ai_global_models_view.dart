@@ -42,9 +42,7 @@ class _AiGlobalModelsViewState extends ConsumerState<AiGlobalModelsView> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(t.agent.rag.migration_pending_title),
-        content: Text(
-          t.agent.rag.migration_pending_content,
-        ),
+        content: Text(t.agent.rag.migration_pending_content),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
@@ -84,7 +82,9 @@ class _AiGlobalModelsViewState extends ConsumerState<AiGlobalModelsView> {
         if (!mounted) return;
         messenger.hideCurrentSnackBar();
         messenger.showSnackBar(
-          SnackBar(content: Text(t.agent.rag.migration_error(error: e.toString()))),
+          SnackBar(
+            content: Text(t.agent.rag.migration_error(error: e.toString())),
+          ),
         );
       },
     );
@@ -112,7 +112,6 @@ class _AiGlobalModelsViewState extends ConsumerState<AiGlobalModelsView> {
         service.globalEmbeddingProviderId,
         service.globalEmbeddingModelId,
       );
-
     });
   }
 
@@ -188,9 +187,7 @@ class _AiGlobalModelsViewState extends ConsumerState<AiGlobalModelsView> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(t.agent.rag.migration_model_changed_title),
-        content: Text(
-          t.agent.rag.migration_model_changed_content,
-        ),
+        content: Text(t.agent.rag.migration_model_changed_content),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
@@ -237,7 +234,9 @@ class _AiGlobalModelsViewState extends ConsumerState<AiGlobalModelsView> {
         if (!mounted) return;
         messenger.hideCurrentSnackBar();
         messenger.showSnackBar(
-          SnackBar(content: Text(t.agent.rag.migration_error(error: e.toString()))),
+          SnackBar(
+            content: Text(t.agent.rag.migration_error(error: e.toString())),
+          ),
         );
       },
     );

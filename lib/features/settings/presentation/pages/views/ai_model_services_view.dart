@@ -302,7 +302,6 @@ class _AiModelServicesViewState extends ConsumerState<AiModelServicesView> {
     }
   }
 
-
   /// 显示新增供应商对话框
   void _showAddProviderDialog() {
     final nameController = TextEditingController();
@@ -329,22 +328,25 @@ class _AiModelServicesViewState extends ConsumerState<AiModelServicesView> {
                         border: OutlineInputBorder(),
                         isDense: true,
                       ),
-                      items: ProviderType.values.where((t) => t != ProviderType.custom).map((type) {
-                        return DropdownMenuItem(
-                          value: type,
-                          child: Row(
-                            children: [
-                              SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: getProviderIcon(type),
+                      items: ProviderType.values
+                          .where((t) => t != ProviderType.custom)
+                          .map((type) {
+                            return DropdownMenuItem(
+                              value: type,
+                              child: Row(
+                                children: [
+                                  SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: getProviderIcon(type),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(type.name.toUpperCase()),
+                                ],
                               ),
-                              const SizedBox(width: 8),
-                              Text(type.name.toUpperCase()),
-                            ],
-                          ),
-                        );
-                      }).toList(),
+                            );
+                          })
+                          .toList(),
                       onChanged: (v) {
                         if (v != null) setDialogState(() => selectedType = v);
                       },
@@ -409,7 +411,13 @@ class _AiModelServicesViewState extends ConsumerState<AiModelServicesView> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(t.agent.provider.delete_title),
-        content: Text(t.agent.provider.delete_confirm(name: _providers.firstWhere((p) => p.id == _selectedProviderId).name)),
+        content: Text(
+          t.agent.provider.delete_confirm(
+            name: _providers
+                .firstWhere((p) => p.id == _selectedProviderId)
+                .name,
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
@@ -417,7 +425,10 @@ class _AiModelServicesViewState extends ConsumerState<AiModelServicesView> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: Text(t.agent.provider.delete_button, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+            child: Text(
+              t.agent.provider.delete_button,
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
           ),
         ],
       ),
@@ -636,15 +647,19 @@ class _AiModelServicesViewState extends ConsumerState<AiModelServicesView> {
             isMobile: isMobile,
             iconBuilder: (type) => getProviderIcon(type),
             onProviderTap: _handleProviderTap,
-            onReorder: isMobile ? null : (oldIndex, newIndex) async {
-              if (oldIndex < newIndex) newIndex--;
-              final item = _providers.removeAt(oldIndex);
-              _providers.insert(newIndex, item);
-              setState(() {});
-              final orderedIds = _providers.map((p) => p.id).toList();
-              await ref.read(apiConfigServiceProvider).reorderProviders(orderedIds);
-              _loadProviderConfig();
-            },
+            onReorder: isMobile
+                ? null
+                : (oldIndex, newIndex) async {
+                    if (oldIndex < newIndex) newIndex--;
+                    final item = _providers.removeAt(oldIndex);
+                    _providers.insert(newIndex, item);
+                    setState(() {});
+                    final orderedIds = _providers.map((p) => p.id).toList();
+                    await ref
+                        .read(apiConfigServiceProvider)
+                        .reorderProviders(orderedIds);
+                    _loadProviderConfig();
+                  },
           ),
         ),
         if (!isMobile)

@@ -33,14 +33,17 @@ class _IdentitySettingsCardState extends ConsumerState<IdentitySettingsCard> {
           children: [
             Row(
               children: [
-                Icon(Icons.badge_outlined,
-                    size: 20, color: Theme.of(context).colorScheme.primary),
+                Icon(
+                  Icons.badge_outlined,
+                  size: 20,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
                 const SizedBox(width: 8),
                 Text(
                   t.settings.identity_card,
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
                 ),
                 const Spacer(),
                 IconButton(
@@ -54,8 +57,8 @@ class _IdentitySettingsCardState extends ConsumerState<IdentitySettingsCard> {
             Text(
               t.settings.identity_card_desc,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
             const SizedBox(height: 12),
             if (facts.isEmpty)
@@ -68,48 +71,59 @@ class _IdentitySettingsCardState extends ConsumerState<IdentitySettingsCard> {
                 ),
                 child: Column(
                   children: [
-                    Icon(Icons.person_add_alt_1_outlined,
-                        size: 32,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant),
+                    Icon(
+                      Icons.person_add_alt_1_outlined,
+                      size: 32,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
                     const SizedBox(height: 8),
                     Text(
                       t.settings.identity_card_empty_hint,
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
                     ),
                   ],
                 ),
               )
             else
-              ...facts.entries.map((entry) => ListTile(
-                    dense: true,
-                    contentPadding: EdgeInsets.zero,
-                    leading: Icon(Icons.label_outline,
-                        size: 18, color: Theme.of(context).colorScheme.primary),
-                    title: Text(entry.key,
-                        style: const TextStyle(fontWeight: FontWeight.w600)),
-                    subtitle: Text(entry.value),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.edit_outlined, size: 16),
-                          onPressed: () => _showIdentityEntryDialog(
-                            existingKey: entry.key,
-                            existingValue: entry.value,
-                          ),
+              ...facts.entries.map(
+                (entry) => ListTile(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(
+                    Icons.label_outline,
+                    size: 18,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  title: Text(
+                    entry.key,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  subtitle: Text(entry.value),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.edit_outlined, size: 16),
+                        onPressed: () => _showIdentityEntryDialog(
+                          existingKey: entry.key,
+                          existingValue: entry.value,
                         ),
-                        IconButton(
-                          icon: Icon(Icons.delete_outline,
-                              size: 16,
-                              color: Theme.of(context).colorScheme.error),
-                          onPressed: () => _confirmDeleteFact(entry.key),
+                      ),
+                      IconButton(
+                        icon: Icon(
+                          Icons.delete_outline,
+                          size: 16,
+                          color: Theme.of(context).colorScheme.error,
                         ),
-                      ],
-                    ),
-                  )),
+                        onPressed: () => _confirmDeleteFact(entry.key),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
           ],
         ),
       ),
@@ -127,9 +141,11 @@ class _IdentitySettingsCardState extends ConsumerState<IdentitySettingsCard> {
     final result = await showDialog<Map<String, String>>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(isEditing
-            ? t.settings.edit_identity_entry
-            : t.settings.add_identity_entry),
+        title: Text(
+          isEditing
+              ? t.settings.edit_identity_entry
+              : t.settings.add_identity_entry,
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [

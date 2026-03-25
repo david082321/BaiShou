@@ -10,8 +10,7 @@ class HotkeySettingsCard extends ConsumerStatefulWidget {
   const HotkeySettingsCard({super.key});
 
   @override
-  ConsumerState<HotkeySettingsCard> createState() =>
-      _HotkeySettingsCardState();
+  ConsumerState<HotkeySettingsCard> createState() => _HotkeySettingsCardState();
 }
 
 class _HotkeySettingsCardState extends ConsumerState<HotkeySettingsCard> {
@@ -37,7 +36,8 @@ class _HotkeySettingsCardState extends ConsumerState<HotkeySettingsCard> {
             subtitle: Text(
               hotkeyService.isEnabled
                   ? t.settings.hotkey_desc_enabled(
-                      hotkey: hotkeyService.getHotkeyDisplayString())
+                      hotkey: hotkeyService.getHotkeyDisplayString(),
+                    )
                   : t.settings.hotkey_desc_disabled,
             ),
             value: hotkeyService.isEnabled,
@@ -86,17 +86,45 @@ class _HotkeySettingsCardState extends ConsumerState<HotkeySettingsCard> {
       ('meta', 'Win / ⌘'),
     ];
     const keyOptions = [
-      ('keyA', 'A'), ('keyB', 'B'), ('keyC', 'C'), ('keyD', 'D'),
-      ('keyE', 'E'), ('keyF', 'F'), ('keyG', 'G'), ('keyH', 'H'),
-      ('keyI', 'I'), ('keyJ', 'J'), ('keyK', 'K'), ('keyL', 'L'),
-      ('keyM', 'M'), ('keyN', 'N'), ('keyO', 'O'), ('keyP', 'P'),
-      ('keyQ', 'Q'), ('keyR', 'R'), ('keyS', 'S'), ('keyT', 'T'),
-      ('keyU', 'U'), ('keyV', 'V'), ('keyW', 'W'), ('keyX', 'X'),
-      ('keyY', 'Y'), ('keyZ', 'Z'),
+      ('keyA', 'A'),
+      ('keyB', 'B'),
+      ('keyC', 'C'),
+      ('keyD', 'D'),
+      ('keyE', 'E'),
+      ('keyF', 'F'),
+      ('keyG', 'G'),
+      ('keyH', 'H'),
+      ('keyI', 'I'),
+      ('keyJ', 'J'),
+      ('keyK', 'K'),
+      ('keyL', 'L'),
+      ('keyM', 'M'),
+      ('keyN', 'N'),
+      ('keyO', 'O'),
+      ('keyP', 'P'),
+      ('keyQ', 'Q'),
+      ('keyR', 'R'),
+      ('keyS', 'S'),
+      ('keyT', 'T'),
+      ('keyU', 'U'),
+      ('keyV', 'V'),
+      ('keyW', 'W'),
+      ('keyX', 'X'),
+      ('keyY', 'Y'),
+      ('keyZ', 'Z'),
       ('space', 'Space'),
-      ('f1', 'F1'), ('f2', 'F2'), ('f3', 'F3'), ('f4', 'F4'),
-      ('f5', 'F5'), ('f6', 'F6'), ('f7', 'F7'), ('f8', 'F8'),
-      ('f9', 'F9'), ('f10', 'F10'), ('f11', 'F11'), ('f12', 'F12'),
+      ('f1', 'F1'),
+      ('f2', 'F2'),
+      ('f3', 'F3'),
+      ('f4', 'F4'),
+      ('f5', 'F5'),
+      ('f6', 'F6'),
+      ('f7', 'F7'),
+      ('f8', 'F8'),
+      ('f9', 'F9'),
+      ('f10', 'F10'),
+      ('f11', 'F11'),
+      ('f12', 'F12'),
     ];
 
     final result = await showDialog<bool>(
@@ -207,10 +235,12 @@ class _HotkeySettingsCardState extends ConsumerState<HotkeySettingsCard> {
                   ),
                   decoration: BoxDecoration(
                     color: conflict
-                        ? theme.colorScheme.errorContainer
-                            .withValues(alpha: 0.3)
-                        : theme.colorScheme.surfaceContainerHighest
-                            .withValues(alpha: 0.4),
+                        ? theme.colorScheme.errorContainer.withValues(
+                            alpha: 0.3,
+                          )
+                        : theme.colorScheme.surfaceContainerHighest.withValues(
+                            alpha: 0.4,
+                          ),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Row(
@@ -246,8 +276,9 @@ class _HotkeySettingsCardState extends ConsumerState<HotkeySettingsCard> {
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: theme.colorScheme.errorContainer
-                          .withValues(alpha: 0.2),
+                      color: theme.colorScheme.errorContainer.withValues(
+                        alpha: 0.2,
+                      ),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
                         color: theme.colorScheme.error.withValues(alpha: 0.3),
@@ -305,14 +336,15 @@ class _HotkeySettingsCardState extends ConsumerState<HotkeySettingsCard> {
   /// 应用内所有快捷键定义（AI Assistant 模式）
   List<(String id, String modifier, String key)> get _appShortcuts {
     final service = ref.read(globalHotkeyServiceProvider);
-    return [
-      ('global_show_hide', service.currentModifier, service.currentKey),
-    ];
+    return [('global_show_hide', service.currentModifier, service.currentKey)];
   }
 
   /// 检查是否与应用内其他快捷键冲突（排除指定 id）
-  bool _checkHotkeyConflict(String modifier, String key,
-      {String excludeId = 'global_show_hide'}) {
+  bool _checkHotkeyConflict(
+    String modifier,
+    String key, {
+    String excludeId = 'global_show_hide',
+  }) {
     final candidateCombo = '${modifier.toLowerCase()}+${key.toLowerCase()}';
 
     for (final shortcut in _appShortcuts) {

@@ -20,8 +20,9 @@ class _McpSettingsCardState extends ConsumerState<McpSettingsCard> {
   void initState() {
     super.initState();
     final configService = ref.read(apiConfigServiceProvider);
-    _portController =
-        TextEditingController(text: configService.mcpPort.toString());
+    _portController = TextEditingController(
+      text: configService.mcpPort.toString(),
+    );
   }
 
   @override
@@ -49,9 +50,7 @@ class _McpSettingsCardState extends ConsumerState<McpSettingsCard> {
           SwitchListTile(
             secondary: Icon(
               Icons.hub_outlined,
-              color: mcpService.isRunning
-                  ? theme.colorScheme.primary
-                  : null,
+              color: mcpService.isRunning ? theme.colorScheme.primary : null,
             ),
             title: Text(t.settings.mcp_title),
             subtitle: Text(
@@ -70,10 +69,7 @@ class _McpSettingsCardState extends ConsumerState<McpSettingsCard> {
                 children: [
                   const Icon(Icons.lan_outlined, size: 20),
                   const SizedBox(width: 12),
-                  Text(
-                    t.settings.mcp_port,
-                    style: theme.textTheme.bodyMedium,
-                  ),
+                  Text(t.settings.mcp_port, style: theme.textTheme.bodyMedium),
                   const Spacer(),
                   SizedBox(
                     width: 100,
@@ -114,9 +110,7 @@ class _McpSettingsCardState extends ConsumerState<McpSettingsCard> {
                     height: 8,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: mcpService.isRunning
-                          ? Colors.green
-                          : Colors.grey,
+                      color: mcpService.isRunning ? Colors.green : Colors.grey,
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -153,9 +147,9 @@ class _McpSettingsCardState extends ConsumerState<McpSettingsCard> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('MCP Server error: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('MCP Server error: $e')));
         await configService.setMcpEnabled(false);
       }
     }
@@ -166,8 +160,10 @@ class _McpSettingsCardState extends ConsumerState<McpSettingsCard> {
   Future<void> _updatePort(String value) async {
     final port = int.tryParse(value);
     if (port == null || port < 1024 || port > 65535) {
-      _portController.text =
-          ref.read(apiConfigServiceProvider).mcpPort.toString();
+      _portController.text = ref
+          .read(apiConfigServiceProvider)
+          .mcpPort
+          .toString();
       return;
     }
 
@@ -185,9 +181,9 @@ class _McpSettingsCardState extends ConsumerState<McpSettingsCard> {
       await ref.read(mcpServerServiceProvider).restart();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('MCP restart failed: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('MCP restart failed: $e')));
       }
     }
     if (mounted) setState(() => _isStarting = false);

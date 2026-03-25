@@ -133,7 +133,7 @@ class _ToolCardState extends State<ToolCard> {
                   for (var i = 0; i < tool.configurableParams.length; i++) ...[
                     if (i > 0) const SizedBox(height: 16),
                     _buildParamControl(tool.configurableParams[i], colorScheme),
-                  ]
+                  ],
                 ],
               ),
             ),
@@ -150,8 +150,9 @@ class _ToolCardState extends State<ToolCard> {
 
     switch (param.type) {
       case ParamType.integer:
-        final intVal =
-            (currentValue is int) ? currentValue : param.defaultValue as int;
+        final intVal = (currentValue is int)
+            ? currentValue
+            : param.defaultValue as int;
         return Row(
           children: [
             if (param.icon != null) ...[
@@ -180,7 +181,10 @@ class _ToolCardState extends State<ToolCard> {
                         ? null
                         : () async {
                             await service.setToolConfigValue(
-                              tool.id, param.key, intVal - 1);
+                              tool.id,
+                              param.key,
+                              intVal - 1,
+                            );
                             setState(() {});
                           },
                     child: Container(
@@ -189,8 +193,9 @@ class _ToolCardState extends State<ToolCard> {
                       decoration: BoxDecoration(
                         border: Border(
                           right: BorderSide(
-                            color: colorScheme.outlineVariant
-                                .withValues(alpha: 0.5),
+                            color: colorScheme.outlineVariant.withValues(
+                              alpha: 0.5,
+                            ),
                           ),
                         ),
                       ),
@@ -217,16 +222,23 @@ class _ToolCardState extends State<ToolCard> {
                       decoration: const InputDecoration(
                         isDense: true,
                         contentPadding: EdgeInsets.symmetric(
-                          horizontal: 2, vertical: 6),
+                          horizontal: 2,
+                          vertical: 6,
+                        ),
                         border: InputBorder.none,
                       ),
                       onSubmitted: (value) async {
                         final parsed = int.tryParse(value);
                         if (parsed != null) {
                           final clamped = parsed.clamp(
-                            param.min ?? 1, param.max ?? 50);
+                            param.min ?? 1,
+                            param.max ?? 50,
+                          );
                           await service.setToolConfigValue(
-                            tool.id, param.key, clamped);
+                            tool.id,
+                            param.key,
+                            clamped,
+                          );
                           setState(() {});
                         }
                       },
@@ -237,7 +249,10 @@ class _ToolCardState extends State<ToolCard> {
                         ? null
                         : () async {
                             await service.setToolConfigValue(
-                              tool.id, param.key, intVal + 1);
+                              tool.id,
+                              param.key,
+                              intVal + 1,
+                            );
                             setState(() {});
                           },
                     child: Container(
@@ -246,8 +261,9 @@ class _ToolCardState extends State<ToolCard> {
                       decoration: BoxDecoration(
                         border: Border(
                           left: BorderSide(
-                            color: colorScheme.outlineVariant
-                                .withValues(alpha: 0.5),
+                            color: colorScheme.outlineVariant.withValues(
+                              alpha: 0.5,
+                            ),
                           ),
                         ),
                       ),
@@ -331,15 +347,16 @@ class _ToolCardState extends State<ToolCard> {
                     color: colorScheme.primary,
                   ),
                   items: options
-                      .map((o) => DropdownMenuItem(
-                            value: o,
-                            child: Text(o[0].toUpperCase() + o.substring(1)),
-                          ))
+                      .map(
+                        (o) => DropdownMenuItem(
+                          value: o,
+                          child: Text(o[0].toUpperCase() + o.substring(1)),
+                        ),
+                      )
                       .toList(),
                   onChanged: (val) async {
                     if (val != null) {
-                      await service.setToolConfigValue(
-                          tool.id, param.key, val);
+                      await service.setToolConfigValue(tool.id, param.key, val);
                       setState(() {});
                     }
                   },

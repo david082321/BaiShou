@@ -62,7 +62,8 @@ class _AgentToolsViewState extends ConsumerState<AgentToolsView> {
 
   @override
   Widget build(BuildContext context) {
-    final allTools = ref.watch(toolRepositoryProvider)
+    final allTools = ref
+        .watch(toolRepositoryProvider)
         .where((tool) => tool.showInSettings)
         .toList();
     final service = ref.watch(apiConfigServiceProvider);
@@ -88,8 +89,8 @@ class _AgentToolsViewState extends ConsumerState<AgentToolsView> {
                 Text(
                   t.settings.agent_tools_title,
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ],
             ),
@@ -156,7 +157,9 @@ class _AgentToolsViewState extends ConsumerState<AgentToolsView> {
                               style: TextStyle(
                                 fontSize: 11,
                                 color: !_showCommunity
-                                    ? colorScheme.onPrimary.withValues(alpha: 0.7)
+                                    ? colorScheme.onPrimary.withValues(
+                                        alpha: 0.7,
+                                      )
                                     : colorScheme.outline,
                               ),
                             ),
@@ -270,10 +273,7 @@ class _AgentToolsViewState extends ConsumerState<AgentToolsView> {
           const SizedBox(height: 8),
           Text(
             t.agent.tools.community_coming_soon,
-            style: TextStyle(
-              fontSize: 13,
-              color: colorScheme.outline,
-            ),
+            style: TextStyle(fontSize: 13, color: colorScheme.outline),
           ),
         ],
       ),
@@ -286,11 +286,7 @@ class _AgentToolsViewState extends ConsumerState<AgentToolsView> {
       padding: const EdgeInsets.only(left: 8, top: 8),
       child: Row(
         children: [
-          Icon(
-            _categoryIcon(category),
-            size: 18,
-            color: colorScheme.primary,
-          ),
+          Icon(_categoryIcon(category), size: 18, color: colorScheme.primary),
           const SizedBox(width: 8),
           Text(
             _categoryDisplayName(category),

@@ -20,7 +20,6 @@ class _SummarySettingsViewState extends ConsumerState<SummarySettingsView>
   String _monthlySummarySource = 'weeklies';
   bool _initialized = false;
 
-
   // 4 种总结类型
   static const _types = ['weekly', 'monthly', 'quarterly', 'yearly'];
   static const _typeIcons = [
@@ -69,7 +68,8 @@ class _SummarySettingsViewState extends ConsumerState<SummarySettingsView>
     // 加载每种类型的提示词模板
     for (final type in _types) {
       final saved = service.getSummaryInstructions(type);
-      _controllers[type]!.text = saved ?? PromptTemplates.getDefaultTemplate(type);
+      _controllers[type]!.text =
+          saved ?? PromptTemplates.getDefaultTemplate(type);
     }
   }
 
@@ -105,8 +105,7 @@ class _SummarySettingsViewState extends ConsumerState<SummarySettingsView>
               ButtonSegment(
                 value: 'weeklies',
                 label: Text(t.settings.read_only_weeklies),
-                icon:
-                    const Icon(Icons.calendar_view_week_rounded, size: 16),
+                icon: const Icon(Icons.calendar_view_week_rounded, size: 16),
               ),
               ButtonSegment(
                 value: 'diaries',
@@ -139,7 +138,9 @@ class _SummarySettingsViewState extends ConsumerState<SummarySettingsView>
               // Tab Bar
               Container(
                 decoration: BoxDecoration(
-                  color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                  color: colorScheme.surfaceContainerHighest.withValues(
+                    alpha: 0.3,
+                  ),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: TabBar(
@@ -157,17 +158,20 @@ class _SummarySettingsViewState extends ConsumerState<SummarySettingsView>
                   labelStyle: theme.textTheme.labelSmall?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
-                  tabs: List.generate(_types.length, (i) => Tab(
-                    height: 36,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(_typeIcons[i], size: 14),
-                        const SizedBox(width: 4),
-                        Text(_typeLabel(_types[i])),
-                      ],
+                  tabs: List.generate(
+                    _types.length,
+                    (i) => Tab(
+                      height: 36,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(_typeIcons[i], size: 14),
+                          const SizedBox(width: 4),
+                          Text(_typeLabel(_types[i])),
+                        ],
+                      ),
                     ),
-                  )),
+                  ),
                 ),
               ),
               const SizedBox(height: 12),
@@ -176,43 +180,51 @@ class _SummarySettingsViewState extends ConsumerState<SummarySettingsView>
                 height: 360,
                 child: TabBarView(
                   controller: _tabController,
-                  children: _types.map((type) => Column(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: _controllers[type],
-                          maxLines: null,
-                          expands: true,
-                          textAlignVertical: TextAlignVertical.top,
-                          decoration: InputDecoration(
-                            hintText: t.settings.summary_ai_prompt_hint,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
+                  children: _types
+                      .map(
+                        (type) => Column(
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: _controllers[type],
+                                maxLines: null,
+                                expands: true,
+                                textAlignVertical: TextAlignVertical.top,
+                                decoration: InputDecoration(
+                                  hintText: t.settings.summary_ai_prompt_hint,
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  contentPadding: const EdgeInsets.all(12),
+                                ),
+                                style: theme.textTheme.bodySmall,
+                              ),
                             ),
-                            contentPadding: const EdgeInsets.all(12),
-                          ),
-                          style: theme.textTheme.bodySmall,
+                            const SizedBox(height: 8),
+                            _buildSaveResetRow(
+                              onSave: () async {
+                                await ref
+                                    .read(apiConfigServiceProvider)
+                                    .setSummaryInstructions(
+                                      type,
+                                      _controllers[type]!.text.trim(),
+                                    );
+                                if (mounted) {
+                                  AppToast.showSuccess(
+                                    context,
+                                    '${_typeLabel(type)} ${t.settings.saved}',
+                                  );
+                                }
+                              },
+                              onReset: () {
+                                _controllers[type]!.text =
+                                    PromptTemplates.getDefaultTemplate(type);
+                              },
+                            ),
+                          ],
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      _buildSaveResetRow(
-                        onSave: () async {
-                          await ref
-                              .read(apiConfigServiceProvider)
-                              .setSummaryInstructions(
-                                  type, _controllers[type]!.text.trim());
-                          if (mounted) {
-                            AppToast.showSuccess(context,
-                                '${_typeLabel(type)} ${t.settings.saved}');
-                          }
-                        },
-                        onReset: () {
-                          _controllers[type]!.text =
-                              PromptTemplates.getDefaultTemplate(type);
-                        },
-                      ),
-                    ],
-                  )).toList(),
+                      )
+                      .toList(),
                 ),
               ),
             ],
@@ -233,8 +245,11 @@ class _SummarySettingsViewState extends ConsumerState<SummarySettingsView>
           ),
           child: Row(
             children: [
-              Icon(Icons.info_outline,
-                  size: 16, color: colorScheme.onSurfaceVariant),
+              Icon(
+                Icons.info_outline,
+                size: 16,
+                color: colorScheme.onSurfaceVariant,
+              ),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -304,15 +319,9 @@ class _SummarySettingsViewState extends ConsumerState<SummarySettingsView>
     return Row(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
-        TextButton(
-          onPressed: onReset,
-          child: Text(t.settings.restore_default),
-        ),
+        TextButton(onPressed: onReset, child: Text(t.settings.restore_default)),
         const SizedBox(width: 8),
-        FilledButton.tonal(
-          onPressed: onSave,
-          child: Text(t.common.save),
-        ),
+        FilledButton.tonal(onPressed: onSave, child: Text(t.common.save)),
       ],
     );
   }

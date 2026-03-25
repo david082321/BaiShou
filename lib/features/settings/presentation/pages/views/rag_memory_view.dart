@@ -3,14 +3,12 @@
 // 展示所有已嵌入的向量条目，支持搜索、删除、统计
 
 import 'package:baishou/agent/database/agent_database.dart';
-import 'package:baishou/agent/rag/embedding_service.dart';
 import 'package:baishou/core/services/api_config_service.dart';
-import 'package:baishou/core/widgets/app_toast.dart';
-import 'package:baishou/features/diary/data/repositories/diary_repository_impl.dart';
 import 'package:baishou/i18n/strings.g.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:baishou/features/settings/presentation/pages/views/rag_memory_dialogs.dart';
 import 'package:baishou/features/settings/presentation/pages/views/rag_memory_widgets.dart';
 
 class RagMemoryView extends ConsumerStatefulWidget {
@@ -60,29 +58,8 @@ class _RagMemoryViewState extends ConsumerState<RagMemoryView> {
   }
 
   Future<void> _clearAll() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(t.agent.rag.clear_all_title),
-        content: Text(t.agent.rag.clear_all_content),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text(t.common.cancel),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: Text(t.agent.rag.clear_confirm),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true) {
-      final embeddingService = EmbeddingService(ref.read(apiConfigServiceProvider), ref.read(agentDatabaseProvider));
-      await embeddingService.clearAllEmbeddings();
-      await _loadData();
-    }
+    final success = await RagMemoryDialogs.clearAll(context, ref);
+    if (success) await _loadData();
   }
 
   Future<void> _deleteEntry(String embeddingId) async {
@@ -91,43 +68,8 @@ class _RagMemoryViewState extends ConsumerState<RagMemoryView> {
     await _loadData();
   }
 
-  /// 展示记忆条目完整内容
   void _showFullContent(String text, String model, String timeStr) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Row(
-          children: [
-            Icon(Icons.data_object_rounded, size: 20),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                '$model · $timeStr',
-                style: Theme.of(context).textTheme.titleSmall,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
-        ),
-        content: SizedBox(
-          width: 500,
-          child: SingleChildScrollView(
-            child: SelectableText(
-              text,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    height: 1.6,
-                  ),
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(t.common.cancel),
-          ),
-        ],
-      ),
-    );
+    RagMemoryDialogs.showFullContent(context, text, model, timeStr);
   }
 
   List<Map<String, dynamic>> get _filteredEntries {
@@ -140,179 +82,46 @@ class _RagMemoryViewState extends ConsumerState<RagMemoryView> {
     }).toList();
   }
 
-  /// 手动触发维度检测
   Future<void> _detectDimension() async {
     setState(() => _isDetectingDimension = true);
-    try {
-      final embeddingService = EmbeddingService(ref.read(apiConfigServiceProvider), ref.read(agentDatabaseProvider));
-      await ref.read(apiConfigServiceProvider).setGlobalEmbeddingDimension(0);
-      final dimension = await embeddingService.detectDimension();
-      if (mounted) {
-        if (dimension > 0) {
-          AppToast.showSuccess(context, t.agent.rag.detect_success(dimension: dimension.toString()));
-        } else {
-          AppToast.showError(context, t.agent.rag.detect_failed);
-        }
-        await _loadData();
-      }
-    } catch (e) {
-      if (mounted) {
-        AppToast.showError(context, t.agent.rag.detect_error(error: e.toString()));
-      }
-    } finally {
-      if (mounted) setState(() => _isDetectingDimension = false);
+    await RagMemoryDialogs.detectDimension(context, ref);
+    if (mounted) {
+      setState(() => _isDetectingDimension = false);
+      await _loadData();
     }
   }
 
-  /// 清空当前维度的向量
   Future<void> _clearCurrentDimension() async {
-    final apiConfig = ref.read(apiConfigServiceProvider);
-    final dimension = apiConfig.globalEmbeddingDimension;
-    if (dimension <= 0) {
-      AppToast.showError(context, t.agent.rag.clear_dim_no_config);
-      return;
-    }
-
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(t.agent.rag.clear_dim_title),
-        content: Text(t.agent.rag.clear_dim_content(dimension: dimension.toString())),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(t.common.cancel)),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: Text(t.agent.rag.clear_dim_confirm, style: TextStyle(color: Theme.of(context).colorScheme.error)),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true) {
-      final db = ref.read(agentDatabaseProvider);
-      final deleted = await db.clearEmbeddingsByDimension(dimension);
-      if (mounted) {
-        AppToast.showSuccess(context, t.agent.rag.clear_dim_success(deleted: deleted.toString(), dimension: dimension.toString()));
-        await _loadData();
-      }
-    }
+    final success = await RagMemoryDialogs.clearCurrentDimension(context, ref);
+    if (success && mounted) await _loadData();
   }
 
-  /// 批量嵌入所有日记
   Future<void> _batchEmbedDiaries() async {
-    final embeddingService = EmbeddingService(ref.read(apiConfigServiceProvider), ref.read(agentDatabaseProvider));
-    if (!embeddingService.isConfigured) {
-      AppToast.showError(context, t.agent.rag.embedding_not_configured);
-      return;
-    }
-
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(t.agent.rag.batch_embed_title),
-        content: Text(t.agent.rag.batch_embed_content),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(t.common.cancel)),
-          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text(t.agent.rag.batch_embed_start)),
-        ],
-      ),
-    );
-
-    if (confirmed != true) return;
-
     setState(() {
       _isBatchEmbedding = true;
       _batchProgress = 0;
     });
 
-    try {
-      final diaryRepo = ref.read(diaryRepositoryProvider);
-      final diaries = await diaryRepo.getAllDiaries();
-      setState(() => _batchTotal = diaries.length);
+    final success = await RagMemoryDialogs.batchEmbedDiaries(
+      context: context,
+      ref: ref,
+      onTotal: (total) => setState(() => _batchTotal = total),
+      onProgress: (progress) => setState(() => _batchProgress = progress),
+    );
 
-      int embedded = 0;
-      for (final diary in diaries) {
-        if (diary.content.trim().isEmpty) {
-          if (mounted) setState(() => _batchProgress++);
-          continue;
-        }
-        final dateLabel = DateFormat('yyyy-MM-dd').format(diary.date);
-        await embeddingService.embedText(
-          text: '$dateLabel: ${diary.content}',
-          sessionId: 'diary_batch',
-          customId: 'diary_${diary.id}',
-        );
-        embedded++;
-        if (mounted) setState(() => _batchProgress++);
-      }
-
-      if (mounted) {
-        AppToast.showSuccess(context, t.agent.rag.batch_embed_success(count: embedded.toString()));
-        await _loadData();
-      }
-    } catch (e) {
-      if (mounted) {
-        AppToast.showError(context, t.agent.rag.batch_embed_error(error: e.toString()));
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isBatchEmbedding = false;
-          _batchProgress = 0;
-          _batchTotal = 0;
-        });
-      }
+    if (mounted) {
+      setState(() {
+        _isBatchEmbedding = false;
+        _batchProgress = 0;
+        _batchTotal = 0;
+      });
+      if (success) await _loadData();
     }
   }
 
-  /// 手动添加记忆
   Future<void> _addManualMemory() async {
-    final controller = TextEditingController();
-    final result = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(t.agent.rag.add_memory_title),
-        content: SizedBox(
-          width: 400,
-          child: TextField(
-            controller: controller,
-            maxLines: 6,
-            decoration: InputDecoration(
-              hintText: t.agent.rag.add_memory_hint,
-              border: OutlineInputBorder(),
-            ),
-            autofocus: true,
-          ),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(t.common.cancel)),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, controller.text),
-            child: Text(t.agent.rag.add_memory_save),
-          ),
-        ],
-      ),
-    );
-
-    if (result != null && result.trim().isNotEmpty) {
-      final embeddingService = EmbeddingService(ref.read(apiConfigServiceProvider), ref.read(agentDatabaseProvider));
-      if (!embeddingService.isConfigured) {
-        if (mounted) {
-          AppToast.showError(context, t.agent.rag.embedding_not_configured);
-        }
-        return;
-      }
-
-      await embeddingService.embedText(
-        text: result.trim(),
-        sessionId: 'manual_memory',
-      );
-
-      if (mounted) {
-        AppToast.showSuccess(context, t.agent.rag.add_memory_success);
-        await _loadData();
-      }
-    }
+    final success = await RagMemoryDialogs.addManualMemory(context, ref);
+    if (success && mounted) await _loadData();
   }
 
   @override
@@ -356,10 +165,15 @@ class _RagMemoryViewState extends ConsumerState<RagMemoryView> {
                 if (totalCount > 0)
                   TextButton.icon(
                     onPressed: _clearAll,
-                    icon: Icon(Icons.delete_sweep_outlined,
-                        size: 18, color: colorScheme.error),
-                    label: Text(t.agent.rag.clear_all,
-                        style: TextStyle(color: colorScheme.error)),
+                    icon: Icon(
+                      Icons.delete_sweep_outlined,
+                      size: 18,
+                      color: colorScheme.error,
+                    ),
+                    label: Text(
+                      t.agent.rag.clear_all,
+                      style: TextStyle(color: colorScheme.error),
+                    ),
                   ),
               ],
             ),
@@ -370,21 +184,25 @@ class _RagMemoryViewState extends ConsumerState<RagMemoryView> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 32),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: colorScheme.errorContainer.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.info_outline, size: 16, color: colorScheme.error),
+                    Icon(
+                      Icons.info_outline,
+                      size: 16,
+                      color: colorScheme.error,
+                    ),
                     const SizedBox(width: 8),
                     Text(
                       t.agent.rag.rag_disabled_hint,
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: colorScheme.error,
-                      ),
+                      style: TextStyle(fontSize: 13, color: colorScheme.error),
                     ),
                   ],
                 ),
@@ -394,118 +212,20 @@ class _RagMemoryViewState extends ConsumerState<RagMemoryView> {
           // 统计信息
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: _buildStatsRow(colorScheme, textTheme, totalCount),
+            child: RagMemoryStatsBoard(
+              totalCount: totalCount,
+              stats: _stats,
+              isDetectingDimension: _isDetectingDimension,
+              onDetectDimension: _detectDimension,
+            ),
           ),
 
           const SizedBox(height: 12),
 
           // RAG 检索参数调节
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: colorScheme.outlineVariant.withValues(alpha: 0.3),
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.tune_rounded, size: 16, color: colorScheme.primary),
-                      const SizedBox(width: 6),
-                      Text(
-                        t.agent.rag.retrieval_params,
-                        style: textTheme.labelLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  // TopK 滑块
-                  Row(
-                    children: [
-                      SizedBox(
-                        width: 100,
-                        child: Text(
-                          'Top K',
-                          style: textTheme.labelMedium?.copyWith(
-                            color: colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        child: Slider(
-                          value: ref.read(apiConfigServiceProvider).ragTopK.toDouble().clamp(10, 100),
-                          min: 10,
-                          max: 100,
-                          divisions: 9,
-                          label: ref.read(apiConfigServiceProvider).ragTopK.toString(),
-                          onChanged: (v) async {
-                            await ref.read(apiConfigServiceProvider).setRagTopK(v.round());
-                            setState(() {});
-                          },
-                        ),
-                      ),
-                      SizedBox(
-                        width: 32,
-                        child: Text(
-                          ref.read(apiConfigServiceProvider).ragTopK.toString(),
-                          style: textTheme.labelLarge?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: colorScheme.primary,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                    ],
-                  ),
-                  // 相似度阈值滑块
-                  Row(
-                    children: [
-                      SizedBox(
-                        width: 100,
-                        child: Text(
-                          t.agent.rag.similarity_threshold,
-                          style: textTheme.labelMedium?.copyWith(
-                            color: colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        child: Slider(
-                          value: ref.read(apiConfigServiceProvider).ragSimilarityThreshold,
-                          min: 0.0,
-                          max: 1.0,
-                          divisions: 20,
-                          label: ref.read(apiConfigServiceProvider).ragSimilarityThreshold.toStringAsFixed(2),
-                          onChanged: (v) async {
-                            await ref.read(apiConfigServiceProvider).setRagSimilarityThreshold(v);
-                            setState(() {});
-                          },
-                        ),
-                      ),
-                      SizedBox(
-                        width: 32,
-                        child: Text(
-                          ref.read(apiConfigServiceProvider).ragSimilarityThreshold.toStringAsFixed(2),
-                          style: textTheme.labelLarge?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: colorScheme.primary,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 24),
+            child: RagMemoryRetrievalConfig(),
           ),
 
           const SizedBox(height: 12),
@@ -521,16 +241,23 @@ class _RagMemoryViewState extends ConsumerState<RagMemoryView> {
                 RagActionChip(
                   icon: Icons.layers_clear,
                   label: t.agent.rag.action_clear_dimension,
-                  color: _isBatchEmbedding ? colorScheme.outline : colorScheme.error,
+                  color: _isBatchEmbedding
+                      ? colorScheme.outline
+                      : colorScheme.error,
                   onTap: _isBatchEmbedding ? null : _clearCurrentDimension,
                 ),
                 // 全量嵌入日记
                 RagActionChip(
                   icon: Icons.auto_stories,
                   label: _isBatchEmbedding
-                      ? t.agent.rag.batch_embed_progress(progress: _batchProgress.toString(), total: _batchTotal.toString())
+                      ? t.agent.rag.batch_embed_progress(
+                          progress: _batchProgress.toString(),
+                          total: _batchTotal.toString(),
+                        )
                       : t.agent.rag.action_batch_embed,
-                  color: _isBatchEmbedding ? colorScheme.outline : colorScheme.primary,
+                  color: _isBatchEmbedding
+                      ? colorScheme.outline
+                      : colorScheme.primary,
                   onTap: _isBatchEmbedding ? null : _batchEmbedDiaries,
                   isLoading: _isBatchEmbedding,
                 ),
@@ -538,7 +265,9 @@ class _RagMemoryViewState extends ConsumerState<RagMemoryView> {
                 RagActionChip(
                   icon: Icons.add_comment_outlined,
                   label: t.agent.rag.action_add_memory,
-                  color: _isBatchEmbedding ? colorScheme.outline : colorScheme.tertiary,
+                  color: _isBatchEmbedding
+                      ? colorScheme.outline
+                      : colorScheme.tertiary,
                   onTap: _isBatchEmbedding ? null : _addManualMemory,
                 ),
               ],
@@ -558,8 +287,10 @@ class _RagMemoryViewState extends ConsumerState<RagMemoryView> {
                 isDense: true,
                 filled: true,
                 fillColor: colorScheme.surfaceContainerLow,
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
                   borderSide: BorderSide.none,
@@ -585,150 +316,12 @@ class _RagMemoryViewState extends ConsumerState<RagMemoryView> {
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : _filteredEntries.isEmpty
-                    ? _buildEmptyState(colorScheme, textTheme)
-                    : _buildEntryList(colorScheme, textTheme),
+                ? _buildEmptyState(colorScheme, textTheme)
+                : _buildEntryList(colorScheme, textTheme),
           ),
         ],
       ),
     );
-  }
-
-  Widget _buildStatsRow(
-      ColorScheme colorScheme, TextTheme textTheme, int totalCount) {
-    // 从 DB 统计读取模型，空时回退到全局配置
-    var modelDisplay = (_stats['models'] as List?)
-            ?.map((m) => (m as Map)['model_id'] ?? '')
-            .where((s) => (s as String).isNotEmpty)
-            .toSet()
-            .join(', ') ??
-        '';
-    if (modelDisplay.isEmpty) {
-      final apiConfig = ref.read(apiConfigServiceProvider);
-      final configuredModel = apiConfig.globalEmbeddingModelId;
-      modelDisplay = configuredModel.isNotEmpty ? configuredModel : t.common.not_configured;
-    }
-    // 从 DB 统计读取实际维度值（不是 COUNT，而是真正的维度数如768/1536）
-    final models = _stats['models'] as List? ?? [];
-    final dbDimension = models.isNotEmpty
-        ? (models.first as Map)['dimension'] as int? ?? 0
-        : 0;
-    // 回退到配置里缓存的维度
-    final configDimension = ref.read(apiConfigServiceProvider).globalEmbeddingDimension;
-    final dimension = dbDimension > 0 ? dbDimension : configDimension;
-
-    return Wrap(
-      spacing: 16,
-      runSpacing: 8,
-      children: [
-        RagStatChip(
-          icon: Icons.layers_outlined,
-          label: t.agent.rag.stat_total,
-          value: '$totalCount',
-          color: colorScheme.primary,
-        ),
-        RagStatChip(
-          icon: Icons.model_training_outlined,
-          label: t.agent.rag.stat_model,
-          value: modelDisplay,
-          color: colorScheme.tertiary,
-        ),
-        if (dimension > 0 || configDimension > 0)
-          RagStatChip(
-            icon: Icons.straighten_outlined,
-            label: t.agent.rag.stat_dimension,
-            value: '${dimension > 0 ? dimension : configDimension}',
-            color: colorScheme.secondary,
-          ),
-        // 维度自动检测状态
-        _buildDimensionStatusChip(colorScheme, configDimension),
-      ],
-    );
-  }
-
-  /// 构建维度自动检测状态芯片
-  Widget _buildDimensionStatusChip(ColorScheme colorScheme, int configDimension) {
-    final apiConfig = ref.read(apiConfigServiceProvider);
-    final hasModel = apiConfig.hasEmbeddingModel;
-
-    if (configDimension > 0) {
-      // 已检测到维度
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-        decoration: BoxDecoration(
-          color: Colors.green.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.check_circle_outline, size: 14, color: Colors.green.shade700),
-            const SizedBox(width: 4),
-            Text(
-              t.agent.rag.dimension_detected(dimension: configDimension.toString()),
-              style: TextStyle(fontSize: 11, color: Colors.green.shade700, fontWeight: FontWeight.w500),
-            ),
-          ],
-        ),
-      );
-    } else if (hasModel) {
-      // 已配置模型但未检测 — 可点击手动检测
-      return GestureDetector(
-        onTap: _isDetectingDimension ? null : _detectDimension,
-        child: MouseRegion(
-          cursor: SystemMouseCursors.click,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: Colors.orange.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (_isDetectingDimension)
-                  SizedBox(
-                    width: 14, height: 14,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.orange.shade700,
-                    ),
-                  )
-                else
-                  Icon(Icons.play_circle_outline, size: 14, color: Colors.orange.shade700),
-                const SizedBox(width: 4),
-                Text(
-                  _isDetectingDimension ? t.agent.rag.dimension_detecting : t.agent.rag.dimension_click_detect,
-                  style: TextStyle(fontSize: 11, color: Colors.orange.shade700, fontWeight: FontWeight.w500),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-    } else {
-      // 未配置Embedding模型
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-        decoration: BoxDecoration(
-          color: Colors.red.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.warning_amber_outlined, size: 14, color: Colors.red.shade700),
-            const SizedBox(width: 4),
-            Text(
-              t.agent.rag.dimension_not_configured,
-              style: TextStyle(fontSize: 11, color: Colors.red.shade700, fontWeight: FontWeight.w500),
-            ),
-          ],
-        ),
-      );
-    }
   }
 
   Widget _buildEmptyState(ColorScheme colorScheme, TextTheme textTheme) {
@@ -743,10 +336,10 @@ class _RagMemoryViewState extends ConsumerState<RagMemoryView> {
           ),
           const SizedBox(height: 16),
           Text(
-            _searchQuery.isEmpty ? t.agent.rag.no_memories_yet : t.agent.rag.no_memories_match,
-            style: textTheme.bodyLarge?.copyWith(
-              color: colorScheme.outline,
-            ),
+            _searchQuery.isEmpty
+                ? t.agent.rag.no_memories_yet
+                : t.agent.rag.no_memories_match,
+            style: textTheme.bodyLarge?.copyWith(color: colorScheme.outline),
           ),
           const SizedBox(height: 8),
           Text(
@@ -785,4 +378,3 @@ class _RagMemoryViewState extends ConsumerState<RagMemoryView> {
     );
   }
 }
-

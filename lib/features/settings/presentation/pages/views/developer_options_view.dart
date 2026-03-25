@@ -199,7 +199,9 @@ class _DeveloperOptionsViewState extends ConsumerState<DeveloperOptionsView> {
             child: Text(t.common.cancel),
           ),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: Colors.orange.shade700),
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.orange.shade700,
+            ),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('确认清理'),
           ),
@@ -216,7 +218,11 @@ class _DeveloperOptionsViewState extends ConsumerState<DeveloperOptionsView> {
       await Future.delayed(const Duration(milliseconds: 300));
 
       final appDir = await getApplicationDocumentsDirectory();
-      for (final name in ['agent_database.db', 'agent_database.db-wal', 'agent_database.db-shm']) {
+      for (final name in [
+        'agent_database.db',
+        'agent_database.db-wal',
+        'agent_database.db-shm',
+      ]) {
         final file = File(p.join(appDir.path, name));
         if (file.existsSync()) {
           file.deleteSync();
