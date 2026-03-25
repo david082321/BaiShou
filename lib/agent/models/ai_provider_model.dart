@@ -8,8 +8,8 @@ enum WebSearchMode {
   off,
   /// 使用 Provider 内置搜索（OpenAI/Anthropic/Gemini 原生支持）
   builtin,
-  /// 使用 Tavily API 搜索（通用，所有模型可用）
-  tavily,
+  /// 使用外部搜索工具（Tavily / DuckDuckGo 等，所有模型可用）
+  tool,
 }
 
 /// 根据 ProviderType 返回默认的搜索模式
@@ -17,7 +17,7 @@ WebSearchMode defaultWebSearchMode(ProviderType type) => switch (type) {
   ProviderType.openai     => WebSearchMode.builtin,
   ProviderType.anthropic  => WebSearchMode.builtin,
   ProviderType.gemini     => WebSearchMode.builtin,
-  _                       => WebSearchMode.tavily,
+  _                       => WebSearchMode.tool,
 };
 
 class AiProviderModel {
@@ -130,7 +130,10 @@ class AiProviderModel {
       webSearchMode: map['webSearchMode'] != null
           ? WebSearchMode.values.firstWhere(
               (e) => e.name == map['webSearchMode'],
-              orElse: () => WebSearchMode.off,
+              // 兼容旧数据中的 'tavily' 值
+              orElse: () => map['webSearchMode'] == 'tavily'
+                  ? WebSearchMode.tool
+                  : WebSearchMode.off,
             )
           : null,
     );

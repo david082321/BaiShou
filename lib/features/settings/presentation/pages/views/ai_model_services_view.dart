@@ -635,7 +635,7 @@ class _AiModelServicesViewState extends ConsumerState<AiModelServicesView> {
                 t.settings.web_search_mode_builtin,
                 t.settings.web_search_mode_builtin_desc,
               ),
-              WebSearchMode.tavily => (
+              WebSearchMode.tool => (
                 Icons.build_rounded,
                 t.settings.web_search_mode_tool,
                 t.settings.web_search_mode_tool_desc,

@@ -52,7 +52,7 @@ class ToolRepository extends _$ToolRepository {
       if (disabledIds.contains(t.id)) return false;
       if (!ragEnabled && ragToolIds.contains(t.id)) return false;
       // 非 tavily 模式时，自动排除外部搜索工具
-      if (searchMode != WebSearchMode.tavily && externalSearchToolIds.contains(t.id)) return false;
+      if (searchMode != WebSearchMode.tool && externalSearchToolIds.contains(t.id)) return false;
       return true;
     }).toList();
   }
