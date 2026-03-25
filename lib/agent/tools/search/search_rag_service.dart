@@ -1,10 +1,10 @@
 /// 搜索结果 RAG 压缩服务
 ///
-/// 参考 AI Assistant 的实现，将搜索结果进行向量化检索压缩：
-/// 1. 搜索结果文本分块 → embedding
-/// 2. 用户原始查询 embedding → 余弦相似度 KNN
-/// 3. Round Robin 选择（避免单源垄断）
-/// 4. 按 sourceUrl 合并同源片段
+/// 将搜索结果进行向量化检索压缩：
+/// - 每个搜索结果仅保留 documentCount 个 chunk（默认 1）
+/// - 总 embedding 上限 = resultCount × documentCount
+/// - 先截断每个来源的内容（cutoff），再分块 embedding
+/// - Round Robin 选择 + 按 sourceUrl 合并同源片段
 ///
 /// SOLID: 单一职责 — 仅处理搜索结果的 RAG 压缩
 /// 全程内存操作，不写数据库，用完即销毁。
@@ -49,16 +49,30 @@ class _EmbeddedChunk {
 
 /// 搜索结果 RAG 压缩服务
 class SearchRagService {
+  // ── 核心限制常量 ───────────────────────────────────────
+  // totalDocumentCount = rawResults.length × documentCount
+  // 即：每个搜索结果只保留 1 个最相关的 chunk（极其保守）
+
+  /// 每个来源最多保留的 chunk 数（documentCount=1）
+  static const int _documentCountPerResult = 1;
+
+  /// 分块大小上限（字符）
   static const int _maxChunkLength = 400;
+
+  /// 重叠字符数
   static const int _chunkOverlap = 50;
+
+  /// 每个来源页面内容截断上限（cutoff 模式）
+  /// 先截断再分块，从根源限制 embedding 请求数量
+  static const int _contentCutoffPerSource = 1500;
 
   /// 对搜索结果执行 RAG 压缩
   ///
   /// [query] — 用户原始查询
   /// [results] — 搜索结果列表 {title, url, content}
   /// [embeddingService] — 嵌入服务实例
-  /// [maxChunksPerSource] — 每个来源最多选取的片段数
-  /// [totalMaxChunks] — 总共最多返回的片段数
+  /// [totalMaxChunks] — 总共最多返回的片段数（Round Robin 选后）
+  /// [maxChunksPerSource] — 每个来源最多选取的片段数（Round Robin 中）
   static Future<List<RagCompressedResult>> compress({
     required String query,
     required List<Map<String, String>> results,
@@ -68,7 +82,12 @@ class SearchRagService {
   }) async {
     if (results.isEmpty || !embeddingService.isConfigured) return [];
 
-    debugPrint('SearchRag: starting compression for ${results.length} results');
+    // totalDocumentCount = resultCount * documentCount
+    final maxEmbedTotal = results.length * _documentCountPerResult;
+    debugPrint(
+      'SearchRag: starting compression for ${results.length} results, '
+      'maxEmbedTotal=$maxEmbedTotal',
+    );
 
     // ── 步骤 1: 查询 embedding ──
     final queryEmbedding = await embeddingService.embedQuery(query);
@@ -77,26 +96,45 @@ class SearchRagService {
       return [];
     }
 
-    // ── 步骤 2: 将所有搜索结果分块并生成 embedding ──
+    // ── 步骤 2: 截断 → 分块 → embedding ──
     final allChunks = <_EmbeddedChunk>[];
 
     for (final r in results) {
-      final content = r['content'] ?? r['snippet'] ?? '';
+      final rawContent = r['content'] ?? r['snippet'] ?? '';
       final url = r['url'] ?? '';
       final title = r['title'] ?? '';
-      if (content.isEmpty) continue;
+      if (rawContent.isEmpty) continue;
+
+      // cutoff: 先截断内容，从源头限制分块数
+      final content = rawContent.length > _contentCutoffPerSource
+          ? rawContent.substring(0, _contentCutoffPerSource)
+          : rawContent;
 
       final textChunks = _splitIntoChunks(content);
+
+      // 每个来源只 embed documentCountPerResult 个 chunk
+      int sourceEmbedded = 0;
       for (final chunkText in textChunks) {
+        if (sourceEmbedded >= _documentCountPerResult) break;
+        if (allChunks.length >= maxEmbedTotal) break;
+
         final embedding = await embeddingService.embedQuery(chunkText);
         if (embedding != null) {
-          allChunks.add(_EmbeddedChunk(
-            text: chunkText,
-            sourceUrl: url,
-            sourceTitle: title,
-            embedding: embedding,
-          ));
+          allChunks.add(
+            _EmbeddedChunk(
+              text: chunkText,
+              sourceUrl: url,
+              sourceTitle: title,
+              embedding: embedding,
+            ),
+          );
+          sourceEmbedded++;
         }
+      }
+
+      if (allChunks.length >= maxEmbedTotal) {
+        debugPrint('SearchRag: reached embed limit ($maxEmbedTotal)');
+        break;
       }
     }
 
@@ -111,8 +149,7 @@ class SearchRagService {
     final scored = allChunks.map((chunk) {
       final sim = _cosineSimilarity(queryEmbedding, chunk.embedding);
       return (chunk: chunk, score: sim);
-    }).toList()
-      ..sort((a, b) => b.score.compareTo(a.score));
+    }).toList()..sort((a, b) => b.score.compareTo(a.score));
 
     debugPrint(
       'SearchRag: top scores: '
@@ -120,14 +157,19 @@ class SearchRagService {
     );
 
     // ── 步骤 4: Round Robin 选择 ──
+    // selectReferences(rawResults, references, totalDocumentCount)
     final selected = _roundRobinSelect(
       scored: scored,
-      urlOrder: results.map((r) => r['url'] ?? '').where((u) => u.isNotEmpty).toList(),
+      urlOrder: results
+          .map((r) => r['url'] ?? '')
+          .where((u) => u.isNotEmpty)
+          .toList(),
       maxTotal: totalMaxChunks,
       maxPerSource: maxChunksPerSource,
     );
 
     // ── 步骤 5: 按 sourceUrl 合并同源 ──
+    // consolidateReferencesByUrl(rawResults, selectedReferences)
     return _consolidateByUrl(selected);
   }
 
@@ -145,7 +187,6 @@ class SearchRagService {
     }
 
     final selected = <({_EmbeddedChunk chunk, double score})>[];
-    final perSourceCount = <String, int>{};
     int roundIndex = 0;
 
     // 按原始搜索结果顺序排列活跃 URL
@@ -161,14 +202,12 @@ class SearchRagService {
 
       final url = activeUrls[roundIndex];
       final group = groups[url]!;
-      final count = perSourceCount[url] ?? 0;
 
-      if (group.isNotEmpty && count < maxPerSource) {
+      if (group.isNotEmpty) {
         selected.add(group.removeAt(0));
-        perSourceCount[url] = count + 1;
       }
 
-      if (group.isEmpty || (perSourceCount[url] ?? 0) >= maxPerSource) {
+      if (group.isEmpty) {
         activeUrls.removeAt(roundIndex);
         if (roundIndex >= activeUrls.length) roundIndex = 0;
       } else {
@@ -192,7 +231,8 @@ class SearchRagService {
     }
 
     return groups.entries.map((e) {
-      final avgScore = e.value.fold<double>(0, (sum, s) => sum + s.score) / e.value.length;
+      final avgScore =
+          e.value.fold<double>(0, (sum, s) => sum + s.score) / e.value.length;
       return RagCompressedResult(
         title: titles[e.key] ?? '',
         url: e.key,

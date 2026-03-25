@@ -1,15 +1,12 @@
 /// WebSearchTool — AI 可调用的网络搜索工具
 ///
-/// 通过 DuckDuckGo/Google/Bing 抓取搜索结果,让 AI 获取实时互联网信息。
+/// 通过 Tavily/DuckDuckGo 获取搜索结果，让 AI 获取实时互联网信息。
 /// 支持 Multi-Query：AI 可以同时提交多个查询词，系统并行搜索后去重合并。
 ///
 /// 当启用 RAG 压缩且配置了 embedding 模型时：
-/// 搜索 → 抓取全文 → 向量分块 → KNN 检索 → Round Robin → 合并
-
-import 'dart:convert';
+/// 搜索 → snippet 分块 → KNN 检索 → Round Robin → 合并
 
 import 'package:baishou/agent/tools/agent_tool.dart';
-import 'package:baishou/agent/tools/search/html_to_markdown.dart';
 import 'package:baishou/agent/tools/search/search_rag_service.dart';
 import 'package:baishou/agent/tools/search/web_search_service.dart';
 import 'package:baishou/agent/tools/tool_config_param.dart';
@@ -17,10 +14,8 @@ import 'package:baishou/core/services/api_config_service.dart';
 import 'package:baishou/i18n/strings.g.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 
 class WebSearchTool extends AgentTool {
-  static const _fetchTimeout = Duration(seconds: 12);
   final ApiConfigService apiConfig;
 
   WebSearchTool(this.apiConfig);
@@ -52,21 +47,21 @@ class WebSearchTool extends AgentTool {
 
   @override
   Map<String, dynamic> get parameterSchema => {
-        'type': 'object',
-        'properties': {
-          'queries': {
-            'type': 'array',
-            'items': {'type': 'string'},
-            'description':
-                'A list of 1-3 search queries with different angles/keywords. '
-                'Using multiple queries greatly improves result diversity and comprehensiveness. '
-                'Example: ["latest Flutter 4.0 features", "Flutter 4.0 migration guide"]',
-            'minItems': 1,
-            'maxItems': 3,
-          },
-        },
-        'required': ['queries'],
-      };
+    'type': 'object',
+    'properties': {
+      'queries': {
+        'type': 'array',
+        'items': {'type': 'string'},
+        'description':
+            'A list of 1-3 search queries with different angles/keywords. '
+            'Using multiple queries greatly improves result diversity and comprehensiveness. '
+            'Example: ["latest Flutter 4.0 features", "Flutter 4.0 migration guide"]',
+        'minItems': 1,
+        'maxItems': 3,
+      },
+    },
+    'required': ['queries'],
+  };
 
   @override
   Future<ToolResult> execute(
@@ -110,19 +105,26 @@ class WebSearchTool extends AgentTool {
           queries: queries,
           engine: engine,
           maxResultsPerQuery: maxResults,
-          totalMaxResults: maxResults * 2,
+          totalMaxResults: maxResults,
           apiKey: tavilyApiKey,
         );
-        debugPrint('WebSearch: primary engine $engineStr returned ${results.length} results');
+        debugPrint(
+          'WebSearch: primary engine $engineStr returned ${results.length} results',
+        );
         if (results.isEmpty) {
-          throw Exception('Primary engine returned 0 results (possible anti-bot block)');
+          throw Exception(
+            'Primary engine returned 0 results (possible anti-bot block)',
+          );
         }
       } catch (primaryError) {
-        debugPrint('WebSearch: primary engine $engineStr failed: $primaryError');
+        debugPrint(
+          'WebSearch: primary engine $engineStr failed: $primaryError',
+        );
 
-        final fallbackEngines = [SearchEngine.tavily, SearchEngine.duckduckgo]
-            .where((e) => e != engine)
-            .toList();
+        final fallbackEngines = [
+          SearchEngine.tavily,
+          SearchEngine.duckduckgo,
+        ].where((e) => e != engine).toList();
 
         for (final fallback in fallbackEngines) {
           try {
@@ -131,15 +133,19 @@ class WebSearchTool extends AgentTool {
               queries: queries,
               engine: fallback,
               maxResultsPerQuery: maxResults,
-              totalMaxResults: maxResults * 2,
+              totalMaxResults: maxResults,
               apiKey: tavilyApiKey,
             );
             actualEngine = fallback.name;
-            debugPrint('WebSearch: fallback ${fallback.name} returned ${results.length} results');
+            debugPrint(
+              'WebSearch: fallback ${fallback.name} returned ${results.length} results',
+            );
             if (results.isNotEmpty) break;
             throw Exception('Fallback engine returned 0 results');
           } catch (fallbackError) {
-            debugPrint('WebSearch: fallback ${fallback.name} also failed: $fallbackError');
+            debugPrint(
+              'WebSearch: fallback ${fallback.name} also failed: $fallbackError',
+            );
           }
         }
 
@@ -157,11 +163,7 @@ class WebSearchTool extends AgentTool {
         return ToolResult(
           output: 'No search results found for: ${queries.join(", ")}',
           success: true,
-          metadata: {
-            'queries': queries,
-            'engine': actualEngine,
-            'count': 0,
-          },
+          metadata: {'queries': queries, 'engine': actualEngine, 'count': 0},
         );
       }
 
@@ -196,35 +198,23 @@ class WebSearchTool extends AgentTool {
   }
 
   /// RAG 压缩模式
+  /// 直接使用搜索 API 返回的 snippet 进行 RAG，
+  /// 不下载完整网页（避免并行大量 HTTP 请求导致 OOM）。
+  /// 用户若需要某个页面的完整内容，可通过 url_read 工具单独读取。
   Future<ToolResult> _executeWithRag({
     required List<String> queries,
     required List<SearchResult> results,
     required ToolContext context,
     required String engineStr,
   }) async {
-    debugPrint('WebSearch: RAG mode enabled, fetching full content...');
+    debugPrint('WebSearch: RAG mode enabled, using snippets');
 
-    // 2a. 并行抓取每个 URL 的全文
-    final fetchFutures = results.map((r) => _fetchPageContent(r.url));
-    final fetchedContents = await Future.wait(fetchFutures);
+    // 直接使用搜索结果的 content/snippet，不抓全文
+    final ragInputs = results
+        .map((r) => {'title': r.title, 'url': r.url, 'content': r.snippet})
+        .toList();
 
-    // 组装 RAG 输入
-    final ragInputs = <Map<String, String>>[];
-    for (int i = 0; i < results.length; i++) {
-      final r = results[i];
-      final fullContent = fetchedContents[i];
-      ragInputs.add({
-        'title': r.title,
-        'url': r.url,
-        // 有全文用全文，否则用摘要
-        'content': fullContent.isNotEmpty ? fullContent : r.snippet,
-      });
-    }
-
-    final fetchedCount = fetchedContents.where((c) => c.isNotEmpty).length;
-    debugPrint('WebSearch: fetched $fetchedCount/${results.length} pages');
-
-    // 2b. RAG 压缩（使用第一个查询词作为主要语义锚）
+    // RAG 压缩（使用第一个查询词作为主要语义锚）
     try {
       final compressed = await SearchRagService.compress(
         query: queries.first,
@@ -241,9 +231,7 @@ class WebSearchTool extends AgentTool {
 
       // 格式化 RAG 压缩结果
       final buffer = StringBuffer()
-        ..writeln(
-          'Search queries: ${queries.map((q) => '"$q"').join(', ')}',
-        )
+        ..writeln('Search queries: ${queries.map((q) => '"$q"').join(', ')}')
         ..writeln(
           'Found ${results.length} results, '
           'RAG-compressed to ${compressed.length} relevant sources:',
@@ -282,56 +270,6 @@ class WebSearchTool extends AgentTool {
     }
   }
 
-  /// 抓取单个页面内容并转 Markdown
-  Future<String> _fetchPageContent(String url) async {
-    try {
-      final uri = Uri.parse(url);
-      final response = await http
-          .get(uri, headers: _browserHeaders)
-          .timeout(_fetchTimeout);
-
-      if (response.statusCode != 200) return '';
-
-      final html = utf8.decode(response.bodyBytes, allowMalformed: true);
-
-      // 提取 <article> / <main> / <body>
-      String bodyHtml = html;
-      
-      int startIdx = html.indexOf(RegExp(r'<article', caseSensitive: false));
-      if (startIdx != -1) {
-        int endIdx = html.indexOf(RegExp(r'</article>', caseSensitive: false), startIdx);
-        if (endIdx != -1) {
-          bodyHtml = html.substring(startIdx, endIdx + 10);
-        }
-      } else {
-        startIdx = html.indexOf(RegExp(r'<main', caseSensitive: false));
-        if (startIdx != -1) {
-          int endIdx = html.indexOf(RegExp(r'</main>', caseSensitive: false), startIdx);
-          if (endIdx != -1) {
-            bodyHtml = html.substring(startIdx, endIdx + 7);
-          }
-        } else {
-          startIdx = html.indexOf(RegExp(r'<body', caseSensitive: false));
-          if (startIdx != -1) {
-            int endIdx = html.indexOf(RegExp(r'</body>', caseSensitive: false), startIdx);
-            if (endIdx != -1) {
-              bodyHtml = html.substring(startIdx, endIdx + 7);
-            }
-          }
-        }
-      }
-
-      final markdown = HtmlToMarkdownConverter.convert(bodyHtml);
-      // 限制每个页面内容（避免 embedding 请求过多）
-      if (markdown.length > 6000) {
-        return markdown.substring(0, 6000);
-      }
-      return markdown;
-    } catch (e) {
-      debugPrint('WebSearch: fetch failed for $url: $e');
-      return '';
-    }
-  }
 
   /// 普通模式格式化 — 带可点击引用链接
   ToolResult _formatPlainResults(
@@ -346,12 +284,8 @@ class WebSearchTool extends AgentTool {
     };
 
     final buffer = StringBuffer()
-      ..writeln(
-        'Search queries: ${queries.map((q) => '"$q"').join(', ')}',
-      )
-      ..writeln(
-        'Found ${results.length} results (via $engineName):',
-      )
+      ..writeln('Search queries: ${queries.map((q) => '"$q"').join(', ')}')
+      ..writeln('Found ${results.length} results (via $engineName):')
       ..writeln();
 
     for (var i = 0; i < results.length; i++) {
@@ -377,12 +311,4 @@ class WebSearchTool extends AgentTool {
       },
     );
   }
-
-  static Map<String, String> get _browserHeaders => {
-    'User-Agent':
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
-            '(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
-    'Accept': 'text/html,application/xhtml+xml',
-    'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
-  };
 }
