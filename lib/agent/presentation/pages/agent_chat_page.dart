@@ -263,15 +263,15 @@ class _AgentChatPageState extends ConsumerState<AgentChatPage> {
               error: chatState.error!,
               isLoading: chatState.isLoading,
               onRetry: () {
-                final lastUserMsg = chatState.messages.lastWhere(
+                final firstUserMsg = chatState.messages.firstWhere(
                   (m) => m.role == MessageRole.user,
                   orElse: () => ChatMessage.user(''),
                 );
-                if (lastUserMsg.id.isNotEmpty &&
-                    lastUserMsg.content?.isNotEmpty == true) {
+                if (firstUserMsg.id.isNotEmpty &&
+                    firstUserMsg.content?.isNotEmpty == true) {
                   ref
                       .read(agentChatProvider.notifier)
-                      .resendUserMessage(lastUserMsg.id);
+                      .resendUserMessage(firstUserMsg.id);
                 }
               },
             ),

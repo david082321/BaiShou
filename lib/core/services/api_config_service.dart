@@ -605,6 +605,20 @@ class ApiConfigService extends ChangeNotifier {
     notifyListeners();
   }
 
+  // --- UI Preferences ---
+  static const String _keyShowChatToolbar = 'show_chat_toolbar';
+
+  bool get showChatToolbar {
+    return _prefs.getBool(_keyShowChatToolbar) ?? true;
+  }
+
+  Future<void> setShowChatToolbar(bool show) async {
+    if (showChatToolbar == show) return;
+    await _prefs.setBool(_keyShowChatToolbar, show);
+    notifyListeners();
+  }
+
+
   // --- 兼容性占位符 (Legacy Support) ---
   // 用于在不破坏现有代码的情况下映射旧的 API 调用
 

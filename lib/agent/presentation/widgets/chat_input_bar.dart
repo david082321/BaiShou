@@ -9,7 +9,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
 
-class ChatInputBar extends StatefulWidget {
+import 'package:baishou/agent/presentation/widgets/prompt_shortcut_sheet.dart';
+import 'package:baishou/core/services/api_config_service.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+class ChatInputBar extends ConsumerStatefulWidget {
   final bool isLoading;
   /// 发送回调 — 包含文本和可选附件
   final void Function(String text, {List<MessageAttachment>? attachments}) onSend;
@@ -35,10 +39,10 @@ class ChatInputBar extends StatefulWidget {
   });
 
   @override
-  State<ChatInputBar> createState() => _ChatInputBarState();
+  ConsumerState<ChatInputBar> createState() => _ChatInputBarState();
 }
 
-class _ChatInputBarState extends State<ChatInputBar> {
+class _ChatInputBarState extends ConsumerState<ChatInputBar> {
   final _controller = TextEditingController();
   final _focusNode = FocusNode();
 
@@ -165,26 +169,42 @@ class _ChatInputBarState extends State<ChatInputBar> {
             mainAxisSize: MainAxisSize.min,
             children: [
               // 工具栏 — 在输入卡片上方
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Row(
-                  children: [
-                    _QuickActionChip(
-                      icon: Icons.extension_outlined,
-                      label: t.agent.tools.tool_call,
-                      onTap: _openToolManager,
-                    ),
-                    if (widget.onRecall != null) ...[
+              if (ref.watch(apiConfigServiceProvider).showChatToolbar)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Row(
+                    children: [
+                      _QuickActionChip(
+                        icon: Icons.bolt_rounded,
+                        label: '快捷指令',
+                        onTap: () async {
+                          final text = await PromptShortcutSheet.show(context);
+                          if (text != null && text.isNotEmpty) {
+                            _controller.text = text;
+                            _controller.selection = TextSelection.fromPosition(
+                              TextPosition(offset: _controller.text.length),
+                            );
+                            FocusScope.of(context).requestFocus(_focusNode);
+                          }
+                        },
+                      ),
                       const SizedBox(width: 8),
                       _QuickActionChip(
-                        icon: Icons.auto_stories_rounded,
-                        label: t.settings.recall_memories,
-                        onTap: widget.onRecall!,
+                        icon: Icons.extension_outlined,
+                        label: t.agent.tools.tool_call,
+                        onTap: _openToolManager,
                       ),
+                      if (widget.onRecall != null) ...[
+                        const SizedBox(width: 8),
+                        _QuickActionChip(
+                          icon: Icons.auto_stories_rounded,
+                          label: t.settings.recall_memories,
+                          onTap: widget.onRecall!,
+                        ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
-              ),
 
               // 附件预览栏
               if (_attachments.isNotEmpty)
@@ -223,23 +243,52 @@ class _ChatInputBarState extends State<ChatInputBar> {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Container(
-                      width: 36,
                       height: 36,
                       margin: const EdgeInsets.only(right: 6),
-                      child: Material(
-                        color: Colors.transparent,
-                        shape: const CircleBorder(),
-                        clipBehavior: Clip.hardEdge,
-                        child: InkWell(
-                          onTap: _pickFiles,
-                          child: Center(
-                            child: Icon(
-                              Icons.add_circle_outline_rounded,
-                              color: theme.colorScheme.outline,
-                              size: 26,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Material(
+                            color: Colors.transparent,
+                            shape: const CircleBorder(),
+                            clipBehavior: Clip.hardEdge,
+                            child: InkWell(
+                              onTap: () {
+                                final config = ref.read(apiConfigServiceProvider);
+                                config.setShowChatToolbar(!config.showChatToolbar);
+                              },
+                              child: Container(
+                                width: 36,
+                                height: 36,
+                                alignment: Alignment.center,
+                                child: Icon(
+                                  ref.read(apiConfigServiceProvider).showChatToolbar ? Icons.apps_rounded : Icons.apps_outlined,
+                                  color: theme.colorScheme.outline,
+                                  size: 24,
+                                ),
+                              ),
                             ),
                           ),
-                        ),
+                          const SizedBox(width: 4),
+                          Material(
+                            color: Colors.transparent,
+                            shape: const CircleBorder(),
+                            clipBehavior: Clip.hardEdge,
+                            child: InkWell(
+                              onTap: _pickFiles,
+                              child: Container(
+                                width: 36,
+                                height: 36,
+                                alignment: Alignment.center,
+                                child: Icon(
+                                  Icons.add_circle_outline_rounded,
+                                  color: theme.colorScheme.outline,
+                                  size: 26,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
 
