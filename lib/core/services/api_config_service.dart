@@ -512,7 +512,6 @@ class ApiConfigService {
         .toList();
   }
 
-  /// 从远程 API 自动获取供应商支持的模型列表 (类似于 AI Assistant)
   Future<List<String>> fetchAvailableModels(AiProviderModel provider) async {
     try {
       final client = AiClientFactory.createClient(provider);
