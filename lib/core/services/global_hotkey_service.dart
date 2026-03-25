@@ -44,6 +44,9 @@ class GlobalHotkeyService {
       return;
     }
 
+    // 清理可能残留的各种全局热键（特别是开发期热重载后，或上一次异常退出）
+    await hotKeyManager.unregisterAll();
+
     _isEnabled = prefs.getBool(_kHotkeyEnabled) ?? false;
     _modifier = prefs.getString(_kHotkeyModifier) ?? 'alt';
     _key = prefs.getString(_kHotkeyKey) ?? 'keyS';
@@ -95,6 +98,8 @@ class GlobalHotkeyService {
       scope: HotKeyScope.system,
     );
 
+    // 注册前先尝试注销确保唯一性
+    await hotKeyManager.unregister(_currentHotKey!);
     await hotKeyManager.register(
       _currentHotKey!,
       keyDownHandler: (_) => _toggleWindow(),
@@ -110,19 +115,33 @@ class GlobalHotkeyService {
 
   Future<void> _toggleWindow() async {
     try {
+      final isMinimized = await windowManager.isMinimized();
       final isVisible = await windowManager.isVisible();
       final isFocused = await windowManager.isFocused();
 
-      if (isVisible && isFocused) {
+      // 当窗口可见并且拥有焦点时，执行隐藏
+      if (isVisible && !isMinimized && isFocused) {
         await windowManager.hide();
       } else {
-        await windowManager.show();
+        if (isMinimized) {
+          await windowManager.restore();
+        }
+        if (!isVisible) {
+          await windowManager.show();
+        }
+        // 强制要求焦点并将窗口移至最前
         await windowManager.focus();
+        if (Platform.isWindows) {
+          await windowManager.setSkipTaskbar(false);
+          await windowManager.setAlwaysOnTop(true);
+          await windowManager.setAlwaysOnTop(false);
+        }
       }
     } catch (e) {
       debugPrint('GlobalHotkeyService: toggle window failed: $e');
     }
   }
+
 
   void dispose() {
     _unregister();

@@ -7,6 +7,7 @@
 import 'dart:convert';
 
 import 'package:baishou/agent/models/chat_message.dart';
+import 'package:baishou/agent/models/message_attachment.dart';
 
 /// Part 类型枚举
 enum PartType {
@@ -15,6 +16,7 @@ enum PartType {
   stepFinish,
   compaction,
   contextSnapshot,
+  attachment,
 }
 
 /// 消息 Part 基类
@@ -97,6 +99,12 @@ sealed class MessagePart {
           messageId: messageId,
           sessionId: sessionId,
           messagesJson: data['messages'] as List<dynamic>? ?? [],
+        ),
+      PartType.attachment => AttachmentPart(
+          id: id,
+          messageId: messageId,
+          sessionId: sessionId,
+          attachmentMap: data['attachment'] as Map<String, dynamic>,
         ),
     };
   }
@@ -277,4 +285,24 @@ class ContextSnapshotPart extends MessagePart {
         .map((m) => ChatMessage.fromMap(m))
         .toList();
   }
+}
+
+/// 附件 Part — 消息体附带的文件内容（用于支持多模态 AI 模型）
+class AttachmentPart extends MessagePart {
+  final Map<String, dynamic> attachmentMap;
+
+  const AttachmentPart({
+    required super.id,
+    required super.messageId,
+    required super.sessionId,
+    required this.attachmentMap,
+  });
+
+  @override
+  PartType get type => PartType.attachment;
+
+  @override
+  Map<String, dynamic> toDataMap() => {'attachment': attachmentMap};
+
+  MessageAttachment toAttachment() => MessageAttachment.fromMap(attachmentMap);
 }

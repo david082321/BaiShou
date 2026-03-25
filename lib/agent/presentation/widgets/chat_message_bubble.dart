@@ -118,12 +118,19 @@ class ChatMessageBubble extends ConsumerWidget {
                     ),
                   ],
                 ),
-                child: Text(
-                  message.content ?? '',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onPrimary,
-                    height: 1.5,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    _buildAttachments(context, theme, true),
+                    if (message.content != null && message.content!.isNotEmpty)
+                      Text(
+                        message.content!,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onPrimary,
+                          height: 1.5,
+                        ),
+                      ),
+                  ],
                 ),
               ),
               MessageActionBar(
@@ -238,36 +245,43 @@ class ChatMessageBubble extends ConsumerWidget {
                     ),
                   ],
                 ),
-                child: MarkdownBody(
-                  data: message.content ?? '',
-                  selectable: true,
-                  styleSheet: MarkdownStyleSheet.fromTheme(theme).copyWith(
-                    p: theme.textTheme.bodyMedium?.copyWith(height: 1.6),
-                    code: theme.textTheme.bodySmall?.copyWith(
-                      backgroundColor: theme.colorScheme.surfaceContainerLow,
-                      fontFamily: 'monospace',
-                    ),
-                    codeblockDecoration: BoxDecoration(
-                      color: theme.colorScheme.surfaceContainerLow,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: theme.colorScheme.outlineVariant.withValues(
-                          alpha: 0.3,
-                        ),
-                      ),
-                    ),
-                    codeblockPadding: const EdgeInsets.all(14),
-                    horizontalRuleDecoration: BoxDecoration(
-                      border: Border(
-                        top: BorderSide(
-                          color: theme.colorScheme.outlineVariant.withValues(
-                            alpha: 0.4,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildAttachments(context, theme, false),
+                    if (message.content != null && message.content!.isNotEmpty)
+                      MarkdownBody(
+                        data: message.content ?? '',
+                        selectable: true,
+                        styleSheet: MarkdownStyleSheet.fromTheme(theme).copyWith(
+                          p: theme.textTheme.bodyMedium?.copyWith(height: 1.6),
+                          code: theme.textTheme.bodySmall?.copyWith(
+                            backgroundColor: theme.colorScheme.surfaceContainerLow,
+                            fontFamily: 'monospace',
                           ),
-                          width: 2,
+                          codeblockDecoration: BoxDecoration(
+                            color: theme.colorScheme.surfaceContainerLow,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: theme.colorScheme.outlineVariant.withValues(
+                                alpha: 0.3,
+                              ),
+                            ),
+                          ),
+                          codeblockPadding: const EdgeInsets.all(14),
+                          horizontalRuleDecoration: BoxDecoration(
+                            border: Border(
+                              top: BorderSide(
+                                color: theme.colorScheme.outlineVariant.withValues(
+                                  alpha: 0.4,
+                                ),
+                                width: 2,
+                              ),
+                            ),
+                          ),
                         ),
                       ),
-                    ),
-                  ),
+                  ],
                 ),
               ),
               Row(
@@ -315,6 +329,70 @@ class ChatMessageBubble extends ConsumerWidget {
     if (content.isEmpty) return;
     Clipboard.setData(ClipboardData(text: content));
     AppToast.showSuccess(context, t.common.copied);
+  }
+
+  Widget _buildAttachments(BuildContext context, ThemeData theme, bool isUser) {
+    if (message.attachments == null || message.attachments!.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final atts = message.attachments!;
+    return Padding(
+      padding: EdgeInsets.only(bottom: (message.content?.isNotEmpty ?? false) ? 8.0 : 0.0),
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        alignment: isUser ? WrapAlignment.end : WrapAlignment.start,
+        children: atts.map((att) {
+          if (att.isImage) {
+            return ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.file(
+                File(att.filePath),
+                width: 160,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Container(
+                  width: 160,
+                  height: 160,
+                  color: theme.colorScheme.surfaceContainerHigh,
+                  child: const Center(child: Icon(Icons.broken_image)),
+                ),
+              ),
+            );
+          } else {
+            return Container(
+              width: 160,
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainerHigh.withValues(alpha: 0.5),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3)),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    att.isPdf ? Icons.picture_as_pdf : Icons.insert_drive_file,
+                    size: 24,
+                    color: isUser ? theme.colorScheme.onPrimary : theme.colorScheme.onSurface,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      att.fileName,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: isUser ? theme.colorScheme.onPrimary : theme.colorScheme.onSurface,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }
+        }).toList(),
+      ),
+    );
   }
 }
 

@@ -226,12 +226,10 @@ class GeminiClient extends BaseAiClient {
       body['tools'] = toolsList;
 
       // Gemini 要求同时使用内置工具（Google Search）和自定义函数调用时，
-      // 必须显式启用 server_side_tool_invocations
       if (tools != null && tools.isNotEmpty) {
         body['tool_config'] = <String, dynamic>{
           'function_calling_config': <String, dynamic>{
             'mode': 'AUTO',
-            'include_server_side_tool_invocations': true,
           },
         };
       }

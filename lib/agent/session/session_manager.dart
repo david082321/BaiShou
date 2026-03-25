@@ -7,6 +7,7 @@ import 'package:path/path.dart' as p;
 import 'package:baishou/agent/database/agent_database.dart';
 import 'package:baishou/i18n/strings.g.dart';
 import 'package:baishou/agent/models/chat_message.dart';
+import 'package:baishou/agent/models/message_attachment.dart';
 import 'package:baishou/agent/models/message_part.dart';
 import 'package:drift/drift.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -556,6 +557,20 @@ class SessionManager {
     final parts = <MessagePart>[];
     int partIndex = 0;
 
+    // 附件内容 → AttachmentPart
+    if (msg.attachments != null) {
+      for (final att in msg.attachments!) {
+        parts.add(
+          AttachmentPart(
+            id: '${msg.id}_p${partIndex++}',
+            messageId: msg.id,
+            sessionId: sessionId,
+            attachmentMap: att.toMap(),
+          ),
+        );
+      }
+    }
+
     // 文本内容 → TextPart
     if (msg.content != null && msg.content!.isNotEmpty) {
       parts.add(
@@ -636,6 +651,7 @@ class SessionManager {
   /// 从 Message + Parts 重建 ChatMessage
   ChatMessage _rebuildMessage(AgentMessage row, List<AgentPart> partRows) {
     String? content;
+    List<MessageAttachment>? attachments;
     List<ToolCall>? toolCalls;
     String? toolCallId;
     String? toolName;
@@ -665,6 +681,9 @@ class SessionManager {
           }
         case ContextSnapshotPart():
           contextMessages = part.toChatMessages();
+        case AttachmentPart(:final attachmentMap):
+          attachments ??= [];
+          attachments.add(MessageAttachment.fromMap(attachmentMap));
         case StepFinishPart():
         case CompactionPart():
           break; // 元数据 Part 不影响 ChatMessage 重建
@@ -683,6 +702,7 @@ class SessionManager {
       outputTokens: row.outputTokens,
       cost: row.costMicros != null ? row.costMicros! / 1000000.0 : null,
       contextMessages: contextMessages,
+      attachments: attachments,
       timestamp: row.createdAt,
     );
   }

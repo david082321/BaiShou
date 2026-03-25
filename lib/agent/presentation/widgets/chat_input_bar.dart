@@ -262,28 +262,32 @@ class _ChatInputBarState extends State<ChatInputBar> {
                               },
                             ),
                           },
-                          child: TextField(
-                            controller: _controller,
-                            focusNode: _focusNode,
-                            maxLines: 6,
-                            minLines: 1,
-                            textInputAction: TextInputAction.newline,
-                            textAlignVertical: TextAlignVertical.center,
-                            decoration: InputDecoration(
-                              hintText: t.agent.chat.input_hint,
-                              border: InputBorder.none,
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 8,
-                              ),
-                              isDense: true,
-                              hintStyle: theme.textTheme.bodyMedium?.copyWith(
-                                color: theme.colorScheme.outline.withValues(
-                                  alpha: 0.5,
+                          child: Container(
+                            constraints: const BoxConstraints(minHeight: 36),
+                            alignment: Alignment.centerLeft,
+                            child: TextField(
+                              controller: _controller,
+                              focusNode: _focusNode,
+                              maxLines: 6,
+                              minLines: 1,
+                              textInputAction: TextInputAction.newline,
+                              textAlignVertical: TextAlignVertical.center,
+                              decoration: InputDecoration(
+                                hintText: t.agent.chat.input_hint,
+                                border: InputBorder.none,
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 0, 
+                                ),
+                                isDense: true,
+                                hintStyle: theme.textTheme.bodyMedium?.copyWith(
+                                  color: theme.colorScheme.outline.withValues(
+                                    alpha: 0.5,
+                                  ),
                                 ),
                               ),
+                              style: theme.textTheme.bodyMedium, // 移除固定的行高，避免由于字体度量导致的偏下问题
                             ),
-                            style: theme.textTheme.bodyMedium, // 移除固定的行高，避免由于字体度量导致的偏下问题
                           ),
                         ),
                       ),
