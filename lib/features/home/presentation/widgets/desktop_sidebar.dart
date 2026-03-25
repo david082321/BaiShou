@@ -57,12 +57,12 @@ class _DesktopSidebarState extends ConsumerState<DesktopSidebar> {
         labelBuilder: () => t.diary.title,
       ),
       _NavItem(
-        branchIndex: 1,
+        branchIndex: 2,
         icon: Icons.auto_stories_rounded,
         labelBuilder: () => t.summary.dashboard_title,
       ),
       _NavItem(
-        branchIndex: 2,
+        branchIndex: 4,
         icon: Icons.sync_rounded,
         labelBuilder: () => t.common.data_sync,
       ),

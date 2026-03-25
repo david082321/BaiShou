@@ -34,14 +34,9 @@ class _MainScaffoldState extends ConsumerState<MainScaffold>
     );
   }
 
-  // ─── 移动端底栏索引 ↔ branch 索引 映射表 ───────────────────
-  // 移动端底栏顺序：日记(0) / 伙伴(1) / 总结(2) / 设置(3)
-  // branch 索引：     0=日记, 1=总结, 2=sync, 3=设置, 4=agent
-  static const _kMobileNavToBranch = {0: 0, 1: 4, 2: 1, 3: 3};
-  static const _kBranchToMobileNav = {0: 0, 4: 1, 1: 2, 3: 3};
-
   int _getMobileNavIndex() {
-    return _kBranchToMobileNav[widget.navigationShell.currentIndex] ?? 0;
+    final currentIndex = widget.navigationShell.currentIndex;
+    return currentIndex < 4 ? currentIndex : 0;
   }
 
   /// 缓存的默认 branch 索引（同步读取，避免异步延时导致 pop 先完成）
@@ -166,10 +161,10 @@ class _MainScaffoldState extends ConsumerState<MainScaffold>
 
     final GlobalKey<NavigatorState>? activeKey = switch (currentIndex) {
       0 => diaryNavKey,
-      1 => summaryNavKey,
-      2 => syncNavKey,
+      1 => agentNavKey,
+      2 => summaryNavKey,
       3 => settingsNavKey,
-      4 => agentNavKey,
+      4 => syncNavKey,
       _ => null,
     };
 
@@ -209,10 +204,7 @@ class _MainScaffoldState extends ConsumerState<MainScaffold>
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _getMobileNavIndex(),
-        onDestinationSelected: (index) {
-          final branch = _kMobileNavToBranch[index];
-          if (branch != null) _goBranch(branch);
-        },
+        onDestinationSelected: _goBranch,
         destinations: [
           NavigationDestination(
             icon: const Icon(Icons.timeline_outlined),

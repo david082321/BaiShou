@@ -45,9 +45,9 @@ GoRouter goRouter(Ref ref) {
   final savedOrder = prefs.getStringList('desktop_sidebar_nav_order');
   if (savedOrder != null && savedOrder.isNotEmpty) {
     final firstBranch = int.tryParse(savedOrder.first) ?? 0;
-    if (firstBranch == 1) {
+    if (firstBranch == 2) {
       initialLoc = '/summary';
-    } else if (firstBranch == 2) {
+    } else if (firstBranch == 4) {
       initialLoc = '/sync';
     }
   }
@@ -89,6 +89,15 @@ GoRouter goRouter(Ref ref) {
             ],
           ),
           StatefulShellBranch(
+            navigatorKey: agentNavKey,
+            routes: [
+              GoRoute(
+                path: '/agent',
+                builder: (context, state) => const AgentMainPage(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
             navigatorKey: summaryNavKey,
             routes: [
               GoRoute(
@@ -98,16 +107,6 @@ GoRouter goRouter(Ref ref) {
             ],
           ),
           StatefulShellBranch(
-            navigatorKey: syncNavKey,
-            routes: [
-              GoRoute(
-                path: '/sync',
-                builder: (context, state) => const DataSyncPage(),
-              ),
-            ],
-          ),
-          // Branch 3: 设置页（移动端用）
-          StatefulShellBranch(
             navigatorKey: settingsNavKey,
             routes: [
               GoRoute(
@@ -116,13 +115,12 @@ GoRouter goRouter(Ref ref) {
               ),
             ],
           ),
-          // Branch 4: Agent
           StatefulShellBranch(
-            navigatorKey: agentNavKey,
+            navigatorKey: syncNavKey,
             routes: [
               GoRoute(
-                path: '/agent',
-                builder: (context, state) => const AgentMainPage(),
+                path: '/sync',
+                builder: (context, state) => const DataSyncPage(),
               ),
             ],
           ),
