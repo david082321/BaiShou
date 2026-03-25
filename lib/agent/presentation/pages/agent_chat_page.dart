@@ -124,22 +124,25 @@ class _AgentChatPageState extends ConsumerState<AgentChatPage> {
       },
     );
     final assistantName = assistantData?.name;
-    // 优先显示伙伴绑定模型，否则回退到全局模型
-    final currentModel =
-        assistantData?.modelId ?? apiConfig.globalDialogueModelId;
-
     final bool isMobile = !(Platform.isWindows || Platform.isMacOS || Platform.isLinux)
         && MediaQuery.of(context).size.width < 700;
 
-    return Scaffold(
-      appBar: AgentChatAppBar(
-        isMobile: isMobile,
-        assistantName: assistantName,
-        currentModel: currentModel,
-        chatState: chatState,
-        onMenuTap: isMobile ? () => Scaffold.of(context).openDrawer() : null,
-        onTitleTap: () => _showModelSwitcher(context, ref, chatState),
-      ),
+    return ListenableBuilder(
+      listenable: apiConfig,
+      builder: (context, _) {
+        // 优先显示伙伴绑定模型，否则回退到全局模型
+        final currentModel =
+            assistantData?.modelId ?? apiConfig.globalDialogueModelId;
+
+        return Scaffold(
+          appBar: AgentChatAppBar(
+            isMobile: isMobile,
+            assistantName: assistantName,
+            currentModel: currentModel,
+            chatState: chatState,
+            onMenuTap: isMobile ? () => Scaffold.of(context).openDrawer() : null,
+            onTitleTap: () => _showModelSwitcher(context, ref, chatState),
+          ),
       body: Column(
         children: [
           // 消息列表
@@ -334,7 +337,9 @@ class _AgentChatPageState extends ConsumerState<AgentChatPage> {
         ],
       ),
     );
-  }
+  },
+  );
+}
 
   /// 编辑消息弹窗
   Future<void> _showEditDialog(

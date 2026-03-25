@@ -147,10 +147,13 @@ class WebSearchTool extends AgentTool {
           apiKey: tavilyApiKey,
         );
         debugPrint('WebSearch: primary engine $engineStr returned ${results.length} results');
+        if (results.isEmpty) {
+          throw Exception('Primary engine returned 0 results (possible anti-bot block)');
+        }
       } catch (primaryError) {
         debugPrint('WebSearch: primary engine $engineStr failed: $primaryError');
 
-        final fallbackEngines = [SearchEngine.bing, SearchEngine.google]
+        final fallbackEngines = [SearchEngine.tavily, SearchEngine.bing, SearchEngine.google]
             .where((e) => e != engine)
             .toList();
 
@@ -166,7 +169,8 @@ class WebSearchTool extends AgentTool {
             );
             actualEngine = fallback.name;
             debugPrint('WebSearch: fallback ${fallback.name} returned ${results.length} results');
-            break;
+            if (results.isNotEmpty) break;
+            throw Exception('Fallback engine returned 0 results');
           } catch (fallbackError) {
             debugPrint('WebSearch: fallback ${fallback.name} also failed: $fallbackError');
           }

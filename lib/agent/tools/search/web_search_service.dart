@@ -36,7 +36,7 @@ class SearchResult {
 }
 
 /// 支持的搜索引擎
-enum SearchEngine { bing, google, tavily }
+enum SearchEngine { bing, google, tavily, duckduckgo }
 
 /// Web 搜索服务
 class WebSearchService {
@@ -78,6 +78,8 @@ class WebSearchService {
         return _searchGoogle(query, maxResults);
       case SearchEngine.bing:
         return _searchBing(query, maxResults);
+      case SearchEngine.duckduckgo:
+        return _searchDuckDuckGo(query, maxResults);
       case SearchEngine.tavily:
         return _searchTavily(query, maxResults, apiKey ?? '');
     }
@@ -252,6 +254,68 @@ class WebSearchService {
 
       if (snippet.length > 10) {
         results.add(SearchResult(title: title, url: url, snippet: snippet));
+      }
+    }
+
+    return results;
+  }
+
+  // ── DuckDuckGo 搜索 ────────────────────────────────────────
+
+  /// DuckDuckGo 搜索 — 通过 html.duckduckgo.com 抓取
+  static Future<List<SearchResult>> _searchDuckDuckGo(
+    String query,
+    int maxResults,
+  ) async {
+    final uri = Uri.https('html.duckduckgo.com', '/html/', {
+      'q': query,
+    });
+
+    final response = await http.get(uri, headers: _browserHeaders).timeout(_timeout);
+
+    if (response.statusCode != 200) {
+      throw Exception('DuckDuckGo search failed: ${response.statusCode}');
+    }
+
+    final html = utf8.decode(response.bodyBytes);
+    return parseDuckDuckGoResults(html, maxResults);
+  }
+
+  /// 解析 DuckDuckGo 搜索结果 HTML
+  @visibleForTesting
+  static List<SearchResult> parseDuckDuckGoResults(String html, int maxResults) {
+    final results = <SearchResult>[];
+
+    final resultPattern = RegExp(
+      r'<h2 class="result__title">\s*<a[^>]*href="([^"]+)"[^>]*>(.*?)</a>.*?</h2\s*>.*?<a class="result__snippet"[^>]*>(.*?)</a>',
+      dotAll: true,
+    );
+
+    final matches = resultPattern.allMatches(html);
+    for (final match in matches) {
+      if (results.length >= maxResults) break;
+
+      final rawUrl = match.group(1) ?? '';
+      final title = stripHtml(match.group(2) ?? '').trim();
+      final snippetDelimiterHtml = stripHtml(match.group(3) ?? '').trim();
+      final snippet = snippetDelimiterHtml.replaceAll(RegExp(r'\s+'), ' ');
+
+      // DuckDuckGo redirects urls via uddg parameter (e.g. //duckduckgo.com/l/?uddg=...)
+      String actualUrl = rawUrl;
+      try {
+        final uri = Uri.parse(rawUrl.startsWith('//') ? 'https:' + rawUrl : rawUrl);
+        if (uri.queryParameters.containsKey('uddg')) {
+          final decodedUddg = Uri.decodeComponent(uri.queryParameters['uddg']!);
+          actualUrl = decodedUddg;
+        }
+      } catch (e) {
+        // Fallback to raw url
+      }
+
+      if (actualUrl.isEmpty || title.isEmpty) continue;
+
+      if (snippet.length > 10) {
+        results.add(SearchResult(title: title, url: actualUrl, snippet: snippet));
       }
     }
 

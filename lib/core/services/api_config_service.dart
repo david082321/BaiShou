@@ -8,9 +8,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:baishou/i18n/strings.g.dart';
 
+import 'package:flutter/foundation.dart';
+
 /// AI 服务配置管理类
 /// 负责处理 AI 供应商列表、当前激活的供应商以及全局默认模型设置的持久化与读取。
-class ApiConfigService {
+class ApiConfigService extends ChangeNotifier {
   // SharedPreferences 键名定义
   static const String _keyProviders = 'ai_providers_list';
   static const String _keyActiveProviderId = 'active_ai_provider_id';
@@ -233,8 +235,10 @@ class ApiConfigService {
 
   /// 设置全局默认对话模型
   Future<void> setGlobalDialogueModel(String providerId, String modelId) async {
+    if (globalDialogueProviderId == providerId && globalDialogueModelId == modelId) return;
     await _prefs.setString(_keyGlobalDialogueProviderId, providerId);
     await _prefs.setString(_keyGlobalDialogueModelId, modelId);
+    notifyListeners();
   }
 
   /// 获取全局默认命名模型的供应商 ID
@@ -251,8 +255,10 @@ class ApiConfigService {
 
   /// 设置全局默认命名模型
   Future<void> setGlobalNamingModel(String providerId, String modelId) async {
+    if (globalNamingProviderId == providerId && globalNamingModelId == modelId) return;
     await _prefs.setString(_keyGlobalNamingProviderId, providerId);
     await _prefs.setString(_keyGlobalNamingModelId, modelId);
+    notifyListeners();
   }
 
   /// 获取全局记忆总结模型的供应商 ID
@@ -267,8 +273,10 @@ class ApiConfigService {
 
   /// 设置全局记忆总结模型
   Future<void> setGlobalSummaryModel(String providerId, String modelId) async {
+    if (globalSummaryProviderId == providerId && globalSummaryModelId == modelId) return;
     await _prefs.setString(_keyGlobalSummaryProviderId, providerId);
     await _prefs.setString(_keyGlobalSummaryModelId, modelId);
+    notifyListeners();
   }
 
   /// 获取月度总结的数据源：'weeklies'（仅周记） 或 'diaries'（全量日记）
