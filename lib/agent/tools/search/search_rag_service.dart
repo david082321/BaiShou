@@ -1,10 +1,9 @@
 /// 搜索结果 RAG 压缩服务
 ///
-/// 将搜索结果进行向量化检索压缩：
 /// - 每个搜索结果仅保留 documentCount 个 chunk（默认 1）
-/// - 总 embedding 上限 = resultCount × documentCount
 /// - 先截断每个来源的内容（cutoff），再分块 embedding
-/// - Round Robin 选择 + 按 sourceUrl 合并同源片段
+/// - 余弦相似度 KNN
+/// - Round Robin 选择（避免单源垄断）+ 按 sourceUrl 合并同源片段
 ///
 /// SOLID: 单一职责 — 仅处理搜索结果的 RAG 压缩
 /// 全程内存操作，不写数据库，用完即销毁。

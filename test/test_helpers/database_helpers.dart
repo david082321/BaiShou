@@ -28,8 +28,9 @@ Future<void> seedEmbeddingData(
     final embedding = List.filled(dimension, 0.5); // dummy vector
     await db.insertEmbedding(
       id: 'mock_emb_$i',
-      messageId: 'mock_msg_$i',
-      sessionId: 'mock_session',
+      sourceType: 'chat',
+      sourceId: 'mock_msg_$i',
+      groupId: 'mock_session',
       chunkIndex: 0,
       chunkText: 'This is mock chunk $i',
       embedding: embedding,

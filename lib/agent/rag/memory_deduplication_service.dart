@@ -116,7 +116,8 @@ class MemoryDeduplicationService {
       final distance = (c['distance'] as double?) ?? 2.0;
       return _ScoredMemory(
         embeddingId: c['embedding_id'] as String,
-        messageId: c['message_id'] as String,
+        sourceType: c['source_type'] as String,
+        sourceId: c['source_id'] as String,
         chunkText: c['chunk_text'] as String,
         createdAt: c['created_at'] as int,
         similarity: 1.0 - distance,
@@ -206,19 +207,21 @@ class MemoryDeduplicationService {
           // 原子操作：删旧 + 插新
           final removedIds = <String>[];
           for (final targetId in llmResult.mergeTargetIds) {
-            // 找到对应的 messageId 进行删除
+            // 找到对应的 sourceType 和 sourceId 进行删除
             final target = candidates.firstWhere(
-              (c) => c.embeddingId == targetId || c.messageId == targetId,
+              (c) => c.embeddingId == targetId || c.sourceId == targetId,
               orElse: () => candidates.first,
             );
-            await _db.deleteEmbeddingsByMessage(target.messageId);
-            removedIds.add(target.messageId);
+            await _db.deleteEmbeddingsBySource(target.sourceType, target.sourceId);
+            removedIds.add(target.sourceId);
           }
 
           // 存入合并后的新记忆（embedding_service 会重新 embedding）
           await _embeddingService.embedText(
             text: mergedContent,
-            sessionId: sessionId,
+            sourceType: 'chat',
+            sourceId: 'mem_\${DateTime.now().millisecondsSinceEpoch}',
+            groupId: sessionId,
           );
 
           return DeduplicationResult(
@@ -329,7 +332,7 @@ $newMemory
   Future<void> _updateTimestamp(String embeddingId) async {
     try {
       await _db.customStatement(
-        'UPDATE message_embeddings SET created_at = ? WHERE embedding_id = ?',
+        'UPDATE memory_embeddings SET created_at = ? WHERE embedding_id = ?',
         [DateTime.now().millisecondsSinceEpoch, embeddingId],
       );
     } catch (e) {
@@ -341,14 +344,16 @@ $newMemory
 /// 内部模型：相似度打分的记忆条目
 class _ScoredMemory {
   final String embeddingId;
-  final String messageId;
+  final String sourceType;
+  final String sourceId;
   final String chunkText;
   final int createdAt;
   final double similarity;
 
   const _ScoredMemory({
     required this.embeddingId,
-    required this.messageId,
+    required this.sourceType,
+    required this.sourceId,
     required this.chunkText,
     required this.createdAt,
     required this.similarity,

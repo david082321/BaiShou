@@ -103,7 +103,9 @@ class MemoryStoreTool extends AgentTool {
       // ── 正常存储 ──
       await embeddingService.embedText(
         text: fullContent,
-        sessionId: context.sessionId,
+        sourceType: 'chat',
+        sourceId: 'mem_${DateTime.now().millisecondsSinceEpoch}',
+        groupId: context.sessionId,
       );
 
       return ToolResult(

@@ -66,7 +66,7 @@ class MemoryDeleteTool extends AgentTool {
     try {
       if (messageId != null && messageId.isNotEmpty) {
         // 精确删除：按 message_id
-        await _db.deleteEmbeddingsByMessage(messageId);
+        await _db.deleteEmbeddingsBySource('chat', messageId);
         return ToolResult(
           output: 'Memory chunks for message ID "$messageId" have been deleted.',
           success: true,
@@ -98,15 +98,7 @@ class MemoryDeleteTool extends AgentTool {
       );
 
       final results = vectorRaw
-          .map((r) => SearchResult(
-                messageId: r['message_id'] as String,
-                sessionId: r['session_id'] as String,
-                chunkText: r['chunk_text'] as String,
-                sessionTitle: r['session_title'] as String,
-                score: 1.0 - (r['distance'] as double),
-                source: 'vector',
-              ))
-          .where((r) => r.score >= 0.5) // 只删除高相关度的
+          .where((r) => (1.0 - (r['distance'] as double)) >= 0.5) // 只删除高相关度的
           .toList();
 
       if (results.isEmpty) {
@@ -122,12 +114,14 @@ class MemoryDeleteTool extends AgentTool {
       final deletedPreviews = <String>[];
 
       for (final result in results) {
-        await _db.deleteEmbeddingsByMessage(result.messageId);
-        final preview = result.chunkText.length > 60
-            ? '${result.chunkText.substring(0, 60)}...'
-            : result.chunkText;
+        await _db.deleteEmbeddingsBySource(result['source_type'] as String, result['source_id'] as String);
+        final chunkText = result['chunk_text'] as String;
+        final preview = chunkText.length > 60
+            ? '${chunkText.substring(0, 60)}...'
+            : chunkText;
+        final score = 1.0 - (result['distance'] as double);
         deletedPreviews.add(
-          '- [${result.score.toStringAsFixed(2)}] $preview',
+          '- [${score.toStringAsFixed(2)}] $preview',
         );
       }
 

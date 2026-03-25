@@ -1,6 +1,8 @@
+import 'dart:convert';
 import 'package:baishou/agent/database/agent_database.dart';
 import 'package:baishou/agent/rag/embedding_service.dart';
 import 'package:baishou/core/services/api_config_service.dart';
+import 'package:baishou/core/theme/app_theme.dart';
 import 'package:baishou/core/widgets/app_toast.dart';
 import 'package:baishou/features/diary/data/repositories/diary_repository_impl.dart';
 import 'package:baishou/i18n/strings.g.dart';
@@ -209,22 +211,49 @@ class RagMemoryDialogs {
 
     try {
       final diaryRepo = ref.read(diaryRepositoryProvider);
+      final agentDb = ref.read(agentDatabaseProvider);
+      
       final diaries = await diaryRepo.getAllDiaries();
-      onTotal(diaries.length);
+      final existingMemories = await agentDb.getEmbeddedSourceMetadataByType('diary');
+      
+      // 过滤出未被嵌入或已被外部修改（过时）的日记进行补充更新
+      final diariesToEmbed = diaries.where((d) {
+        final metaStr = existingMemories[d.id.toString()];
+        if (metaStr == null) return true;
+        try {
+          final meta = jsonDecode(metaStr);
+          final embeddedAt = meta['updated_at'] as int?;
+          if (embeddedAt == null) return true;
+          return d.updatedAt.millisecondsSinceEpoch > embeddedAt;
+        } catch (_) {
+          return true;
+        }
+      }).toList();
+      
+      onTotal(diariesToEmbed.length);
+
+      if (diariesToEmbed.isEmpty) {
+        if (context.mounted) {
+          AppToast.showSuccess(context, t.agent.rag.batch_embed_success(count: '0'));
+        }
+        return true;
+      }
 
       int embedded = 0;
       int progressCounter = 0;
-      for (final diary in diaries) {
+      for (final diary in diariesToEmbed) {
         if (diary.content.trim().isEmpty) {
           progressCounter++;
           onProgress(progressCounter);
           continue;
         }
         final dateLabel = DateFormat('yyyy-MM-dd').format(diary.date);
-        await embeddingService.embedText(
+        await embeddingService.reEmbedText(
           text: '$dateLabel: ${diary.content}',
-          sessionId: 'diary_batch',
-          customId: 'diary_${diary.id}',
+          sourceType: 'diary',
+          sourceId: diary.id.toString(),
+          groupId: 'diary_batch',
+          metadataJson: jsonEncode({'updated_at': diary.updatedAt.millisecondsSinceEpoch}),
         );
         embedded++;
         progressCounter++;
@@ -298,7 +327,9 @@ class RagMemoryDialogs {
 
       await embeddingService.embedText(
         text: result.trim(),
-        sessionId: 'manual_memory',
+        sourceType: 'chat',
+        sourceId: 'mem_${DateTime.now().millisecondsSinceEpoch}',
+        groupId: 'manual_memory',
       );
 
       if (context.mounted) {

@@ -101,8 +101,9 @@ void main() {
         final chunk = backupChunks[i];
         await db.insertEmbedding(
           id: chunk['embedding_id'] as String,
-          messageId: 'mock_msg_$i',
-          sessionId: 'mock_session',
+          sourceType: 'chat',
+          sourceId: 'mock_msg_$i',
+          groupId: 'mock_session',
           chunkIndex: 0,
           chunkText: chunk['chunk_text'] as String,
           embedding: [0.1, 0.2, 0.3],

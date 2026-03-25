@@ -109,8 +109,9 @@ class EmbeddingService {
 
           await _db.insertEmbedding(
             id: uuid.v4(),
-            messageId: messageId,
-            sessionId: sessionId,
+            sourceType: 'chat',
+            sourceId: messageId,
+            groupId: sessionId,
             chunkIndex: chunk.index,
             chunkText: chunk.text,
             embedding: _normalize(embedding),
@@ -154,8 +155,10 @@ class EmbeddingService {
   /// 不依赖消息上下文。
   Future<void> embedText({
     required String text,
-    required String sessionId,
-    String? customId,
+    required String sourceType,
+    required String sourceId,
+    required String groupId,
+    String metadataJson = '{}',
   }) async {
     if (!isConfigured || text.trim().isEmpty) return;
 
@@ -166,7 +169,6 @@ class EmbeddingService {
 
     final client = AiClientFactory.createClient(provider);
     final uuid = const Uuid();
-    final messageId = customId ?? 'mem_${uuid.v4()}';
     final chunks = _splitIntoChunks(text);
 
     // 首次嵌入前自动检测维度并初始化向量索引
@@ -183,15 +185,35 @@ class EmbeddingService {
         );
         await _db.insertEmbedding(
           id: uuid.v4(),
-          messageId: messageId,
-          sessionId: sessionId,
+          sourceType: sourceType,
+          sourceId: sourceId,
+          groupId: groupId,
           chunkIndex: chunk.index,
           chunkText: chunk.text,
+          metadataJson: metadataJson,
           embedding: _normalize(embedding),
           modelId: embeddingModelId,
         );
       }, label: 'embedText chunk ${chunk.index}');
     }
+  }
+
+  /// 重新嵌入一段独立文本（先删除旧的，再重新生成并插入）
+  Future<void> reEmbedText({
+    required String text,
+    required String sourceType,
+    required String sourceId,
+    required String groupId,
+    String metadataJson = '{}',
+  }) async {
+    await _db.deleteEmbeddingsBySource(sourceType, sourceId);
+    await embedText(
+      text: text, 
+      sourceType: sourceType,
+      sourceId: sourceId,
+      groupId: groupId,
+      metadataJson: metadataJson,
+    );
   }
 
   /// 重新嵌入某条消息（删旧 + 重新生成）
@@ -200,7 +222,7 @@ class EmbeddingService {
     required String sessionId,
     required String content,
   }) async {
-    await _db.deleteEmbeddingsByMessage(messageId);
+    await _db.deleteEmbeddingsBySource('chat', messageId);
     await embedMessage(
       messageId: messageId,
       sessionId: sessionId,
@@ -319,10 +341,12 @@ class EmbeddingService {
 
           await _db.insertEmbedding(
             id: chunk['embedding_id'] as String,
-            messageId: chunk['message_id'] as String,
-            sessionId: chunk['session_id'] as String,
+            sourceType: chunk['source_type'] as String,
+            sourceId: chunk['source_id'] as String,
+            groupId: chunk['group_id'] as String,
             chunkIndex: chunk['chunk_index'] as int,
             chunkText: chunk['chunk_text'] as String,
+            metadataJson: chunk['metadata_json'] as String,
             embedding: _normalize(embedding),
             modelId: embeddingModelId,
           );
