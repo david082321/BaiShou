@@ -8,7 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:baishou/core/providers/shared_preferences_provider.dart';
 
 /// 主级架构视图
 ///
@@ -27,6 +27,8 @@ class _MainScaffoldState extends ConsumerState<MainScaffold>
     with SingleTickerProviderStateMixin {
   late final AnimationController _overlayController;
 
+  bool _isNavigating = false;
+
   void _goBranch(int index) {
     widget.navigationShell.goBranch(
       index,
@@ -44,14 +46,11 @@ class _MainScaffoldState extends ConsumerState<MainScaffold>
 
   void _computeDefaultBranch() {
     try {
-      final prefs = SharedPreferences.getInstance();
-      // ignore: discarded_futures
-      prefs.then((p) {
-        final saved = p.getStringList('desktop_sidebar_nav_order');
-        if (saved != null && saved.isNotEmpty) {
-          _defaultBranch = int.tryParse(saved.first) ?? 0;
-        }
-      });
+      final prefs = ref.read(sharedPreferencesProvider);
+      final saved = prefs.getStringList('desktop_sidebar_nav_order');
+      if (saved != null && saved.isNotEmpty) {
+        _defaultBranch = int.tryParse(saved.first) ?? 0;
+      }
     } catch (_) {}
   }
 
@@ -177,7 +176,14 @@ class _MainScaffoldState extends ConsumerState<MainScaffold>
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
 
-        if (currentIndex != 0) {
+        // 防止手势误触反复跳转
+        if (_isNavigating) return;
+        _isNavigating = true;
+        Future.delayed(const Duration(milliseconds: 300), () {
+          _isNavigating = false;
+        });
+
+        if (currentIndex != _defaultBranch) {
           _goBranch(_defaultBranch);
           return;
         }
