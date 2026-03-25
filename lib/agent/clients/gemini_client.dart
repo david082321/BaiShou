@@ -206,10 +206,10 @@ class GeminiClient extends BaseAiClient {
     }
 
     if (tools != null && tools.isNotEmpty) {
-      body['tools'] = [
-        {
+      body['tools'] = <Map<String, dynamic>>[
+        <String, dynamic>{
           'functionDeclarations': tools
-              .map((t) => {
+              .map((t) => <String, dynamic>{
                     'name': t.name,
                     'description': t.description,
                     'parameters': t.parameterSchema,
@@ -221,9 +221,20 @@ class GeminiClient extends BaseAiClient {
 
     // 注入 Gemini Google Search grounding 工具
     if (enableWebSearch) {
-      final toolsList = (body['tools'] as List?) ?? [];
-      toolsList.add({'google_search': {}});
+      final toolsList = (body['tools'] as List?) ?? <Map<String, dynamic>>[];
+      toolsList.add(<String, dynamic>{'google_search': <String, dynamic>{}});
       body['tools'] = toolsList;
+
+      // Gemini 要求同时使用内置工具（Google Search）和自定义函数调用时，
+      // 必须显式启用 server_side_tool_invocations
+      if (tools != null && tools.isNotEmpty) {
+        body['tool_config'] = <String, dynamic>{
+          'function_calling_config': <String, dynamic>{
+            'mode': 'AUTO',
+            'include_server_side_tool_invocations': true,
+          },
+        };
+      }
     }
 
     final config = <String, dynamic>{'maxOutputTokens': 8192};

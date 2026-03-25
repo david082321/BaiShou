@@ -7,6 +7,8 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:baishou/agent/rag/embedding_service.dart';
+import 'package:baishou/agent/rag/memory_deduplication_service.dart';
 import 'package:baishou/agent/tools/agent_tool.dart';
 import 'package:baishou/agent/tools/built_in_tool_provider.dart';
 import 'package:baishou/core/services/api_config_service.dart';
@@ -32,6 +34,9 @@ class McpServerService {
 
   McpServerService(this._ref);
 
+  // 活跃的 SSE 连接
+  final _connections = <String, StreamController<String>>{};
+
   bool get isRunning => _running;
   int get port => _ref.read(apiConfigServiceProvider).mcpPort;
 
@@ -43,7 +48,9 @@ class McpServerService {
     final mcpPort = configService.mcpPort;
 
     final router = Router()
-      ..post('/mcp', _handleJsonRpc)
+      ..get('/sse', _handleSse)
+      ..post('/message', _handleMessage)
+      ..post('/mcp', _handleJsonRpc) // 保留遗留的直接 POST 接口
       ..get('/mcp', _handleGetInfo);
 
     final handler = const shelf.Pipeline()
@@ -58,7 +65,7 @@ class McpServerService {
         mcpPort,
       );
       _running = true;
-      debugPrint('MCP Server started on http://localhost:$mcpPort/mcp');
+      debugPrint('MCP Server started on http://localhost:$mcpPort/sse');
     } catch (e) {
       debugPrint('MCP Server failed to start: $e');
       rethrow;
@@ -68,6 +75,10 @@ class McpServerService {
   /// 停止 MCP Server
   Future<void> stop() async {
     if (!_running) return;
+    for (final controller in _connections.values) {
+      await controller.close();
+    }
+    _connections.clear();
     await _server?.close(force: true);
     _server = null;
     _running = false;
@@ -112,14 +123,118 @@ class McpServerService {
     );
   }
 
-  /// POST /mcp → 处理 JSON-RPC 2.0 请求
+  // ─── 标准 MCP SSE 协议实现 ────────────────────────────────
+
+  /// GET /sse → 建立 SSE 连接并返回 endpoint
+  Future<shelf.Response> _handleSse(shelf.Request request) async {
+    final sessionId = DateTime.now().millisecondsSinceEpoch.toString();
+    final controller = StreamController<String>();
+    
+    _connections[sessionId] = controller;
+
+    controller.onCancel = () {
+      _connections.remove(sessionId);
+    };
+
+    final stream = controller.stream.map((data) => utf8.encode(data));
+
+    Future.microtask(() {
+      final endpointUrl = 'http://localhost:$port/message?sessionId=$sessionId';
+      controller.add('event: endpoint\ndata: $endpointUrl\n\n');
+    });
+
+    return shelf.Response.ok(
+      stream,
+      headers: {
+        'Content-Type': 'text/event-stream; charset=utf-8',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+      },
+      context: {'shelf.io.buffer_output': false}, // 确保实时推送
+    );
+  }
+
+  /// POST /message?sessionId=xxx → 处理通过 SSE 下发的 JSON-RPC 2.0 请求
+  Future<shelf.Response> _handleMessage(shelf.Request request) async {
+    final sessionId = request.url.queryParameters['sessionId'];
+    if (sessionId == null || !_connections.containsKey(sessionId)) {
+      return shelf.Response(404, body: 'Session not found');
+    }
+
+    final controller = _connections[sessionId]!;
+    
+    // 我们必须先读取请求体，因为要立即返回 202 Accepted
+    final body = await request.readAsString();
+
+    // 异步处理，避免阻塞 HTTP 响应
+    Future.microtask(() => _processRpcForSse(body, controller));
+
+    // MCP 规范要求：在收到请求后立刻响应 202 Accepted
+    return shelf.Response(202, body: 'Accepted');
+  }
+
+  /// 异步处理 RPC 请求并推送到 SSE 端点
+  Future<void> _processRpcForSse(String body, StreamController<String> controller) async {
+    try {
+      final jsonBody = jsonDecode(body) as Map<String, dynamic>;
+      final method = jsonBody['method'] as String?;
+      
+      // 忽略不需要返回结果的通知
+      if (method == 'notifications/initialized' || method == 'notifications/cancelled') {
+        return;
+      }
+
+      final id = jsonBody['id'];
+      final params = jsonBody['params'] as Map<String, dynamic>? ?? {};
+
+      final result = switch (method) {
+        'initialize' => _handleInitialize(params),
+        'tools/list' => _handleToolsList(params),
+        'tools/call' => await _handleToolsCall(params),
+        'ping' => <String, dynamic>{},
+        _ => throw _JsonRpcError(-32601, 'Method not found: $method'),
+      };
+
+      final responseBody = jsonEncode({
+        'jsonrpc': '2.0',
+        'id': id,
+        'result': result,
+      });
+
+      controller.add('event: message\ndata: $responseBody\n\n');
+
+    } on _JsonRpcError catch (e) {
+      final id = _extractId(body);
+      final responseBody = jsonEncode({
+        'jsonrpc': '2.0',
+        'id': id,
+        'error': {'code': e.code, 'message': e.message},
+      });
+      controller.add('event: message\ndata: $responseBody\n\n');
+    } catch (e) {
+      final responseBody = jsonEncode({
+        'jsonrpc': '2.0',
+        'id': null,
+        'error': {'code': -32700, 'message': 'Parse error: $e'},
+      });
+      controller.add('event: message\ndata: $responseBody\n\n');
+    }
+  }
+
+  // ─── 遗留的直接 HTTP POST 接口（降级兼容） ───────────────
+
+  /// POST /mcp → 处理直接 JSON-RPC 请求
   Future<shelf.Response> _handleJsonRpc(shelf.Request request) async {
     String? body;
     try {
       body = await request.readAsString();
       final jsonBody = jsonDecode(body) as Map<String, dynamic>;
-
+      
       final method = jsonBody['method'] as String?;
+      if (method == 'notifications/initialized' || method == 'notifications/cancelled') {
+        return shelf.Response.ok('');
+      }
+
       final id = jsonBody['id'];
       final params = jsonBody['params'] as Map<String, dynamic>? ?? {};
 
@@ -139,6 +254,8 @@ class McpServerService {
       return _jsonRpcErrorResponse(null, -32700, 'Parse error: $e');
     }
   }
+
+  // ─── JSON-RPC 处理逻辑 ────────────────────────────────────
 
   /// initialize → 返回服务器信息和能力
   Map<String, dynamic> _handleInitialize(Map<String, dynamic> params) {
@@ -190,9 +307,28 @@ class McpServerService {
     // 获取当前活跃 Vault 路径
     final vaultPath = await _getActiveVaultPath();
 
+    // 注入必备的服务与工具配置给 AgentTool 使用
+    final embeddingService = _ref.read(embeddingServiceProvider);
+    final deduplicationService = _ref.read(memoryDeduplicationServiceProvider);
+    final apiConfig = _ref.read(apiConfigServiceProvider);
+    
+    final toolUserConfig = <String, dynamic>{
+      'rag_top_k': apiConfig.ragTopK,
+      'rag_similarity_threshold': apiConfig.ragSimilarityThreshold,
+    };
+    for (final t in tools) {
+      final perToolConfig = apiConfig.getToolConfig(t.id);
+      if (perToolConfig.isNotEmpty) {
+        toolUserConfig.addAll(perToolConfig);
+      }
+    }
+
     final context = ToolContext(
       sessionId: 'mcp-external',
       vaultPath: vaultPath,
+      embeddingService: embeddingService,
+      deduplicationService: deduplicationService,
+      userConfig: toolUserConfig,
     );
 
     try {
