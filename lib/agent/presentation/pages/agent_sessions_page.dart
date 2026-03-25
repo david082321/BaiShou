@@ -6,6 +6,7 @@
 import 'package:baishou/agent/database/agent_database.dart';
 import 'package:baishou/agent/session/session_manager.dart';
 import 'package:baishou/core/services/api_config_service.dart';
+import 'package:baishou/core/storage/vault_service.dart';
 import 'package:baishou/i18n/strings.g.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -70,6 +71,13 @@ class _AgentSessionsPageState extends ConsumerState<AgentSessionsPage> {
 
   @override
   Widget build(BuildContext context) {
+    // 监听 Vault 变化 (当切换工作空间时自动重新加载)
+    ref.listen(vaultServiceProvider, (prev, next) {
+      if (prev?.value?.name != next.value?.name) {
+        _loadSessions();
+      }
+    });
+
     final theme = Theme.of(context);
 
     return Scaffold(

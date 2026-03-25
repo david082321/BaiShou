@@ -190,7 +190,7 @@ class AssistantService {
     // 创建默认伙伴
     final id = await createAssistant(
       name: t.agent.assistant.default_assistant_name,
-      emoji: '⭐',
+      emoji: '🍵',
       description: t.agent.assistant.default_assistant_desc,
       systemPrompt: '',
       isDefault: true,

@@ -10,6 +10,7 @@ import 'package:baishou/agent/presentation/notifiers/agent_chat_notifier.dart';
 import 'package:baishou/agent/presentation/notifiers/assistant_notifier.dart';
 import 'package:baishou/agent/presentation/pages/agent_chat_page.dart';
 import 'package:baishou/agent/presentation/widgets/agent_sidebar.dart';
+import 'package:baishou/core/storage/vault_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -107,6 +108,18 @@ class _AgentMainPageState extends ConsumerState<AgentMainPage> {
 
   @override
   Widget build(BuildContext context) {
+    // 监听 Vault 变化 (当切换工作空间时，重置所有状态并重新加载)
+    ref.listen(vaultServiceProvider, (prev, next) {
+      if (prev?.value?.name != next.value?.name) {
+        ref.read(agentChatProvider.notifier).clearChat();
+        setState(() {
+          _selectedSessionId = null;
+          _currentAssistant = null;
+        });
+        _initAssistantAndSessions();
+      }
+    });
+
     // 监听 sessionId 变化
     ref.listen<AgentChatState>(agentChatProvider, (prev, next) {
       if (prev?.sessionId != next.sessionId && next.sessionId != null) {
