@@ -1,5 +1,6 @@
 import 'package:baishou/agent/database/agent_database.dart';
 import 'package:baishou/agent/rag/batch_embedding_progress.dart';
+import 'package:baishou/agent/rag/embedding_service.dart';
 import 'package:baishou/core/services/api_config_service.dart';
 import 'package:baishou/i18n/strings.g.dart';
 import 'package:flutter/material.dart';
@@ -20,6 +21,7 @@ class _RagMemoryViewState extends ConsumerState<RagMemoryView> {
   Map<String, dynamic> _stats = {};
   bool _isLoading = true;
   bool _isDetectingDimension = false;
+  bool _hasMismatchModel = false;
   String _searchQuery = '';
   final _searchController = TextEditingController();
 
@@ -39,15 +41,22 @@ class _RagMemoryViewState extends ConsumerState<RagMemoryView> {
     setState(() => _isLoading = true);
     try {
       final db = ref.read(agentDatabaseProvider);
+      final embeddingService = ref.read(embeddingServiceProvider);
       final stats = await db.getEmbeddingStats();
       final entries = await db.getAllEmbeddingChunks();
-      setState(() {
-        _stats = stats;
-        _entries = entries;
-        _isLoading = false;
-      });
+
+      _stats = stats;
+      _entries = entries;
+      _hasMismatchModel = await embeddingService.hasHeterogeneousEmbeddings();
+
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     } catch (e) {
-      setState(() => _isLoading = false);
+      debugPrint('Error loading RAG stats: $e');
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -107,6 +116,10 @@ class _RagMemoryViewState extends ConsumerState<RagMemoryView> {
   Future<void> _addManualMemory() async {
     final success = await RagMemoryDialogs.addManualMemory(context, ref);
     if (success && mounted) await _loadData();
+  }
+
+  void _triggerMigration() {
+    RagMemoryDialogs.startMigration(context, ref);
   }
 
   @override
@@ -280,6 +293,57 @@ class _RagMemoryViewState extends ConsumerState<RagMemoryView> {
                   ],
                 ),
               ),
+            )
+          else if (_hasMismatchModel)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: colorScheme.errorContainer.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: colorScheme.error.withValues(alpha: 0.5),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.warning_amber_rounded,
+                          size: 18,
+                          color: colorScheme.error,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          t.agent.rag.migration_mismatch_title,
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: colorScheme.error,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      t.agent.rag.migration_mismatch_content,
+                      style: textTheme.bodyMedium,
+                    ),
+                    const SizedBox(height: 12),
+                    FilledButton.icon(
+                      style: FilledButton.styleFrom(
+                        backgroundColor: colorScheme.error,
+                        foregroundColor: colorScheme.onError,
+                      ),
+                      onPressed: _triggerMigration,
+                      icon: const Icon(Icons.sync, size: 16),
+                      label: Text(t.agent.rag.migration_continue),
+                    ),
+                  ],
+                ),
+              ),
             ),
 
           // 操作按钮行
@@ -315,6 +379,13 @@ class _RagMemoryViewState extends ConsumerState<RagMemoryView> {
                   label: t.agent.rag.action_add_memory,
                   color: isBusy ? colorScheme.outline : colorScheme.tertiary,
                   onTap: isBusy ? null : _addManualMemory,
+                ),
+                // 手动重置迁移
+                RagActionChip(
+                  icon: Icons.sync,
+                  label: "手动迁移模型配置",
+                  color: isBusy ? colorScheme.outline : colorScheme.secondary,
+                  onTap: isBusy ? null : _triggerMigration,
                 ),
               ],
             ),
