@@ -356,7 +356,7 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
           _isSaving = false;
         });
         AppToast.showSuccess(context, t.diary.saved_toast);
-        
+
         // 延迟一帧等待 PopScope 更新 canPop 为 true，否则会触发旧状态的退出确认拦截
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted) return;

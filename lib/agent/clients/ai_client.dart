@@ -55,7 +55,11 @@ class AiClientFactory {
   static AiClient createClient(AiProviderModel provider) {
     if (_testClient != null) return _testClient!;
 
-    if (provider.apiKey.isEmpty) {
+    // 本地推理引擎（Ollama / LM Studio）不一定需要 API Key
+    final isLocalProvider = provider.type == ProviderType.ollama ||
+        provider.type == ProviderType.lmstudio;
+
+    if (provider.apiKey.isEmpty && !isLocalProvider) {
       throw Exception(t.ai.error_no_api_key);
     }
 
@@ -65,7 +69,7 @@ class AiClientFactory {
       case ProviderType.anthropic:
         return AnthropicClient(provider: provider);
       default:
-        // OpenAI 标准协议族 (OpenAI, DeepSeek, Kimi, GLM等)
+        // OpenAI 标准协议族 (OpenAI, DeepSeek, Kimi, Ollama, Groq, SiliconFlow 等)
         return OpenAiClient(provider: provider);
     }
   }

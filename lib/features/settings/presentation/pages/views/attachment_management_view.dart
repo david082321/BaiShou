@@ -4,8 +4,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:baishou/core/widgets/app_toast.dart';
 
-class AttachmentManagementView extends ConsumerWidget {
+class AttachmentManagementView extends ConsumerStatefulWidget {
   const AttachmentManagementView({super.key});
+
+  @override
+  ConsumerState<AttachmentManagementView> createState() =>
+      _AttachmentManagementViewState();
+}
+
+class _AttachmentManagementViewState
+    extends ConsumerState<AttachmentManagementView> {
+  /// false = 全部附件, true = 仅孤立附件
+  bool _showOrphansOnly = false;
+
+  /// 已勾选的 sessionId 集合
+  final Set<String> _selectedIds = {};
 
   String _formatBytes(int bytes) {
     if (bytes <= 0) return "0 B";
@@ -20,64 +33,122 @@ class AttachmentManagementView extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final attachmentState = ref.watch(attachmentListProvider);
+    final theme = Theme.of(context);
 
     return Scaffold(
       body: attachmentState.when(
-        data: (attachments) {
+        data: (allAttachments) {
+          // 统计
           int totalSize = 0;
           int orphanSize = 0;
+          int totalFiles = 0;
           final orphans = <AttachmentFolderInfo>[];
 
-          for (final doc in attachments) {
-            totalSize += doc.totalBytes;
-            if (doc.isOrphan) {
-              orphanSize += doc.totalBytes;
-              orphans.add(doc);
+          for (final folder in allAttachments) {
+            totalSize += folder.totalBytes;
+            totalFiles += folder.fileCount;
+            if (folder.isOrphan) {
+              orphanSize += folder.totalBytes;
+              orphans.add(folder);
             }
           }
 
-          final theme = Theme.of(context);
+          // 当前展示列表
+          final displayList =
+              _showOrphansOnly ? orphans : allAttachments;
 
-          return CustomScrollView(
-            slivers: [
-              SliverPadding(
-                padding: const EdgeInsets.all(16.0),
-                sliver: SliverList(
-                  delegate: SliverChildListDelegate([
-                    _buildOverviewCard(
-                      context, 
-                      theme, 
-                      totalSize, 
-                      orphanSize, 
-                      orphans.length,
-                    ),
-                    const SizedBox(height: 24),
-                    Text(
-                      t.settings.attachment_management_desc,
-                      style: theme.textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 16),
-                    if (orphans.isNotEmpty)
-                      _buildOrphansList(context, theme, orphans, ref)
-                    else
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 32.0),
-                        child: Center(
-                          child: Column(
-                            children: [
-                              Icon(Icons.check_circle_outline,
-                                  size: 48, color: theme.colorScheme.primary),
-                              const SizedBox(height: 16),
-                              Text(t.settings.attachment_no_orphans),
-                            ],
-                          ),
-                        ),
-                      ),
-                  ]),
+          return Column(
+            children: [
+              // ─── 顶部概览卡片 ───
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                child: _buildOverviewCard(
+                  theme,
+                  totalSize,
+                  orphanSize,
+                  totalFiles,
+                  orphans.length,
                 ),
               ),
+
+              // ─── Tab 切换 + 操作栏 ───
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                child: Row(
+                  children: [
+                    // Tab 切换
+                    _buildTabButton(
+                      theme,
+                      label: t.settings.attachment_tab_all,
+                      count: allAttachments.length,
+                      isActive: !_showOrphansOnly,
+                      onTap: () => setState(() {
+                        _showOrphansOnly = false;
+                        _selectedIds.clear();
+                      }),
+                    ),
+                    const SizedBox(width: 8),
+                    _buildTabButton(
+                      theme,
+                      label: t.settings.attachment_tab_orphans,
+                      count: orphans.length,
+                      isActive: _showOrphansOnly,
+                      onTap: () => setState(() {
+                        _showOrphansOnly = true;
+                        _selectedIds.clear();
+                      }),
+                    ),
+                    const Spacer(),
+                    // 全选 / 取消全选
+                    if (displayList.isNotEmpty)
+                      TextButton(
+                        onPressed: () => setState(() {
+                          if (_selectedIds.length == displayList.length) {
+                            _selectedIds.clear();
+                          } else {
+                            _selectedIds.addAll(
+                              displayList.map((f) => f.sessionId),
+                            );
+                          }
+                        }),
+                        child: Text(
+                          _selectedIds.length == displayList.length
+                              ? t.settings.attachment_deselect_all
+                              : t.settings.attachment_select_all,
+                          style: theme.textTheme.labelMedium,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+
+              // ─── 列表主体 ───
+              Expanded(
+                child: displayList.isEmpty
+                    ? _buildEmptyState(theme)
+                    : ListView.separated(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 4,
+                        ),
+                        itemCount: displayList.length,
+                        separatorBuilder: (_, _a) =>
+                            const SizedBox(height: 4),
+                        itemBuilder: (context, index) {
+                          final folder = displayList[index];
+                          final isChecked =
+                              _selectedIds.contains(folder.sessionId);
+                          return _buildFolderTile(
+                            theme, folder, isChecked);
+                        },
+                      ),
+              ),
+
+              // ─── 底部操作栏 ───
+              if (_selectedIds.isNotEmpty)
+                _buildBottomBar(theme, displayList),
             ],
           );
         },
@@ -87,7 +158,7 @@ class AttachmentManagementView extends ConsumerWidget {
             padding: const EdgeInsets.all(16.0),
             child: Text(
               '${t.common.error}: $err',
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
+              style: TextStyle(color: theme.colorScheme.error),
             ),
           ),
         ),
@@ -95,43 +166,53 @@ class AttachmentManagementView extends ConsumerWidget {
     );
   }
 
+  // ─── 概览卡片 ───────────────────────────────────────────────
+
   Widget _buildOverviewCard(
-    BuildContext context,
     ThemeData theme,
     int totalSize,
     int orphanSize,
-    int orphansCount,
+    int totalFiles,
+    int orphanCount,
   ) {
     return Card(
       elevation: 0,
-      color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
+      color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
         padding: const EdgeInsets.all(20.0),
-        child: Column(
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildStatColumn(
-                  theme,
-                  t.settings.attachment_total_size,
-                  _formatBytes(totalSize),
-                  theme.colorScheme.primary,
-                ),
-                Container(
-                  height: 40,
-                  width: 1,
-                  color: theme.colorScheme.outlineVariant,
-                ),
-                _buildStatColumn(
-                  theme,
-                  t.settings.attachment_orphans_size,
-                  _formatBytes(orphanSize),
-                  orphansCount > 0
-                      ? theme.colorScheme.error
-                      : theme.colorScheme.onSurface,
-                ),
-              ],
+            _buildStatColumn(
+              theme,
+              t.settings.attachment_total_size,
+              _formatBytes(totalSize),
+              theme.colorScheme.primary,
+            ),
+            Container(
+              height: 40,
+              width: 1,
+              color: theme.colorScheme.outlineVariant,
+            ),
+            _buildStatColumn(
+              theme,
+              t.settings.attachment_total_count,
+              '$totalFiles',
+              theme.colorScheme.onSurface,
+            ),
+            Container(
+              height: 40,
+              width: 1,
+              color: theme.colorScheme.outlineVariant,
+            ),
+            _buildStatColumn(
+              theme,
+              t.settings.attachment_orphans_size,
+              _formatBytes(orphanSize),
+              orphanCount > 0
+                  ? theme.colorScheme.error
+                  : theme.colorScheme.onSurface,
             ),
           ],
         ),
@@ -140,19 +221,23 @@ class AttachmentManagementView extends ConsumerWidget {
   }
 
   Widget _buildStatColumn(
-      ThemeData theme, String label, String value, Color valueColor) {
+    ThemeData theme,
+    String label,
+    String value,
+    Color valueColor,
+  ) {
     return Column(
       children: [
         Text(
           label,
-          style: theme.textTheme.bodyMedium?.copyWith(
+          style: theme.textTheme.bodySmall?.copyWith(
             color: theme.colorScheme.onSurfaceVariant,
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
         Text(
           value,
-          style: theme.textTheme.headlineSmall?.copyWith(
+          style: theme.textTheme.titleMedium?.copyWith(
             color: valueColor,
             fontWeight: FontWeight.bold,
           ),
@@ -161,67 +246,279 @@ class AttachmentManagementView extends ConsumerWidget {
     );
   }
 
-  Widget _buildOrphansList(
-    BuildContext context,
-    ThemeData theme,
-    List<AttachmentFolderInfo> orphans,
-    WidgetRef ref,
-  ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        ElevatedButton.icon(
-          onPressed: () => _confirmClearOrphans(context, ref, orphans),
-          icon: const Icon(Icons.delete_sweep),
-          label: Text(t.settings.attachment_clear_orphans),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: theme.colorScheme.errorContainer,
-            foregroundColor: theme.colorScheme.onErrorContainer,
-            padding: const EdgeInsets.symmetric(vertical: 16),
-          ),
+  // ─── Tab 按钮 ──────────────────────────────────────────────
+
+  Widget _buildTabButton(
+    ThemeData theme, {
+    required String label,
+    required int count,
+    required bool isActive,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: isActive
+              ? theme.colorScheme.primaryContainer
+              : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+          borderRadius: BorderRadius.circular(20),
         ),
-        const SizedBox(height: 16),
-        Text(
-          t.settings.attachment_clear_orphans_desc,
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-        ),
-        const SizedBox(height: 24),
-        ListView.separated(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: orphans.length,
-          separatorBuilder: (context, index) => const Divider(height: 1),
-          itemBuilder: (context, index) {
-            final doc = orphans[index];
-            return ListTile(
-              leading: const Icon(Icons.folder_outlined),
-              title: Text(doc.sessionId),
-              subtitle: Text('${doc.fileCount} 文件'),
-              trailing: Text(
-                _formatBytes(doc.totalBytes),
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
+        child: Row(
+          children: [
+            Text(
+              label,
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: isActive
+                    ? theme.colorScheme.onPrimaryContainer
+                    : theme.colorScheme.onSurfaceVariant,
+                fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
+              ),
+            ),
+            const SizedBox(width: 6),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: isActive
+                    ? theme.colorScheme.primary.withValues(alpha: 0.15)
+                    : theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                '$count',
+                style: theme.textTheme.labelSmall?.copyWith(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  color: isActive
+                      ? theme.colorScheme.primary
+                      : theme.colorScheme.onSurfaceVariant,
                 ),
               ),
-            );
-          },
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 
-  Future<void> _confirmClearOrphans(
-    BuildContext context,
-    WidgetRef ref,
-    List<AttachmentFolderInfo> orphans,
+  // ─── 空状态 ────────────────────────────────────────────────
+
+  Widget _buildEmptyState(ThemeData theme) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            _showOrphansOnly
+                ? Icons.check_circle_outline
+                : Icons.folder_off_outlined,
+            size: 48,
+            color: theme.colorScheme.primary.withValues(alpha: 0.5),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            _showOrphansOnly
+                ? t.settings.attachment_no_orphans
+                : t.settings.attachment_no_attachments,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ─── 文件夹列表项 ──────────────────────────────────────────
+
+  Widget _buildFolderTile(
+    ThemeData theme,
+    AttachmentFolderInfo folder,
+    bool isChecked,
+  ) {
+    return Card(
+      elevation: 0,
+      color: isChecked
+          ? theme.colorScheme.primaryContainer.withValues(alpha: 0.3)
+          : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () => setState(() {
+          if (isChecked) {
+            _selectedIds.remove(folder.sessionId);
+          } else {
+            _selectedIds.add(folder.sessionId);
+          }
+        }),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          child: Row(
+            children: [
+              // 勾选框
+              Checkbox(
+                value: isChecked,
+                onChanged: (v) => setState(() {
+                  if (v == true) {
+                    _selectedIds.add(folder.sessionId);
+                  } else {
+                    _selectedIds.remove(folder.sessionId);
+                  }
+                }),
+                visualDensity: VisualDensity.compact,
+              ),
+              const SizedBox(width: 8),
+
+              // 文件夹图标
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: folder.isOrphan
+                      ? theme.colorScheme.errorContainer.withValues(alpha: 0.4)
+                      : theme.colorScheme.primaryContainer.withValues(alpha: 0.4),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  folder.isOrphan
+                      ? Icons.folder_off_outlined
+                      : Icons.folder_outlined,
+                  color: folder.isOrphan
+                      ? theme.colorScheme.error
+                      : theme.colorScheme.primary,
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 12),
+
+              // 信息列
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // 标题行
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            folder.sessionTitle ?? folder.sessionId,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        if (folder.isOrphan) ...[
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.errorContainer,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              t.settings.attachment_orphan_label,
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: theme.colorScheme.onErrorContainer,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${folder.fileCount} files',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // 大小
+              Text(
+                _formatBytes(folder.totalBytes),
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ─── 底部操作栏 ────────────────────────────────────────────
+
+  Widget _buildBottomBar(
+    ThemeData theme,
+    List<AttachmentFolderInfo> displayList,
+  ) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        border: Border(
+          top: BorderSide(
+            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
+          ),
+        ),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Row(
+          children: [
+            Text(
+              t.settings.attachment_delete_selected(
+                count: _selectedIds.length.toString(),
+              ),
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const Spacer(),
+            FilledButton.icon(
+              onPressed: () => _confirmDeleteSelected(displayList),
+              icon: const Icon(Icons.delete_outline, size: 18),
+              label: Text(t.common.delete),
+              style: FilledButton.styleFrom(
+                backgroundColor: theme.colorScheme.error,
+                foregroundColor: theme.colorScheme.onError,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ─── 批量删除确认 ──────────────────────────────────────────
+
+  Future<void> _confirmDeleteSelected(
+    List<AttachmentFolderInfo> displayList,
   ) async {
+    final count = _selectedIds.length;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(t.settings.attachment_clear_confirm_title),
-        content: Text(t.settings.attachment_clear_confirm_desc),
+        content: Text(
+          t.settings.attachment_delete_selected_confirm(
+            count: count.toString(),
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
@@ -229,7 +526,7 @@ class AttachmentManagementView extends ConsumerWidget {
           ),
           FilledButton.icon(
             onPressed: () => Navigator.of(ctx).pop(true),
-            icon: const Icon(Icons.delete_forever),
+            icon: const Icon(Icons.delete_forever, size: 18),
             label: Text(t.common.delete),
             style: FilledButton.styleFrom(
               backgroundColor: Theme.of(context).colorScheme.error,
@@ -240,19 +537,27 @@ class AttachmentManagementView extends ConsumerWidget {
       ),
     );
 
-    if (confirmed == true && context.mounted) {
+    if (confirmed == true && mounted) {
+      final service = ref.read(attachmentServiceProvider);
       int freedBytes = 0;
-      for (final orphan in orphans) {
-        freedBytes += orphan.totalBytes;
+
+      for (final id in _selectedIds) {
+        final folder = displayList.where((f) => f.sessionId == id).firstOrNull;
+        if (folder != null) {
+          freedBytes += folder.totalBytes;
+        }
+        await service.deleteAttachmentFolder(id);
       }
 
-      await ref.read(attachmentServiceProvider).clearAllOrphans();
+      _selectedIds.clear();
       ref.invalidate(attachmentListProvider);
 
-      if (context.mounted) {
+      if (mounted) {
         AppToast.showSuccess(
           context,
-          t.settings.attachment_clear_completed(size: _formatBytes(freedBytes)),
+          t.settings.attachment_clear_completed(
+            size: _formatBytes(freedBytes),
+          ),
         );
       }
     }
