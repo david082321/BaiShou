@@ -1,8 +1,5 @@
-// RAG 记忆管理页面
-//
-// 展示所有已嵌入的向量条目，支持搜索、删除、统计
-
 import 'package:baishou/agent/database/agent_database.dart';
+import 'package:baishou/agent/rag/batch_embedding_progress.dart';
 import 'package:baishou/core/services/api_config_service.dart';
 import 'package:baishou/i18n/strings.g.dart';
 import 'package:flutter/material.dart';
@@ -23,9 +20,6 @@ class _RagMemoryViewState extends ConsumerState<RagMemoryView> {
   Map<String, dynamic> _stats = {};
   bool _isLoading = true;
   bool _isDetectingDimension = false;
-  bool _isBatchEmbedding = false;
-  int _batchProgress = 0;
-  int _batchTotal = 0;
   String _searchQuery = '';
   final _searchController = TextEditingController();
 
@@ -97,26 +91,12 @@ class _RagMemoryViewState extends ConsumerState<RagMemoryView> {
   }
 
   Future<void> _batchEmbedDiaries() async {
-    setState(() {
-      _isBatchEmbedding = true;
-      _batchProgress = 0;
-    });
-
     final success = await RagMemoryDialogs.batchEmbedDiaries(
       context: context,
       ref: ref,
-      onTotal: (total) => setState(() => _batchTotal = total),
-      onProgress: (progress) => setState(() => _batchProgress = progress),
     );
 
-    if (mounted) {
-      setState(() {
-        _isBatchEmbedding = false;
-        _batchProgress = 0;
-        _batchTotal = 0;
-      });
-      if (success) await _loadData();
-    }
+    if (mounted && success) await _loadData();
   }
 
   Future<void> _addManualMemory() async {
@@ -129,6 +109,8 @@ class _RagMemoryViewState extends ConsumerState<RagMemoryView> {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     final totalCount = _stats['total_count'] as int? ?? 0;
+    final batchState = ref.watch(batchEmbeddingProgressProvider);
+    final isBatchEmbedding = batchState.isRunning;
 
     return Container(
       color: colorScheme.surface,
@@ -237,34 +219,34 @@ class _RagMemoryViewState extends ConsumerState<RagMemoryView> {
                 RagActionChip(
                   icon: Icons.layers_clear,
                   label: t.agent.rag.action_clear_dimension,
-                  color: _isBatchEmbedding
+                  color: isBatchEmbedding
                       ? colorScheme.outline
                       : colorScheme.error,
-                  onTap: _isBatchEmbedding ? null : _clearCurrentDimension,
+                  onTap: isBatchEmbedding ? null : _clearCurrentDimension,
                 ),
                 // 全量嵌入日记
                 RagActionChip(
                   icon: Icons.auto_stories,
-                  label: _isBatchEmbedding
+                  label: isBatchEmbedding
                       ? t.agent.rag.batch_embed_progress(
-                          progress: _batchProgress.toString(),
-                          total: _batchTotal.toString(),
+                          progress: batchState.progress.toString(),
+                          total: batchState.total.toString(),
                         )
                       : t.agent.rag.action_batch_embed,
-                  color: _isBatchEmbedding
+                  color: isBatchEmbedding
                       ? colorScheme.outline
                       : colorScheme.primary,
-                  onTap: _isBatchEmbedding ? null : _batchEmbedDiaries,
-                  isLoading: _isBatchEmbedding,
+                  onTap: isBatchEmbedding ? null : _batchEmbedDiaries,
+                  isLoading: isBatchEmbedding,
                 ),
                 // 手动添加记忆
                 RagActionChip(
                   icon: Icons.add_comment_outlined,
                   label: t.agent.rag.action_add_memory,
-                  color: _isBatchEmbedding
+                  color: isBatchEmbedding
                       ? colorScheme.outline
                       : colorScheme.tertiary,
-                  onTap: _isBatchEmbedding ? null : _addManualMemory,
+                  onTap: isBatchEmbedding ? null : _addManualMemory,
                 ),
               ],
             ),

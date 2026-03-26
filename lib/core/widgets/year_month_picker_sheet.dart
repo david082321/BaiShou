@@ -123,23 +123,6 @@ class _YearMonthPickerSheetState extends State<YearMonthPickerSheet> {
                       height: 48,
                       child: TextButton(
                         onPressed: () {
-                          final now = DateTime.now();
-                          Navigator.pop(context, DateTime(now.year, now.month));
-                        },
-                        style: TextButton.styleFrom(
-                          backgroundColor: Theme.of(context).primaryColor.withOpacity(0.1),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        ),
-                        child: Text(t.common.view_this_month, style: TextStyle(color: Theme.of(context).primaryColor, fontWeight: FontWeight.bold)),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: SizedBox(
-                      height: 48,
-                      child: TextButton(
-                        onPressed: () {
                           // 返回 DateTime(0) 表示“清除筛选”或“查看全部”
                           Navigator.pop(context, DateTime(0));
                         },
@@ -152,6 +135,33 @@ class _YearMonthPickerSheetState extends State<YearMonthPickerSheet> {
                           ),
                         ),
                         child: Text(t.common.view_all),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: SizedBox(
+                      height: 48,
+                      child: TextButton(
+                        onPressed: () {
+                          final now = DateTime.now();
+                          Navigator.pop(context, DateTime(now.year, now.month));
+                        },
+                        style: TextButton.styleFrom(
+                          backgroundColor: Theme.of(
+                            context,
+                          ).primaryColor.withOpacity(0.1),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: Text(
+                          t.common.view_this_month,
+                          style: TextStyle(
+                            color: Theme.of(context).primaryColor,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                     ),
                   ),

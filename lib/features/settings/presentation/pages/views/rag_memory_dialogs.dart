@@ -2,13 +2,13 @@ import 'dart:convert';
 import 'package:baishou/agent/database/agent_database.dart';
 import 'package:baishou/agent/rag/embedding_service.dart';
 import 'package:baishou/core/services/api_config_service.dart';
-import 'package:baishou/core/theme/app_theme.dart';
 import 'package:baishou/core/widgets/app_toast.dart';
 import 'package:baishou/features/diary/data/repositories/diary_repository_impl.dart';
 import 'package:baishou/i18n/strings.g.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:baishou/agent/rag/batch_embedding_progress.dart';
 
 class RagMemoryDialogs {
   /// 清空所有记忆
@@ -177,8 +177,6 @@ class RagMemoryDialogs {
   static Future<bool> batchEmbedDiaries({
     required BuildContext context,
     required WidgetRef ref,
-    required ValueChanged<int> onTotal,
-    required ValueChanged<int> onProgress,
   }) async {
     final embeddingService = EmbeddingService(
       ref.read(apiConfigServiceProvider),
@@ -209,6 +207,8 @@ class RagMemoryDialogs {
 
     if (confirmed != true) return false;
 
+    final progress = ref.read(batchEmbeddingProgressProvider.notifier);
+
     try {
       final diaryRepo = ref.read(diaryRepositoryProvider);
       final agentDb = ref.read(agentDatabaseProvider);
@@ -230,9 +230,10 @@ class RagMemoryDialogs {
         }
       }).toList();
       
-      onTotal(diariesToEmbed.length);
+      progress.start(diariesToEmbed.length);
 
       if (diariesToEmbed.isEmpty) {
+        progress.finish();
         if (context.mounted) {
           AppToast.showSuccess(context, t.agent.rag.batch_embed_success(count: '0'));
         }
@@ -244,7 +245,7 @@ class RagMemoryDialogs {
       for (final diary in diariesToEmbed) {
         if (diary.content.trim().isEmpty) {
           progressCounter++;
-          onProgress(progressCounter);
+          progress.updateProgress(progressCounter);
           continue;
         }
         final dateLabel = DateFormat('yyyy-MM-dd').format(diary.date);
@@ -257,9 +258,10 @@ class RagMemoryDialogs {
         );
         embedded++;
         progressCounter++;
-        onProgress(progressCounter);
+        progress.updateProgress(progressCounter);
       }
 
+      progress.finish();
       if (context.mounted) {
         AppToast.showSuccess(
           context,
@@ -268,6 +270,7 @@ class RagMemoryDialogs {
       }
       return true;
     } catch (e) {
+      progress.finish();
       if (context.mounted) {
         AppToast.showError(
           context,
