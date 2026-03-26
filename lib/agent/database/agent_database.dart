@@ -332,6 +332,15 @@ class AgentDatabase extends _$AgentDatabase {
     return result.read<int>('cnt') > 0;
   }
 
+  /// 检查是否存在与其他模型关联的旧嵌入记录（异构）
+  Future<int> countHeterogeneousEmbeddings(String currentGlobalModelId) async {
+    final result = await customSelect(
+      "SELECT COUNT(*) as c FROM memory_embeddings WHERE model_id != ? AND model_id != ''",
+      variables: [Variable.withString(currentGlobalModelId)],
+    ).getSingle();
+    return result.read<int>('c');
+  }
+
   /// 创建迁移备份表，复制元数据（不含向量 BLOB）
   Future<int> createMigrationBackup() async {
     await customStatement('''

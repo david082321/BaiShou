@@ -856,6 +856,8 @@
       "similarity_threshold": "相似度阈值",
       "migration_pending_title": "检测到未完成的迁移",
       "migration_pending_content": "上次嵌入模型迁移未完成（可能是应用异常退出）。\n\n是否继续迁移？备份数据仍然安全。",
+      "migration_mismatch_title": "发现异构记忆模型",
+      "migration_mismatch_content": "当前工作区的已有记忆使用的是其他版本的嵌入模型。\n这会导致旧记忆由于底层维度不匹配而完全无法被 AI 检索到。\n\n是否一键迁移统一至全局最新的模型配置？（点击【暂不处理】你仍然可以在 RAG 页面随时手动点此操作）",
       "migration_later": "稍后再说",
       "migration_continue": "继续迁移",
       "migration_error": "迁移出错: $error",

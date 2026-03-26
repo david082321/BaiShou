@@ -4,7 +4,7 @@ import 'package:baishou/agent/rag/embedding_service.dart';
 import 'package:baishou/features/settings/presentation/widgets/custom_model_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:baishou/agent/rag/batch_embedding_progress.dart';
+import 'package:baishou/features/settings/presentation/pages/views/rag_memory_dialogs.dart';
 import 'package:baishou/i18n/strings.g.dart';
 
 // 全局默认模型配置视图
@@ -192,59 +192,12 @@ class _AiGlobalModelsViewState extends ConsumerState<AiGlobalModelsView> {
           FilledButton(
             onPressed: () {
               Navigator.of(ctx).pop();
-              _startMigration();
+              RagMemoryDialogs.startMigration(context, ref);
             },
             child: Text(t.agent.rag.migration_start_now),
           ),
         ],
       ),
-    );
-  }
-
-  /// 启动异步迁移并显示进度
-  void _startMigration() {
-    final embeddingService = ref.read(embeddingServiceProvider);
-    final progressNotifier = ref.read(ragProgressProvider.notifier);
-
-    progressNotifier.startMigration();
-
-    AppToast.show(
-      context,
-      t.agent.rag.migration_preparing,
-      duration: const Duration(seconds: 2),
-    );
-
-    embeddingService.migrateEmbeddings().listen(
-      (progress) {
-        progressNotifier.updateMigration(
-          progress.completed,
-          progress.total,
-          progress.status,
-        );
-
-        if (progress.isDone) {
-          progressNotifier.finish();
-          if (mounted) {
-            AppToast.showSuccess(
-              context,
-              '迁移完成',
-              duration: const Duration(seconds: 3),
-            );
-          }
-        }
-      },
-      onError: (e) {
-        progressNotifier.finish();
-        if (mounted) {
-          AppToast.showError(
-            context,
-            t.agent.rag.migration_error(error: e.toString()),
-          );
-        }
-      },
-      onDone: () {
-        progressNotifier.finish();
-      },
     );
   }
 
@@ -426,7 +379,7 @@ class _AiGlobalModelsViewState extends ConsumerState<AiGlobalModelsView> {
                         .read(apiConfigServiceProvider)
                         .setGlobalEmbeddingModel(newProviderId, newModelId);
 
-                    _startMigration();
+                    RagMemoryDialogs.startMigration(context, ref);
                   }
                 }
               },

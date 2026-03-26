@@ -9,6 +9,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:baishou/core/providers/shared_preferences_provider.dart';
+import 'package:baishou/agent/rag/embedding_service.dart';
+import 'package:baishou/features/settings/presentation/pages/views/rag_memory_dialogs.dart';
 
 /// 主级架构视图
 ///
@@ -52,6 +54,44 @@ class _MainScaffoldState extends ConsumerState<MainScaffold>
 
   DateTime? _lastBackPress;
 
+  Future<void> _checkHeterogeneousEmbeddings() async {
+    // 延迟检查，避免与初始导航动画冲突
+    await Future.delayed(const Duration(milliseconds: 500));
+    if (!mounted) return;
+
+    try {
+      final embeddingService = ref.read(embeddingServiceProvider);
+      final hasMismatch = await embeddingService.hasHeterogeneousEmbeddings();
+
+      if (hasMismatch && mounted) {
+        final confirmed = await showDialog<bool>(
+          context: context,
+          barrierDismissible: false,
+          builder: (ctx) => AlertDialog(
+            title: Text(t.agent.rag.migration_mismatch_title),
+            content: Text(t.agent.rag.migration_mismatch_content),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(false),
+                child: Text(t.agent.rag.migration_later),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(ctx).pop(true),
+                child: Text(t.agent.rag.migration_continue),
+              ),
+            ],
+          ),
+        );
+
+        if (confirmed == true && mounted) {
+          RagMemoryDialogs.startMigration(context, ref);
+        }
+      }
+    } catch (e) {
+      debugPrint('Error checking heterogeneous embeddings: $e');
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -61,6 +101,7 @@ class _MainScaffoldState extends ConsumerState<MainScaffold>
       duration: const Duration(milliseconds: 300),
       value: 0.0, // 初始透明（不遮挡）
     );
+    _checkHeterogeneousEmbeddings();
   }
 
   @override

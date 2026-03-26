@@ -275,6 +275,16 @@ class EmbeddingService {
   /// 检查是否有未完成的迁移（启动时调用）
   Future<bool> hasPendingMigration() => _db.hasPendingMigration();
 
+  /// 检查当前工作区的 RAG 是否与全局设定模型不一致
+  Future<bool> hasHeterogeneousEmbeddings() async {
+    final String currentGlobalModelId = _apiConfig.globalEmbeddingModelId;
+    if (currentGlobalModelId.isEmpty) return false;
+    final int count = await _db.countHeterogeneousEmbeddings(
+      currentGlobalModelId,
+    );
+    return count > 0;
+  }
+
   /// 安全迁移嵌入模型（备份 → 清空 → 重嵌入 → 校验 → 清理备份）
   ///
   /// 流程：

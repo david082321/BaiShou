@@ -856,6 +856,8 @@
       "similarity_threshold": "Similarity Threshold",
       "migration_pending_title": "Incomplete Migration Detected",
       "migration_pending_content": "The previous embedding migration was not completed (possibly due to app crash).\n\nContinue migration? Backup data is still safe.",
+      "migration_mismatch_title": "Heterogeneous Model Detected",
+      "migration_mismatch_content": "The memory in the current workspace uses a different embedding model.\nThis will cause old memories to be completely hidden from AI searches due to vector dimension mismatch.\n\nDo you want to migrate and unify them to the latest global model? (If you click [Later], you can still do this manually in the RAG page anytime.)",
       "migration_later": "Later",
       "migration_continue": "Continue Migration",
       "migration_error": "Migration error: $error",

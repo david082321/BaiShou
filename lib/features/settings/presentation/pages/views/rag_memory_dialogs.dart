@@ -11,6 +11,54 @@ import 'package:intl/intl.dart';
 import 'package:baishou/agent/rag/batch_embedding_progress.dart';
 
 class RagMemoryDialogs {
+  /// 启动异步迁移并显示进度
+  static void startMigration(BuildContext context, WidgetRef ref) {
+    if (!context.mounted) return;
+    final embeddingService = ref.read(embeddingServiceProvider);
+    final progressNotifier = ref.read(ragProgressProvider.notifier);
+
+    progressNotifier.startMigration();
+
+    AppToast.show(
+      context,
+      t.agent.rag.migration_preparing,
+      duration: const Duration(seconds: 2),
+    );
+
+    embeddingService.migrateEmbeddings().listen(
+      (progress) {
+        progressNotifier.updateMigration(
+          progress.completed,
+          progress.total,
+          progress.status,
+        );
+
+        if (progress.isDone) {
+          progressNotifier.finish();
+          if (context.mounted) {
+            AppToast.showSuccess(
+              context,
+              '迁移完成',
+              duration: const Duration(seconds: 3),
+            );
+          }
+        }
+      },
+      onError: (e) {
+        progressNotifier.finish();
+        if (context.mounted) {
+          AppToast.showError(
+            context,
+            t.agent.rag.migration_error(error: e.toString()),
+          );
+        }
+      },
+      onDone: () {
+        progressNotifier.finish();
+      },
+    );
+  }
+
   /// 清空所有记忆
   static Future<bool> clearAll(BuildContext context, WidgetRef ref) async {
     final confirmed = await showDialog<bool>(
