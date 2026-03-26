@@ -43,15 +43,32 @@ QueryExecutor _openConnection(StoragePathService pathService, String workspace) 
   });
 }
 
+/// 追踪上一个 AppDatabase 实例，确保 vault 切换时在新实例创建前关闭旧实例。
+AppDatabase? _previousAppDb;
+
 /// 提供数据库实例
 @Riverpod(keepAlive: true)
 AppDatabase appDatabase(Ref ref) {
   final pathService = ref.watch(storagePathServiceProvider);
   final vaultName = ref.watch(activeVaultNameProvider) ?? 'Personal';
+
+  final oldDb = _previousAppDb;
+  if (oldDb != null) {
+    oldDb.close();
+    _previousAppDb = null;
+  }
+
+  // drift 的 close() 是异步的，同步 Provider 中无法 await，安全抑制此警告
+  driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
+
   final db = AppDatabase(_openConnection(pathService, vaultName));
+  _previousAppDb = db;
   
   ref.onDispose(() {
     db.close();
+    if (_previousAppDb == db) {
+      _previousAppDb = null;
+    }
   });
   
   return db;

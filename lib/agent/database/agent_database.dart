@@ -651,15 +651,38 @@ QueryExecutor _openAgentConnection(StoragePathService pathService, String worksp
   });
 }
 
+/// 追踪上一个 AgentDatabase 实例，确保 vault 切换时在新实例创建前关闭旧实例，
+/// 避免 drift 检测到同一 QueryExecutor 类型有两个实例共存（race condition 警告）。
+AgentDatabase? _previousAgentDb;
+
 /// Riverpod Provider
 @Riverpod(keepAlive: true)
 AgentDatabase agentDatabase(Ref ref) {
   final pathService = ref.watch(storagePathServiceProvider);
   final vaultName = ref.watch(activeVaultNameProvider) ?? 'Personal';
+
+  // Riverpod 同步重建：先 create 新实例，再异步 dispose 旧实例。
+  // 为避免短暂共存，在创建新实例之前手动关闭上一个。
+  final oldDb = _previousAgentDb;
+  if (oldDb != null) {
+    oldDb.close();
+    _previousAgentDb = null;
+  }
+
+  // drift 的 close() 是异步操作，在同步 Provider 中无法 await，
+  // 导致新实例创建时旧实例在 drift 静态注册表中尚未清除。
+  // vault 切换是明确的有意行为且旧 DB 会被正确关闭，安全抑制此警告。
+  driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
+
   final db = AgentDatabase(_openAgentConnection(pathService, vaultName));
+  _previousAgentDb = db;
   
   ref.onDispose(() {
+    // app 退出等场景的兜底关闭
     db.close();
+    if (_previousAgentDb == db) {
+      _previousAgentDb = null;
+    }
   });
   
   return db;
