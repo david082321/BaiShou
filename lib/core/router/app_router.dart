@@ -18,6 +18,8 @@ import 'package:baishou/features/settings/presentation/pages/views/summary_setti
 import 'package:baishou/features/settings/presentation/pages/views/rag_memory_view.dart';
 import 'package:baishou/agent/presentation/pages/assistant_management_page.dart';
 import 'package:baishou/features/settings/presentation/pages/views/web_search_settings_view.dart';
+import 'package:baishou/features/settings/presentation/pages/views/attachment_management_view.dart'
+    as baishou_attachment;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -206,9 +208,7 @@ GoRouter goRouter(Ref ref) {
         parentNavigatorKey: rootNavigatorKey,
         path: '/settings/web-search',
         builder: (context, state) => Scaffold(
-          appBar: AppBar(
-            title: Text(t.agent.tools.web_search),
-          ),
+          appBar: AppBar(title: Text(t.agent.tools.web_search)),
           body: const WebSearchSettingsView(),
         ),
       ),
@@ -237,6 +237,16 @@ GoRouter goRouter(Ref ref) {
         parentNavigatorKey: rootNavigatorKey,
         path: '/settings/lan-transfer',
         builder: (context, state) => const LanTransferPage(),
+      ),
+      GoRoute(
+        parentNavigatorKey: rootNavigatorKey,
+        path: '/settings/attachments',
+        builder: (context, state) {
+          return Scaffold(
+            appBar: AppBar(title: Text(t.settings.attachment_management)),
+            body: const baishou_attachment.AttachmentManagementView(),
+          );
+        },
       ),
       GoRoute(
         parentNavigatorKey: rootNavigatorKey,

@@ -5,8 +5,6 @@ import 'package:baishou/agent/session/session_manager.dart';
 import 'package:baishou/agent/presentation/notifiers/agent_chat_notifier.dart';
 import 'package:baishou/agent/presentation/widgets/assistant_picker_sheet.dart';
 import 'package:baishou/agent/presentation/widgets/session_list_tile.dart';
-import 'package:baishou/core/storage/storage_path_provider.dart';
-import 'package:baishou/core/storage/vault_service.dart';
 import 'package:baishou/features/settings/domain/services/user_profile_service.dart';
 import 'package:baishou/i18n/strings.g.dart';
 import 'package:flutter/material.dart';
@@ -429,14 +427,8 @@ class _AgentSidebarState extends ConsumerState<AgentSidebar> {
       ),
     );
     if (confirm == true) {
-      final vaultInfo = await ref.read(vaultServiceProvider.future);
-      final vaultName = vaultInfo?.name ?? 'Personal';
-      final storageService = ref.read(storagePathServiceProvider);
-      final vaultDir = await storageService.getVaultDirectory(vaultName);
-
       await ref.read(sessionManagerProvider).deleteSessions(
             _selectedIds.toList(),
-            vaultPath: vaultDir.path,
           );
       if (_selectedIds.contains(widget.selectedSessionId)) {
         ref.read(agentChatProvider.notifier).clearChat();
@@ -479,14 +471,9 @@ class _AgentSidebarState extends ConsumerState<AgentSidebar> {
       ),
     );
     if (act == true) {
-      final vaultInfo = await ref.read(vaultServiceProvider.future);
-      final vaultName = vaultInfo?.name ?? 'Personal';
-      final storageService = ref.read(storagePathServiceProvider);
-      final vaultDir = await storageService.getVaultDirectory(vaultName);
-
       await ref
           .read(sessionManagerProvider)
-          .deleteSession(id, vaultPath: vaultDir.path);
+          .deleteSession(id);
       if (widget.selectedSessionId == id) {
         ref.read(agentChatProvider.notifier).clearChat();
       }
