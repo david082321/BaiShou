@@ -111,6 +111,13 @@ class _RagMemoryViewState extends ConsumerState<RagMemoryView> {
 
   @override
   Widget build(BuildContext context) {
+    // 监听进度状态变化，一旦结束迁移或嵌入，自动重新加载数据
+    ref.listen(ragProgressProvider, (previous, next) {
+      if (previous != null && previous.isRunning && !next.isRunning) {
+        _loadData();
+      }
+    });
+
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     final totalCount = _stats['total_count'] as int? ?? 0;

@@ -473,6 +473,7 @@ class ApiConfigService extends ChangeNotifier {
     if (oldModelId != modelId) {
       await _prefs.remove('global_embedding_dimension');
     }
+    notifyListeners();
   }
 
   /// 当前是否已配置 Embedding 模型
@@ -486,9 +487,9 @@ class ApiConfigService extends ChangeNotifier {
     return _prefs.getInt('global_embedding_dimension') ?? 0;
   }
 
-  /// 缓存嵌入维度
   Future<void> setGlobalEmbeddingDimension(int dimension) async {
     await _prefs.setInt('global_embedding_dimension', dimension);
+    notifyListeners();
   }
 
   // --- RAG 全局记忆开关 ---
@@ -498,9 +499,9 @@ class ApiConfigService extends ChangeNotifier {
     return _prefs.getBool(_keyRagEnabled) ?? true;
   }
 
-  /// 设置全局记忆开关
   Future<void> setRagEnabled(bool enabled) async {
     await _prefs.setBool(_keyRagEnabled, enabled);
+    notifyListeners();
   }
 
   /// RAG 检索 topK（返回前 K 个最相似的结果，默认 20）
