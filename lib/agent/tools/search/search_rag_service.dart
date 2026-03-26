@@ -266,6 +266,9 @@ class SearchRagService {
 
       final chunk = text.substring(start, end).trim();
       if (chunk.isNotEmpty) chunks.add(chunk);
+
+      if (end >= text.length) break;
+
       start = end - _chunkOverlap;
       if (start >= text.length) break;
     }

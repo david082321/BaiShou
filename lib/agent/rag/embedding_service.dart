@@ -422,6 +422,9 @@ class EmbeddingService {
       if (end > text.length) end = text.length;
 
       chunks.add(ChunkResult(index: index, text: text.substring(start, end)));
+      
+      if (end >= text.length) break;
+
       start = end - _chunkOverlap;
       if (start >= text.length) break;
       index++;
