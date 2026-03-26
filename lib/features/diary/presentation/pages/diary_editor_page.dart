@@ -351,9 +351,16 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
       }
 
       if (mounted) {
-        setState(() => _isDirty = false);
+        setState(() {
+          _isDirty = false;
+          _isSaving = false;
+        });
         AppToast.showSuccess(context, t.diary.saved_toast);
-        context.pop(savedDiary);
+        if (context.canPop()) {
+          context.pop(savedDiary);
+        } else {
+          context.go('/');
+        }
       }
     } catch (e) {
       debugPrint('Error saving: $e');

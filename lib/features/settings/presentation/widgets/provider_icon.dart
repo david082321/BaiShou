@@ -38,6 +38,54 @@ Widget getProviderIcon(ProviderType type, {double size = 20}) {
         width: size,
         height: size,
       );
+    case ProviderType.ollama:
+      return Image.asset(
+        'assets/ai_provider_icon/ollama.png',
+        width: size,
+        height: size,
+      );
+    case ProviderType.siliconflow:
+      return Image.asset(
+        'assets/ai_provider_icon/silicon.png',
+        width: size,
+        height: size,
+      );
+    case ProviderType.openrouter:
+      return Image.asset(
+        'assets/ai_provider_icon/openrouter.png',
+        width: size,
+        height: size,
+      );
+    case ProviderType.dashscope:
+      return Image.asset(
+        'assets/ai_provider_icon/dashscope.png',
+        width: size,
+        height: size,
+      );
+    case ProviderType.doubao:
+      return Image.asset(
+        'assets/ai_provider_icon/doubao.png',
+        width: size,
+        height: size,
+      );
+    case ProviderType.grok:
+      return Image.asset(
+        'assets/ai_provider_icon/grok.png',
+        width: size,
+        height: size,
+      );
+    case ProviderType.mistral:
+      return Image.asset(
+        'assets/ai_provider_icon/mistral.png',
+        width: size,
+        height: size,
+      );
+    case ProviderType.lmstudio:
+      return Image.asset(
+        'assets/ai_provider_icon/lmstudio.png',
+        width: size,
+        height: size,
+      );
     default:
       return Icon(
         Icons.cloud_outlined,

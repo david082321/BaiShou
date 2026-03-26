@@ -208,6 +208,58 @@ class CustomModelSelector extends StatelessWidget {
                           width: 20,
                           height: 20,
                         );
+                      } else if (providerIdLower.contains('ollama')) {
+                        providerIconWidget = Image.asset(
+                          'assets/ai_provider_icon/ollama.png',
+                          width: 20,
+                          height: 20,
+                        );
+                      } else if (providerIdLower.contains('silicon')) {
+                        providerIconWidget = Image.asset(
+                          'assets/ai_provider_icon/silicon.png',
+                          width: 20,
+                          height: 20,
+                        );
+                      } else if (providerIdLower.contains('openrouter')) {
+                        providerIconWidget = Image.asset(
+                          'assets/ai_provider_icon/openrouter.png',
+                          width: 20,
+                          height: 20,
+                        );
+                      } else if (providerIdLower.contains('dashscope') ||
+                          providerIdLower.contains('bailian') ||
+                          providerIdLower.contains('tongyi')) {
+                        providerIconWidget = Image.asset(
+                          'assets/ai_provider_icon/dashscope.png',
+                          width: 20,
+                          height: 20,
+                        );
+                      } else if (providerIdLower.contains('doubao') ||
+                          providerIdLower.contains('volcengine')) {
+                        providerIconWidget = Image.asset(
+                          'assets/ai_provider_icon/doubao.png',
+                          width: 20,
+                          height: 20,
+                        );
+                      } else if (providerIdLower.contains('grok') ||
+                          providerIdLower.contains('xai')) {
+                        providerIconWidget = Image.asset(
+                          'assets/ai_provider_icon/grok.png',
+                          width: 20,
+                          height: 20,
+                        );
+                      } else if (providerIdLower.contains('mistral')) {
+                        providerIconWidget = Image.asset(
+                          'assets/ai_provider_icon/mistral.png',
+                          width: 20,
+                          height: 20,
+                        );
+                      } else if (providerIdLower.contains('lmstudio')) {
+                        providerIconWidget = Image.asset(
+                          'assets/ai_provider_icon/lmstudio.png',
+                          width: 20,
+                          height: 20,
+                        );
                       } else {
                         providerIconWidget = Icon(
                           Icons.cloud_outlined,

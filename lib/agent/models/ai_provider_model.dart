@@ -1,6 +1,21 @@
 import 'dart:convert';
 
-enum ProviderType { openai, anthropic, gemini, deepseek, kimi, custom }
+enum ProviderType {
+  openai,
+  anthropic,
+  gemini,
+  deepseek,
+  kimi,
+  ollama,
+  siliconflow,
+  openrouter,
+  dashscope,
+  doubao,
+  grok,
+  mistral,
+  lmstudio,
+  custom,
+}
 
 /// 网络搜索模式
 enum WebSearchMode {
