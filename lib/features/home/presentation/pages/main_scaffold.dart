@@ -30,7 +30,6 @@ class _MainScaffoldState extends ConsumerState<MainScaffold>
   late final AnimationController _overlayController;
 
   void _goBranch(int index) {
-    NavigationGuard.markUserNavigation();
     widget.navigationShell.goBranch(index, initialLocation: false);
   }
 

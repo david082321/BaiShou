@@ -8,7 +8,6 @@ import 'package:window_manager/window_manager.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:baishou/features/diary/presentation/pages/diary_list_page.dart';
 import 'package:baishou/core/storage/vault_service.dart';
-import 'package:baishou/core/router/app_router.dart';
 
 /// 桌面端自定义标题栏
 ///
@@ -54,10 +53,8 @@ class _DesktopTitleBarState extends ConsumerState<DesktopTitleBar>
       if (route == '/') {
         ref.read(diaryScrollToTopProvider.notifier).trigger();
       }
-      NavigationGuard.markUserNavigation();
       widget.router.go(route);
     } else {
-      NavigationGuard.markUserNavigation();
       widget.router.go('/agent');
     }
   }

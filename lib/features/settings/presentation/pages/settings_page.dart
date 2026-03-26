@@ -113,7 +113,6 @@ class _SettingsPageState extends State<SettingsPage> {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
-            NavigationGuard.markUserNavigation();
             if (context.canPop()) {
               context.pop();
             } else {
@@ -230,7 +229,6 @@ class _SettingsPageState extends State<SettingsPage> {
                       IconButton(
                         icon: const Icon(Icons.arrow_back),
                         onPressed: () {
-                          NavigationGuard.markUserNavigation();
                           if (context.canPop()) {
                             context.pop();
                           } else {

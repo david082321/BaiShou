@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:baishou/i18n/strings.g.dart';
 import 'package:baishou/core/providers/shared_preferences_provider.dart';
 import 'package:baishou/agent/presentation/pages/agent_main_page.dart';
@@ -34,28 +32,6 @@ final summaryNavKey = GlobalKey<NavigatorState>(debugLabel: 'summary');
 final syncNavKey = GlobalKey<NavigatorState>(debugLabel: 'sync');
 final settingsNavKey = GlobalKey<NavigatorState>(debugLabel: 'settings');
 final agentNavKey = GlobalKey<NavigatorState>(debugLabel: 'agent');
-
-/// 导航守卫：防止 Android 平台（尤其 MIUI）通过 RouteInformationProvider
-/// 发送虚假路由重置通知。所有用户主动导航必须先设置此标记。
-class NavigationGuard {
-  static bool isUserNavigation = false;
-  static String lastUserRoute = '/';
-  static Timer? _resetTimer;
-
-  /// 标记即将发生的导航是用户主动发起的
-  ///
-  /// 通行证在 500ms 后自动过期。之所以不能用微任务 (Future.microtask)
-  /// 是因为 Android 系统（尤其 MIUI）的 RouteInformationProvider
-  /// 会在多个事件循环中反复触发 GoRouter 的 redirect，微任务的生命
-  /// 太短不足以覆盖这些中间态。
-  static void markUserNavigation() {
-    isUserNavigation = true;
-    _resetTimer?.cancel();
-    _resetTimer = Timer(const Duration(milliseconds: 500), () {
-      isUserNavigation = false;
-    });
-  }
-}
 
 /// 全局路由配置
 /// 使用 GoRouter 处理页面导航、重定向（如开启引导页）以及子路由嵌套。
@@ -93,17 +69,6 @@ GoRouter goRouter(Ref ref) {
       if (onboardingCompleted && isGoingToOnboarding) {
         return initialLoc;
       }
-
-      // 拦截 MIUI 虚假路由重置：非用户主动导航到 '/' 时，
-      // 保持当前路由不变。
-      if (state.matchedLocation == '/' &&
-          !NavigationGuard.isUserNavigation &&
-          NavigationGuard.lastUserRoute != '/') {
-        return NavigationGuard.lastUserRoute;
-      }
-
-      // 记录用户的正常路由
-      NavigationGuard.lastUserRoute = state.matchedLocation;
 
       return null;
     },

@@ -117,64 +117,70 @@ class FileStateScheduler extends _$FileStateScheduler {
     final vaultDir = Directory(activeVault.path);
     if (!vaultDir.existsSync()) return;
 
-    _watchSubscription = vaultDir.watch(recursive: true).listen((event) async {
-      final dateFileRegex = RegExp(r'^(\d{4}-\d{2}-\d{2})\.md$');
-      final String sourcePath = event.path;
+    try {
+      _watchSubscription = vaultDir.watch(recursive: true).listen((event) async {
+        final dateFileRegex = RegExp(r'^(\d{4}-\d{2}-\d{2})\.md$');
+        final String sourcePath = event.path;
 
-      // 过滤 .baishou 系统目录下的事件（SQLite WAL/SHM 等内部文件）
-      final normalizedSource = sourcePath.replaceAll('\\', '/');
-      if (normalizedSource.contains('/.baishou')) return;
+        // 过滤 .baishou 系统目录下的事件（SQLite WAL/SHM 等内部文件）
+        final normalizedSource = sourcePath.replaceAll('\\', '/');
+        if (normalizedSource.contains('/.baishou')) return;
 
-      // 日志记录最原生的 Watcher 事件（帮助排错 Windows 回收站行为）
-      debugPrint('FileStateScheduler RawEvent: [${event.type}] $sourcePath');
+        // 日志记录最原生的 Watcher 事件（帮助排错 Windows 回收站行为）
+        debugPrint('FileStateScheduler RawEvent: [${event.type}] $sourcePath');
 
-      // 路径已在上方规范化为 normalizedSource
-      final isJournalsScope = normalizedSource.contains('/Journals');
-      final isJournalsDirItself = normalizedSource.endsWith('/Journals');
-      final isArchivesScope = normalizedSource.contains('/Archives');
-      final isArchivesDirItself = normalizedSource.endsWith('/Archives');
+        // 路径已在上方规范化为 normalizedSource
+        final isJournalsScope = normalizedSource.contains('/Journals');
+        final isJournalsDirItself = normalizedSource.endsWith('/Journals');
+        final isArchivesScope = normalizedSource.contains('/Archives');
+        final isArchivesDirItself = normalizedSource.endsWith('/Archives');
 
-      // 非 Journals 且非 Archives 范畴内的事件，直接忽略
-      if (!isJournalsScope &&
-          !isJournalsDirItself &&
-          !isArchivesScope &&
-          !isArchivesDirItself) {
-        return;
-      }
-
-      if (sourcePath.endsWith('.md') &&
-          (dateFileRegex.hasMatch(p.basename(sourcePath)) || isArchivesScope)) {
-        // 普通日记文件或归档总结文件变化：塞进防抖流
-        _rawEventSubject.add(sourcePath);
-      } else if (!sourcePath.endsWith('.md') &&
-          (event.type == FileSystemEvent.delete ||
-              event.type == FileSystemEvent.create ||
-              event.type == FileSystemEvent.move)) {
-        // 核心修复：目录层面的拓扑架构变动（包括：删除、恢复/创建、重命名/移动 整个月份、Journals 或 Archives 根目录）
-        // 外部强行改变目录结构时，系统底层不会逐个文件发送事件，此时必须直接进行全量扫描！
-        debugPrint(
-          'FileStateScheduler: Directory topology change detected at $sourcePath (type: ${event.type}), requesting full scan.',
-        );
-        _dirDeleteEventController?.add(null);
-      }
-
-      // Move 事件：也检查目标路径（处理同 Vault 内的重命名）
-      if (event is FileSystemMoveEvent && event.destination != null) {
-        final String destPath = event.destination!;
-        final normalizedDest = destPath.replaceAll('\\', '/');
-
-        if ((normalizedDest.contains('/Journals') ||
-                normalizedDest.contains('/Archives')) &&
-            destPath.endsWith('.md') &&
-            (dateFileRegex.hasMatch(p.basename(destPath)) ||
-                normalizedDest.contains('/Archives'))) {
-          _rawEventSubject.add(destPath);
+        // 非 Journals 且非 Archives 范畴内的事件，直接忽略
+        if (!isJournalsScope &&
+            !isJournalsDirItself &&
+            !isArchivesScope &&
+            !isArchivesDirItself) {
+          return;
         }
-      }
-    });
 
-    debugPrint(
-      'FileStateScheduler: Started watching vault root: ${vaultDir.path}',
-    );
+        if (sourcePath.endsWith('.md') &&
+            (dateFileRegex.hasMatch(p.basename(sourcePath)) || isArchivesScope)) {
+          // 普通日记文件或归档总结文件变化：塞进防抖流
+          _rawEventSubject.add(sourcePath);
+        } else if (!sourcePath.endsWith('.md') &&
+            (event.type == FileSystemEvent.delete ||
+                event.type == FileSystemEvent.create ||
+                event.type == FileSystemEvent.move)) {
+          // 核心修复：目录层面的拓扑架构变动（包括：删除、恢复/创建、重命名/移动 整个月份、Journals 或 Archives 根目录）
+          // 外部强行改变目录结构时，系统底层不会逐个文件发送事件，此时必须直接进行全量扫描！
+          debugPrint(
+            'FileStateScheduler: Directory topology change detected at $sourcePath (type: ${event.type}), requesting full scan.',
+          );
+          _dirDeleteEventController?.add(null);
+        }
+
+        // Move 事件：也检查目标路径（处理同 Vault 内的重命名）
+        if (event is FileSystemMoveEvent && event.destination != null) {
+          final String destPath = event.destination!;
+          final normalizedDest = destPath.replaceAll('\\', '/');
+
+          if ((normalizedDest.contains('/Journals') ||
+                  normalizedDest.contains('/Archives')) &&
+              destPath.endsWith('.md') &&
+              (dateFileRegex.hasMatch(p.basename(destPath)) ||
+                  normalizedDest.contains('/Archives'))) {
+            _rawEventSubject.add(destPath);
+          }
+        }
+      }, onError: (e) {
+        debugPrint('FileStateScheduler: Watcher stream error: $e');
+      });
+
+      debugPrint(
+        'FileStateScheduler: Started watching vault root: ${vaultDir.path}',
+      );
+    } catch (e) {
+      debugPrint('FileStateScheduler: Synchronous exception while starting watcher: $e');
+    }
   }
 }

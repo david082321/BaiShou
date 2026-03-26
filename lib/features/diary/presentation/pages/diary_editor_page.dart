@@ -12,7 +12,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import 'package:baishou/core/router/app_router.dart';
 import 'package:baishou/i18n/strings.g.dart';
 import 'package:baishou/features/diary/domain/entities/diary.dart';
 import 'package:baishou/features/diary/data/vault_index_notifier.dart';
@@ -365,7 +364,6 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
         // 延迟一帧等待 PopScope 更新 canPop 为 true，否则会触发旧状态的退出确认拦截
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted) return;
-          NavigationGuard.markUserNavigation();
           if (Navigator.of(context).canPop()) {
             Navigator.of(context).pop(savedDiary);
           } else {
@@ -410,7 +408,6 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
 
           // 使用原生的 Navigator.pop 代替 GoRouter 的 pop，因为 GoRouter
           // 在被 PopScope 拦截过的异步上下文中可能有栈状态不同步导致 Nothing to pop 的问题。
-          NavigationGuard.markUserNavigation();
           if (Navigator.of(context).canPop()) {
             Navigator.of(context).pop();
           } else {
@@ -434,7 +431,6 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
                   debugPrint('AppBar back pressed, canPop: $canPop');
                   final popped = await nav.maybePop();
                   if (!popped && context.mounted) {
-                    NavigationGuard.markUserNavigation();
                     context.go('/');
                   }
                 },
