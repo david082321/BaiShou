@@ -142,18 +142,31 @@ class WebSearchService {
     int maxResults,
     String apiKey,
   ) async {
-    final cleanKey = apiKey.trim();
+    // 彻底清理 key：去除所有空白、换行、BOM 和不可见 Unicode 字符
+    final cleanKey = apiKey
+        .replaceAll(RegExp(r'[\s\u200B-\u200D\uFEFF\u00A0]'), '')
+        .trim();
     if (cleanKey.isEmpty) {
       throw Exception('Tavily API key is required');
     }
 
+    // 诊断日志：打印 key 前 8 字符 + 长度，帮助排查 401
+    final keyPreview = cleanKey.length > 8
+        ? '${cleanKey.substring(0, 8)}***'
+        : '***';
+    debugPrint('Tavily: key=$keyPreview (${cleanKey.length} chars)');
+
     final uri = Uri.parse('https://api.tavily.com/search');
+    final authHeader = 'Bearer $cleanKey';
+
+    debugPrint('Tavily: POST $uri');
+    debugPrint('Tavily: Authorization header length=${authHeader.length}');
 
     final response = await http.post(
       uri,
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer $cleanKey',
+        'Authorization': authHeader,
       },
       body: jsonEncode({
         'query': query,
@@ -164,6 +177,8 @@ class WebSearchService {
     ).timeout(_timeout);
 
     if (response.statusCode != 200) {
+      debugPrint('Tavily: FAILED ${response.statusCode}');
+      debugPrint('Tavily: response body: ${response.body}');
       throw Exception('Tavily search failed: ${response.statusCode} ${response.body}');
     }
 
