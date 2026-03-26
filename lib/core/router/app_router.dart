@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:baishou/i18n/strings.g.dart';
 import 'package:baishou/core/providers/shared_preferences_provider.dart';
 import 'package:baishou/agent/presentation/pages/agent_main_page.dart';
@@ -38,12 +40,18 @@ final agentNavKey = GlobalKey<NavigatorState>(debugLabel: 'agent');
 class NavigationGuard {
   static bool isUserNavigation = false;
   static String lastUserRoute = '/';
+  static Timer? _resetTimer;
 
   /// 标记即将发生的导航是用户主动发起的
+  ///
+  /// 通行证在 500ms 后自动过期。之所以不能用微任务 (Future.microtask)
+  /// 是因为 Android 系统（尤其 MIUI）的 RouteInformationProvider
+  /// 会在多个事件循环中反复触发 GoRouter 的 redirect，微任务的生命
+  /// 太短不足以覆盖这些中间态。
   static void markUserNavigation() {
     isUserNavigation = true;
-    // 在下一个微任务中重置标志
-    Future.microtask(() {
+    _resetTimer?.cancel();
+    _resetTimer = Timer(const Duration(milliseconds: 500), () {
       isUserNavigation = false;
     });
   }
