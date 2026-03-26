@@ -38,30 +38,30 @@ class DiaryEditTool extends AgentTool {
 
   @override
   Map<String, dynamic> get parameterSchema => {
-        'type': 'object',
-        'properties': {
-          'date': {
-            'type': 'string',
-            'description':
-                'The date of the diary to edit, in YYYY-MM-DD format. '
-                'If omitted, the current date will be used.',
-          },
-          'content': {
-            'type': 'string',
-            'description':
-                'The Markdown content to write to the diary. '
-                'For append mode, this will be added after existing content with a newline separator.',
-          },
-          'mode': {
-            'type': 'string',
-            'enum': ['append', 'overwrite'],
-            'description':
-                'Write mode: "append" (default) adds content to the end, '
-                '"overwrite" replaces the entire file.',
-          },
-        },
-        'required': ['content'],
-      };
+    'type': 'object',
+    'properties': {
+      'date': {
+        'type': 'string',
+        'description':
+            'The date of the diary to edit, in YYYY-MM-DD format. '
+            'If omitted, the current date will be used.',
+      },
+      'content': {
+        'type': 'string',
+        'description':
+            'The Markdown content to write to the diary. '
+            'For append mode, this will be added after existing content with a newline separator.',
+      },
+      'mode': {
+        'type': 'string',
+        'enum': ['append', 'overwrite'],
+        'description':
+            'Write mode: "append" (default) adds content to the end, '
+            '"overwrite" replaces the entire file.',
+      },
+    },
+    'required': ['content'],
+  };
 
   @override
   Future<ToolResult> execute(
@@ -125,7 +125,8 @@ class DiaryEditTool extends AgentTool {
         // 追加模式：自动加上 ##### HH:mm 五级标题
         final existing = await file.readAsString();
         final separator = existing.endsWith('\n') ? '\n' : '\n\n';
-        final timeHeader = '##### ${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+        final timeHeader =
+            '##### ${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
         // 如果内容已包含五级标题则不再自动添加
         final formattedContent = content.trimLeft().startsWith('#####')
             ? content
@@ -133,7 +134,8 @@ class DiaryEditTool extends AgentTool {
         final newContent = '$existing$separator$formattedContent';
         await file.writeAsString(newContent);
         return ToolResult(
-          output: 'Content has been appended to diary for $date. '
+          output:
+              'Content has been appended to diary for $date. '
               'Total length: ${newContent.length} characters.',
           success: true,
           metadata: {

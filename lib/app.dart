@@ -41,9 +41,7 @@ class BaiShouApp extends ConsumerWidget {
       },
 
       // 国际化配置
-      locale: TranslationProvider.of(
-        context,
-      ).flutterLocale,
+      locale: TranslationProvider.of(context).flutterLocale,
       localizationsDelegates: GlobalMaterialLocalizations.delegates,
       supportedLocales: AppLocaleUtils.supportedLocales,
     );

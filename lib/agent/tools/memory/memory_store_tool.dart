@@ -11,7 +11,6 @@ import 'package:flutter/material.dart';
 
 /// 记忆存储工具 — 让 Agent 主动存储重要信息
 class MemoryStoreTool extends AgentTool {
-
   @override
   String get id => 'memory_store';
 
@@ -36,21 +35,21 @@ class MemoryStoreTool extends AgentTool {
 
   @override
   Map<String, dynamic> get parameterSchema => {
-        'type': 'object',
-        'properties': {
-          'content': {
-            'type': 'string',
-            'description':
-                'The text content to store as memory. Include clear context, e.g. "User preference: prefers dark theme".',
-          },
-          'tags': {
-            'type': 'string',
-            'description':
-                'Optional comma-separated tags to categorize the memory. e.g. "preference,UI design"',
-          },
-        },
-        'required': ['content'],
-      };
+    'type': 'object',
+    'properties': {
+      'content': {
+        'type': 'string',
+        'description':
+            'The text content to store as memory. Include clear context, e.g. "User preference: prefers dark theme".',
+      },
+      'tags': {
+        'type': 'string',
+        'description':
+            'Optional comma-separated tags to categorize the memory. e.g. "preference,UI design"',
+      },
+    },
+    'required': ['content'],
+  };
 
   @override
   Future<ToolResult> execute(
@@ -85,12 +84,14 @@ class MemoryStoreTool extends AgentTool {
         switch (result.action) {
           case DeduplicationAction.skipped:
             return ToolResult(
-              output: '该记忆已存在（相似度 ${(result.highestSimilarity * 100).toStringAsFixed(1)}%），已跳过重复存储。',
+              output:
+                  '该记忆已存在（相似度 ${(result.highestSimilarity * 100).toStringAsFixed(1)}%），已跳过重复存储。',
             );
 
           case DeduplicationAction.merged:
             return ToolResult(
-              output: '已与已有记忆合并更新（相似度 ${(result.highestSimilarity * 100).toStringAsFixed(1)}%）。\n'
+              output:
+                  '已与已有记忆合并更新（相似度 ${(result.highestSimilarity * 100).toStringAsFixed(1)}%）。\n'
                   '合并后内容: ${result.mergedContent ?? fullContent}',
             );
 
@@ -109,7 +110,8 @@ class MemoryStoreTool extends AgentTool {
       );
 
       return ToolResult(
-        output: '记忆已成功存储并建立向量索引。\n'
+        output:
+            '记忆已成功存储并建立向量索引。\n'
             '内容: ${content.length > 100 ? '${content.substring(0, 100)}...' : content}'
             '${tags.isNotEmpty ? '\n标签: $tags' : ''}',
       );
@@ -121,4 +123,3 @@ class MemoryStoreTool extends AgentTool {
   @override
   List<ToolConfigParam> get configurableParams => [];
 }
-

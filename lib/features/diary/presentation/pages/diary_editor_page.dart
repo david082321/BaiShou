@@ -338,15 +338,19 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
           final apiConfig = ref.read(apiConfigServiceProvider);
           if (apiConfig.ragEnabled && embeddingService.isConfigured) {
             final dateLabel = DateFormat('yyyy-MM-dd').format(savedDiary.date);
-            embeddingService.reEmbedText(
-              text: '$dateLabel: ${savedDiary.content}',
-              sourceType: 'diary',
-              sourceId: savedDiary.id.toString(),
-              groupId: 'diary_auto',
-              metadataJson: jsonEncode({'updated_at': savedDiary.updatedAt.millisecondsSinceEpoch}),
-            ).catchError((e) {
-              debugPrint('Diary auto-embedding failed: $e');
-            });
+            embeddingService
+                .reEmbedText(
+                  text: '$dateLabel: ${savedDiary.content}',
+                  sourceType: 'diary',
+                  sourceId: savedDiary.id.toString(),
+                  groupId: 'diary_auto',
+                  metadataJson: jsonEncode({
+                    'updated_at': savedDiary.updatedAt.millisecondsSinceEpoch,
+                  }),
+                )
+                .catchError((e) {
+                  debugPrint('Diary auto-embedding failed: $e');
+                });
           }
         }
       }
@@ -403,8 +407,8 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
           setState(() {
             _isDirty = false;
           });
-          
-          // 使用原生的 Navigator.pop 代替 GoRouter 的 pop，因为 GoRouter 
+
+          // 使用原生的 Navigator.pop 代替 GoRouter 的 pop，因为 GoRouter
           // 在被 PopScope 拦截过的异步上下文中可能有栈状态不同步导致 Nothing to pop 的问题。
           NavigationGuard.markUserNavigation();
           if (Navigator.of(context).canPop()) {

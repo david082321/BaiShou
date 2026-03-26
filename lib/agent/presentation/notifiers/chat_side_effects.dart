@@ -53,7 +53,9 @@ class ChatTitleService {
         await manager.updateSessionTitle(sessionId, title);
         debugPrint('Auto-generate title success: "$title"');
       } else {
-        debugPrint('Auto-generate title skipped: title="${title}" (len=${title.length})');
+        debugPrint(
+          'Auto-generate title skipped: title="${title}" (len=${title.length})',
+        );
       }
     } catch (e, stack) {
       debugPrint('Auto-generate title failed: $e');
@@ -107,14 +109,18 @@ class ChatCostService {
             await manager.updateMessageCost(a.id, costMicros);
           }
 
-          onStateUpdate(currentState.copyWith(
-            totalCostMicros: currentState.totalCostMicros + costMicros,
-            messages: updatedMessages,
-          ));
+          onStateUpdate(
+            currentState.copyWith(
+              totalCostMicros: currentState.totalCostMicros + costMicros,
+              messages: updatedMessages,
+            ),
+          );
         } else {
-          onStateUpdate(currentState.copyWith(
-            totalCostMicros: currentState.totalCostMicros + costMicros,
-          ));
+          onStateUpdate(
+            currentState.copyWith(
+              totalCostMicros: currentState.totalCostMicros + costMicros,
+            ),
+          );
         }
       }
 
@@ -189,4 +195,3 @@ class AttachmentService {
     }
   }
 }
-

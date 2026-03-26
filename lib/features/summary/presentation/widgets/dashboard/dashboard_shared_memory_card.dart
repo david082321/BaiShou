@@ -42,8 +42,11 @@ class DashboardSharedMemoryCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(Icons.format_quote_rounded,
-                  size: 20, color: AppTheme.primary),
+              Icon(
+                Icons.format_quote_rounded,
+                size: 20,
+                color: AppTheme.primary,
+              ),
               const SizedBox(width: 8),
               Text(
                 '${t.common.app_title} · ${t.summary.shared_memory}',
@@ -66,17 +69,36 @@ class DashboardSharedMemoryCard extends StatelessWidget {
               spacing: 8,
               runSpacing: 8,
               children: [
-                _buildMiniStatBadge(Icons.book_rounded, result!.diaryCount,
-                    t.summary.stats_daily, Colors.green),
-                _buildMiniStatBadge(Icons.view_week_rounded, result!.weekCount,
-                    t.summary.stats_weekly, Colors.indigo),
-                _buildMiniStatBadge(Icons.grid_view_rounded, result!.monthCount,
-                    t.summary.stats_monthly, Colors.blue),
-                _buildMiniStatBadge(Icons.date_range_rounded,
-                    result!.quarterCount, t.summary.stats_quarterly,
-                    Colors.amber.shade700),
-                _buildMiniStatBadge(Icons.calendar_today_rounded,
-                    result!.yearCount, t.summary.stats_yearly, Colors.orange),
+                _buildMiniStatBadge(
+                  Icons.book_rounded,
+                  result!.diaryCount,
+                  t.summary.stats_daily,
+                  Colors.green,
+                ),
+                _buildMiniStatBadge(
+                  Icons.view_week_rounded,
+                  result!.weekCount,
+                  t.summary.stats_weekly,
+                  Colors.indigo,
+                ),
+                _buildMiniStatBadge(
+                  Icons.grid_view_rounded,
+                  result!.monthCount,
+                  t.summary.stats_monthly,
+                  Colors.blue,
+                ),
+                _buildMiniStatBadge(
+                  Icons.date_range_rounded,
+                  result!.quarterCount,
+                  t.summary.stats_quarterly,
+                  Colors.amber.shade700,
+                ),
+                _buildMiniStatBadge(
+                  Icons.calendar_today_rounded,
+                  result!.yearCount,
+                  t.summary.stats_yearly,
+                  Colors.orange,
+                ),
               ],
             ),
             const SizedBox(height: 16),
@@ -162,7 +184,11 @@ class DashboardSharedMemoryCard extends StatelessWidget {
   }
 
   Widget _buildMiniStatBadge(
-      IconData icon, int count, String label, Color color) {
+    IconData icon,
+    int count,
+    String label,
+    Color color,
+  ) {
     if (count == 0) return const SizedBox.shrink();
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -187,10 +213,7 @@ class DashboardSharedMemoryCard extends StatelessWidget {
           const SizedBox(width: 4),
           Text(
             label,
-            style: TextStyle(
-              fontSize: 12,
-              color: color.withValues(alpha: 0.8),
-            ),
+            style: TextStyle(fontSize: 12, color: color.withValues(alpha: 0.8)),
           ),
         ],
       ),

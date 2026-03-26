@@ -167,7 +167,9 @@ class _AssistantCard extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: colorScheme.outlineVariant.withValues(alpha: 0.5)),
+        side: BorderSide(
+          color: colorScheme.outlineVariant.withValues(alpha: 0.5),
+        ),
       ),
       child: InkWell(
         onTap: onTap,

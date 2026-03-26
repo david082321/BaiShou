@@ -71,7 +71,12 @@ class _WebSearchSettingsViewState extends ConsumerState<WebSearchSettingsView> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.only(left: 16, top: 16, right: 16, bottom: 8),
+            padding: const EdgeInsets.only(
+              left: 16,
+              top: 16,
+              right: 16,
+              bottom: 8,
+            ),
             child: Text(
               t.agent.tools.param_search_engine,
               style: theme.textTheme.titleMedium?.copyWith(
@@ -81,7 +86,9 @@ class _WebSearchSettingsViewState extends ConsumerState<WebSearchSettingsView> {
           ),
           RadioListTile<String>(
             title: const Text('DuckDuckGo'),
-            subtitle: const Text('Completely free, HTML crawler search. No API key required.'),
+            subtitle: const Text(
+              'Completely free, HTML crawler search. No API key required.',
+            ),
             value: SearchEngine.duckduckgo.name,
             groupValue: config.webSearchEngine,
             onChanged: (val) {
@@ -90,7 +97,9 @@ class _WebSearchSettingsViewState extends ConsumerState<WebSearchSettingsView> {
           ),
           RadioListTile<String>(
             title: const Text('Tavily API'),
-            subtitle: const Text('Requires API key. Built for LLM workflows, robust and fast.'),
+            subtitle: const Text(
+              'Requires API key. Built for LLM workflows, robust and fast.',
+            ),
             value: SearchEngine.tavily.name,
             groupValue: config.webSearchEngine,
             onChanged: (val) {
@@ -151,8 +160,12 @@ class _WebSearchSettingsViewState extends ConsumerState<WebSearchSettingsView> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     IconButton(
-                      icon: Icon(_isObscure ? Icons.visibility : Icons.visibility_off),
-                      tooltip: _isObscure ? t.agent.tools.param_search_engine : '',
+                      icon: Icon(
+                        _isObscure ? Icons.visibility : Icons.visibility_off,
+                      ),
+                      tooltip: _isObscure
+                          ? t.agent.tools.param_search_engine
+                          : '',
                       onPressed: () => setState(() => _isObscure = !_isObscure),
                     ),
                     IconButton(
@@ -193,7 +206,12 @@ class _WebSearchSettingsViewState extends ConsumerState<WebSearchSettingsView> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.only(left: 16, top: 16, right: 16, bottom: 8),
+            padding: const EdgeInsets.only(
+              left: 16,
+              top: 16,
+              right: 16,
+              bottom: 8,
+            ),
             child: Text(
               t.settings.general,
               style: theme.textTheme.titleMedium?.copyWith(
@@ -248,7 +266,8 @@ class _WebSearchSettingsViewState extends ConsumerState<WebSearchSettingsView> {
               min: 1,
               max: 20,
               divisions: 19,
-              onChanged: (val) => config.setWebSearchRagChunksPerSource(val.toInt()),
+              onChanged: (val) =>
+                  config.setWebSearchRagChunksPerSource(val.toInt()),
             ),
           ] else ...[
             const Divider(height: 1),
@@ -262,7 +281,8 @@ class _WebSearchSettingsViewState extends ConsumerState<WebSearchSettingsView> {
               min: 500,
               max: 8000,
               divisions: 75,
-              onChanged: (val) => config.setWebSearchPlainSnippetLength(val.toInt()),
+              onChanged: (val) =>
+                  config.setWebSearchPlainSnippetLength(val.toInt()),
             ),
           ],
         ],

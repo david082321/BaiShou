@@ -34,11 +34,11 @@ class _ToolResultGroupState extends State<ToolResultGroup> {
         children: widget.messages.asMap().entries.map((entry) {
           final index = entry.key;
           final msg = entry.value;
-          
+
           String toolCallId = '';
           String toolName = '';
           Map<String, dynamic> args = {};
-          
+
           if (msg.toolCalls?.isNotEmpty == true) {
             final call = msg.toolCalls!.first;
             toolCallId = call.id;
@@ -66,7 +66,10 @@ class _ToolResultGroupState extends State<ToolResultGroup> {
                   bottom: isLast ? const Radius.circular(16) : Radius.zero,
                 ),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                   child: Row(
                     children: [
                       Container(
@@ -108,7 +111,9 @@ class _ToolResultGroupState extends State<ToolResultGroup> {
                       ),
                       const SizedBox(width: 8),
                       Icon(
-                        isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                        isExpanded
+                            ? Icons.keyboard_arrow_up
+                            : Icons.keyboard_arrow_down,
                         size: 20,
                         color: theme.colorScheme.outline,
                       ),
@@ -127,12 +132,19 @@ class _ToolResultGroupState extends State<ToolResultGroup> {
                       color: theme.colorScheme.surface,
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
-                        color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
+                        color: theme.colorScheme.outlineVariant.withValues(
+                          alpha: 0.5,
+                        ),
                       ),
                     ),
                     child: SingleChildScrollView(
                       child: Text(
-                        msg.content ?? (args.isNotEmpty ? const JsonEncoder.withIndent('  ').convert(args) : ''),
+                        msg.content ??
+                            (args.isNotEmpty
+                                ? const JsonEncoder.withIndent(
+                                    '  ',
+                                  ).convert(args)
+                                : ''),
                         style: theme.textTheme.bodySmall?.copyWith(
                           fontFamily: 'monospace',
                           color: theme.colorScheme.onSurfaceVariant,
@@ -141,14 +153,18 @@ class _ToolResultGroupState extends State<ToolResultGroup> {
                     ),
                   ),
                 ),
-                crossFadeState: isExpanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+                crossFadeState: isExpanded
+                    ? CrossFadeState.showSecond
+                    : CrossFadeState.showFirst,
                 duration: const Duration(milliseconds: 200),
               ),
               if (!isLast)
                 Divider(
                   height: 1,
                   thickness: 1,
-                  color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
+                  color: theme.colorScheme.outlineVariant.withValues(
+                    alpha: 0.3,
+                  ),
                 ),
             ],
           );

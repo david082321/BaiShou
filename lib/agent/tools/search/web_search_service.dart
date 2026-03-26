@@ -28,7 +28,9 @@ class SearchResult {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is SearchResult && runtimeType == other.runtimeType && url == other.url;
+      other is SearchResult &&
+          runtimeType == other.runtimeType &&
+          url == other.url;
 
   @override
   int get hashCode => url.hashCode;
@@ -104,11 +106,18 @@ class WebSearchService {
       );
     }
 
-    debugPrint('WebSearch: multi-query with ${queries.length} queries via ${engine.name}');
+    debugPrint(
+      'WebSearch: multi-query with ${queries.length} queries via ${engine.name}',
+    );
 
     // 并行执行所有查询
     final futures = queries.map(
-      (q) => search(query: q, engine: engine, maxResults: maxResultsPerQuery, apiKey: apiKey),
+      (q) => search(
+        query: q,
+        engine: engine,
+        maxResults: maxResultsPerQuery,
+        apiKey: apiKey,
+      ),
     );
     final allResults = await Future.wait(futures);
 
@@ -162,33 +171,41 @@ class WebSearchService {
     debugPrint('Tavily: POST $uri');
     debugPrint('Tavily: Authorization header length=${authHeader.length}');
 
-    final response = await http.post(
-      uri,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': authHeader,
-      },
-      body: jsonEncode({
-        'query': query,
-        'max_results': maxResults,
-        'search_depth': 'basic',
-        'include_answer': false,
-      }),
-    ).timeout(_timeout);
+    final response = await http
+        .post(
+          uri,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': authHeader,
+          },
+          body: jsonEncode({
+            'query': query,
+            'max_results': maxResults,
+            'search_depth': 'basic',
+            'include_answer': false,
+          }),
+        )
+        .timeout(_timeout);
 
     if (response.statusCode != 200) {
       debugPrint('Tavily: FAILED ${response.statusCode}');
       debugPrint('Tavily: response body: ${response.body}');
-      throw Exception('Tavily search failed: ${response.statusCode} ${response.body}');
+      throw Exception(
+        'Tavily search failed: ${response.statusCode} ${response.body}',
+      );
     }
 
-    final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+    final data =
+        jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
     return parseTavilyResults(data, maxResults);
   }
 
   /// 解析 Tavily API JSON 响应
   @visibleForTesting
-  static List<SearchResult> parseTavilyResults(Map<String, dynamic> json, int maxResults) {
+  static List<SearchResult> parseTavilyResults(
+    Map<String, dynamic> json,
+    int maxResults,
+  ) {
     final results = <SearchResult>[];
     final rawResults = json['results'] as List? ?? [];
 
@@ -215,11 +232,11 @@ class WebSearchService {
     String query,
     int maxResults,
   ) async {
-    final uri = Uri.https('html.duckduckgo.com', '/html/', {
-      'q': query,
-    });
+    final uri = Uri.https('html.duckduckgo.com', '/html/', {'q': query});
 
-    final response = await http.get(uri, headers: _browserHeaders).timeout(_timeout);
+    final response = await http
+        .get(uri, headers: _browserHeaders)
+        .timeout(_timeout);
 
     if (response.statusCode != 200) {
       throw Exception('DuckDuckGo search failed: ${response.statusCode}');
@@ -231,7 +248,10 @@ class WebSearchService {
 
   /// 解析 DuckDuckGo 搜索结果 HTML
   @visibleForTesting
-  static List<SearchResult> parseDuckDuckGoResults(String html, int maxResults) {
+  static List<SearchResult> parseDuckDuckGoResults(
+    String html,
+    int maxResults,
+  ) {
     final results = <SearchResult>[];
 
     // Split by the start of each result title to isolate blocks and prevent catastrophic backtracking
@@ -261,16 +281,23 @@ class WebSearchService {
         final snippetEnd = block.indexOf('</a>', snippetStart);
         if (snippetEnd != -1) {
           final snippetTag = block.substring(snippetStart, snippetEnd + 4);
-          final snippetMatch = RegExp(r'>(.*?)</a>', dotAll: true).firstMatch(snippetTag);
+          final snippetMatch = RegExp(
+            r'>(.*?)</a>',
+            dotAll: true,
+          ).firstMatch(snippetTag);
           final snippetHtml = snippetMatch?.group(1) ?? '';
-          snippet = stripHtml(snippetHtml).replaceAll(RegExp(r'\s+'), ' ').trim();
+          snippet = stripHtml(
+            snippetHtml,
+          ).replaceAll(RegExp(r'\s+'), ' ').trim();
         }
       }
 
       // DuckDuckGo redirects urls via uddg parameter (e.g. //duckduckgo.com/l/?uddg=...)
       String actualUrl = rawUrl;
       try {
-        final uri = Uri.parse(rawUrl.startsWith('//') ? 'https:' + rawUrl : rawUrl);
+        final uri = Uri.parse(
+          rawUrl.startsWith('//') ? 'https:' + rawUrl : rawUrl,
+        );
         if (uri.queryParameters.containsKey('uddg')) {
           final decodedUddg = Uri.decodeComponent(uri.queryParameters['uddg']!);
           actualUrl = decodedUddg;
@@ -302,4 +329,3 @@ class WebSearchService {
         .trim();
   }
 }
-

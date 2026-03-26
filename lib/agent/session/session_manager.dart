@@ -167,7 +167,9 @@ class SessionManager {
   /// 删除会话（级联删除 Parts → Messages → 附件目录）
   Future<void> deleteSession(String id) async {
     // 查询获取所属 Vault
-    final session = await (_db.select(_db.agentSessions)..where((t) => t.id.equals(id))).getSingleOrNull();
+    final session = await (_db.select(
+      _db.agentSessions,
+    )..where((t) => t.id.equals(id))).getSingleOrNull();
     if (session == null) return;
 
     // 清理物理附件目录
@@ -215,12 +217,15 @@ class SessionManager {
     String providerId,
     String modelId,
   ) async {
-    await (_db.update(_db.agentSessions)..where((t) => t.id.equals(sessionId)))
-        .write(AgentSessionsCompanion(
-          providerId: Value(providerId),
-          modelId: Value(modelId),
-          updatedAt: Value(DateTime.now()),
-        ));
+    await (_db.update(
+      _db.agentSessions,
+    )..where((t) => t.id.equals(sessionId))).write(
+      AgentSessionsCompanion(
+        providerId: Value(providerId),
+        modelId: Value(modelId),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
   }
 
   /// 累加会话的 token 用量和费用
@@ -355,7 +360,7 @@ class SessionManager {
       ..orderBy([
         (t) => descending
             ? OrderingTerm.desc(t.orderIndex)
-            : OrderingTerm.asc(t.orderIndex)
+            : OrderingTerm.asc(t.orderIndex),
       ]);
 
     if (limit != null) {
@@ -406,20 +411,16 @@ class SessionManager {
   /// 更新消息的文本内容（用于剪枝时替换工具输出）
   ///
   /// 找到该消息的第一个 text 类型 Part，更新其 data JSON 中的 text 字段。
-  Future<void> updateMessageContent(
-    String messageId,
-    String newContent,
-  ) async {
-    final parts = await (_db.select(_db.agentParts)
-          ..where((t) => t.messageId.equals(messageId)))
-        .get();
+  Future<void> updateMessageContent(String messageId, String newContent) async {
+    final parts = await (_db.select(
+      _db.agentParts,
+    )..where((t) => t.messageId.equals(messageId))).get();
 
     for (final part in parts) {
       if (part.type == 'text') {
         final data = jsonDecode(part.data) as Map<String, dynamic>;
         data['text'] = newContent;
-        await (_db.update(_db.agentParts)
-              ..where((t) => t.id.equals(part.id)))
+        await (_db.update(_db.agentParts)..where((t) => t.id.equals(part.id)))
             .write(AgentPartsCompanion(data: Value(jsonEncode(data))));
         return;
       }
@@ -497,23 +498,23 @@ class SessionManager {
 
   /// 更新消息的费用字段（异步费用计算后回填）
   Future<void> updateMessageCost(String messageId, int costMicros) async {
-    await (_db.update(_db.agentMessages)
-          ..where((t) => t.id.equals(messageId)))
+    await (_db.update(_db.agentMessages)..where((t) => t.id.equals(messageId)))
         .write(AgentMessagesCompanion(costMicros: Value(costMicros)));
   }
 
   /// 获取会话最后一条 assistant 消息的 inputTokens（用于恢复上下文大小显示）
   Future<int> getLastInputTokens(String sessionId) async {
-    final row = await (_db.select(_db.agentMessages)
-          ..where(
-            (t) =>
-                t.sessionId.equals(sessionId) &
-                t.role.equals('assistant') &
-                t.inputTokens.isNotNull(),
-          )
-          ..orderBy([(t) => OrderingTerm.desc(t.orderIndex)])
-          ..limit(1))
-        .getSingleOrNull();
+    final row =
+        await (_db.select(_db.agentMessages)
+              ..where(
+                (t) =>
+                    t.sessionId.equals(sessionId) &
+                    t.role.equals('assistant') &
+                    t.inputTokens.isNotNull(),
+              )
+              ..orderBy([(t) => OrderingTerm.desc(t.orderIndex)])
+              ..limit(1))
+            .getSingleOrNull();
     return row?.inputTokens ?? 0;
   }
 

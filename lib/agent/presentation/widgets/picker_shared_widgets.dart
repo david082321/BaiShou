@@ -27,10 +27,7 @@ Widget buildAssistantAvatar(
     child: avatarImage == null
         ? Center(
             child: assistant.emoji != null && assistant.emoji!.isNotEmpty
-                ? Text(
-                    assistant.emoji!,
-                    style: TextStyle(fontSize: size * 0.5),
-                  )
+                ? Text(assistant.emoji!, style: TextStyle(fontSize: size * 0.5))
                 : Icon(
                     Icons.auto_awesome_rounded,
                     size: size * 0.45,
@@ -52,11 +49,12 @@ class PickerTag extends StatelessWidget {
   final String text;
   final Color color;
   final Color textColor;
-  const PickerTag(
-      {super.key,
-      required this.text,
-      required this.color,
-      required this.textColor});
+  const PickerTag({
+    super.key,
+    required this.text,
+    required this.color,
+    required this.textColor,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -69,10 +67,10 @@ class PickerTag extends StatelessWidget {
       child: Text(
         text,
         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: textColor,
-              fontSize: 10,
-              fontWeight: FontWeight.w600,
-            ),
+          color: textColor,
+          fontSize: 10,
+          fontWeight: FontWeight.w600,
+        ),
       ),
     );
   }
@@ -81,8 +79,11 @@ class PickerTag extends StatelessWidget {
 class PickerSectionHeader extends StatelessWidget {
   final IconData icon;
   final String title;
-  const PickerSectionHeader(
-      {super.key, required this.icon, required this.title});
+  const PickerSectionHeader({
+    super.key,
+    required this.icon,
+    required this.title,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -92,9 +93,12 @@ class PickerSectionHeader extends StatelessWidget {
       children: [
         Icon(icon, size: 16, color: colorScheme.primary),
         const SizedBox(width: 6),
-        Text(title,
-            style: theme.textTheme.titleSmall
-                ?.copyWith(fontWeight: FontWeight.w600)),
+        Text(
+          title,
+          style: theme.textTheme.titleSmall?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
+        ),
       ],
     );
   }

@@ -10,13 +10,15 @@ class PromptShortcutSheet extends ConsumerWidget {
   const PromptShortcutSheet({super.key, this.isDialog = false});
 
   static Future<String?> show(BuildContext context) {
-    if (foundation.defaultTargetPlatform == foundation.TargetPlatform.windows || 
-        foundation.defaultTargetPlatform == foundation.TargetPlatform.macOS || 
+    if (foundation.defaultTargetPlatform == foundation.TargetPlatform.windows ||
+        foundation.defaultTargetPlatform == foundation.TargetPlatform.macOS ||
         foundation.defaultTargetPlatform == foundation.TargetPlatform.linux) {
       return showDialog<String>(
         context: context,
         builder: (ctx) => Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           clipBehavior: Clip.antiAlias,
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 400, maxHeight: 600),
@@ -37,7 +39,7 @@ class PromptShortcutSheet extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    
+
     if (isDialog) {
       return Container(
         color: theme.colorScheme.surface,
@@ -61,7 +63,11 @@ class PromptShortcutSheet extends ConsumerWidget {
     );
   }
 
-  Widget _buildContent(BuildContext context, WidgetRef ref, ScrollController? scrollController) {
+  Widget _buildContent(
+    BuildContext context,
+    WidgetRef ref,
+    ScrollController? scrollController,
+  ) {
     final shortcuts = ref.watch(promptShortcutServiceProvider);
     final theme = Theme.of(context);
 
@@ -75,12 +81,14 @@ class PromptShortcutSheet extends ConsumerWidget {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+                color: theme.colorScheme.onSurfaceVariant.withValues(
+                  alpha: 0.4,
+                ),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
           ),
-        
+
         // 标题与操作栏
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
@@ -108,7 +116,7 @@ class PromptShortcutSheet extends ConsumerWidget {
           ),
         ),
         const Divider(height: 1),
-        
+
         // 列表区域
         Expanded(
           child: shortcuts.isEmpty
@@ -184,14 +192,18 @@ class PromptShortcutSheet extends ConsumerWidget {
                             value: 'delete',
                             child: Row(
                               children: [
-                                Icon(Icons.delete_outline,
-                                    size: 18, 
-                                    color: theme.colorScheme.error),
+                                Icon(
+                                  Icons.delete_outline,
+                                  size: 18,
+                                  color: theme.colorScheme.error,
+                                ),
                                 const SizedBox(width: 8),
-                                Text(t.common.delete,
-                                    style: TextStyle(
-                                      color: theme.colorScheme.error,
-                                    )),
+                                Text(
+                                  t.common.delete,
+                                  style: TextStyle(
+                                    color: theme.colorScheme.error,
+                                  ),
+                                ),
                               ],
                             ),
                           ),
@@ -208,16 +220,24 @@ class PromptShortcutSheet extends ConsumerWidget {
     );
   }
 
-  void _showEditDialog(BuildContext context, WidgetRef ref, {PromptShortcut? shortcut}) {
+  void _showEditDialog(
+    BuildContext context,
+    WidgetRef ref, {
+    PromptShortcut? shortcut,
+  }) {
     showDialog(
       context: context,
       builder: (ctx) => _ShortcutEditDialog(
         shortcut: shortcut,
         onSave: (newItem) {
           if (shortcut == null) {
-            ref.read(promptShortcutServiceProvider.notifier).addShortcut(newItem);
+            ref
+                .read(promptShortcutServiceProvider.notifier)
+                .addShortcut(newItem);
           } else {
-            ref.read(promptShortcutServiceProvider.notifier).updateShortcut(newItem);
+            ref
+                .read(promptShortcutServiceProvider.notifier)
+                .updateShortcut(newItem);
           }
         },
       ),
@@ -229,10 +249,7 @@ class _ShortcutEditDialog extends StatefulWidget {
   final PromptShortcut? shortcut;
   final ValueChanged<PromptShortcut> onSave;
 
-  const _ShortcutEditDialog({
-    this.shortcut,
-    required this.onSave,
-  });
+  const _ShortcutEditDialog({this.shortcut, required this.onSave});
 
   @override
   State<_ShortcutEditDialog> createState() => _ShortcutEditDialogState();
@@ -324,7 +341,8 @@ class _ShortcutEditDialogState extends State<_ShortcutEditDialog> {
             final icon = _iconController.text.trim();
             if (name.isEmpty || content.isEmpty) return;
 
-            final newItem = widget.shortcut?.copyWith(
+            final newItem =
+                widget.shortcut?.copyWith(
                   icon: icon.isEmpty ? '⚡' : icon,
                   name: name,
                   content: content,
@@ -344,4 +362,3 @@ class _ShortcutEditDialogState extends State<_ShortcutEditDialog> {
     );
   }
 }
-

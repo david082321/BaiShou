@@ -43,9 +43,9 @@ class GlobalHotkeyService with WindowListener {
         !(Platform.isWindows || Platform.isMacOS || Platform.isLinux)) {
       return;
     }
-    
+
     windowManager.addListener(this);
-    
+
     _isEnabled = prefs.getBool(_kHotkeyEnabled) ?? false;
     _modifier = prefs.getString(_kHotkeyModifier) ?? 'alt';
     _key = prefs.getString(_kHotkeyKey) ?? 'keyS';
@@ -138,8 +138,6 @@ class GlobalHotkeyService with WindowListener {
       debugPrint('GlobalHotkeyService: toggle window failed: $e');
     }
   }
-
-
 
   void dispose() {
     windowManager.removeListener(this);

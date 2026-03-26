@@ -199,7 +199,7 @@ class SummarySyncService extends _$SummarySyncService {
       debugPrint(
         'SummarySyncService: Sync complete. Updated DB with ${summaries.length} summaries from disk.',
       );
-      
+
       // 通知 UI 刷新，尤其是 SummaryDashboardView，因为它使用的是强制加载机制而不是 stream 流。
       ref.read(dataRefreshProvider.notifier).refresh();
     } catch (e) {

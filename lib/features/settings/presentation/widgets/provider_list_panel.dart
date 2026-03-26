@@ -68,7 +68,10 @@ class ProviderListPanel extends StatelessWidget {
               // 自定义标签
               if (!p.isSystem)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
                   margin: const EdgeInsets.only(right: 4),
                   decoration: BoxDecoration(
                     color: colorScheme.tertiaryContainer.withOpacity(0.5),
@@ -109,7 +112,11 @@ class ProviderListPanel extends StatelessWidget {
                   index: reorderIndex,
                   child: const Padding(
                     padding: EdgeInsets.only(left: 8),
-                    child: Icon(Icons.drag_indicator, size: 18, color: Colors.grey),
+                    child: Icon(
+                      Icons.drag_indicator,
+                      size: 18,
+                      color: Colors.grey,
+                    ),
                   ),
                 ),
             ],
@@ -142,7 +149,9 @@ class ProviderListPanel extends StatelessWidget {
           return KeyedSubtree(
             key: ValueKey(providers[index].id),
             child: _buildProviderListItem(
-              context, providers[index], isMobile,
+              context,
+              providers[index],
+              isMobile,
               reorderIndex: index,
             ),
           );

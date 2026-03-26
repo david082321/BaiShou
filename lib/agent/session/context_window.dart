@@ -114,8 +114,10 @@ class ContextWindow {
       return effectiveMessages;
     }
 
-    var startIndex = (effectiveMessages.length - config.recentCount)
-        .clamp(0, effectiveMessages.length);
+    var startIndex = (effectiveMessages.length - config.recentCount).clamp(
+      0,
+      effectiveMessages.length,
+    );
 
     // 保留摘要消息
     if (compressionSummary != null && startIndex > 0) {
@@ -135,4 +137,3 @@ class ContextWindow {
     return effectiveMessages.sublist(startIndex);
   }
 }
-

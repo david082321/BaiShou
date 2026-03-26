@@ -521,10 +521,7 @@ class ApiConfigService extends ChangeNotifier {
 
   /// 设置 RAG 相似度阈值
   void setRagSimilarityThreshold(double threshold) {
-    _prefs.setDouble(
-      _keyRagSimilarityThreshold,
-      threshold.clamp(0.0, 1.0),
-    );
+    _prefs.setDouble(_keyRagSimilarityThreshold, threshold.clamp(0.0, 1.0));
     notifyListeners();
   }
 

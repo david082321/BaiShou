@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
 
-
 import 'package:baishou/agent/database/agent_tables.dart';
 import 'package:baishou/i18n/strings.g.dart';
 import 'package:baishou/core/storage/storage_path_provider.dart';
@@ -19,7 +18,15 @@ part 'agent_database.g.dart';
 /// Agent 专属数据库
 /// 独立于主数据库（app_database），存储 Agent 的会话、消息和 Part
 /// 集成 sqlite-vec 原生向量搜索扩展
-@DriftDatabase(tables: [AgentSessions, AgentMessages, AgentParts, AgentAssistants, CompressionSnapshots])
+@DriftDatabase(
+  tables: [
+    AgentSessions,
+    AgentMessages,
+    AgentParts,
+    AgentAssistants,
+    CompressionSnapshots,
+  ],
+)
 class AgentDatabase extends _$AgentDatabase {
   AgentDatabase(super.executor);
 
@@ -28,33 +35,33 @@ class AgentDatabase extends _$AgentDatabase {
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
-        onCreate: (m) async {
-          await m.createAll();
-          await _createFts5Table();
-          await _createEmbeddingTable();
-        },
-        onUpgrade: (m, from, to) async {
-          if (from < 2) {
-            // v1 → v2: 创建压缩快照表
-            await m.createTable(compressionSnapshots);
-          }
-          if (from < 3) {
-            // v2 → v3: AgentMessages 新增 token/cost 列
-            await m.addColumn(agentMessages, agentMessages.inputTokens);
-            await m.addColumn(agentMessages, agentMessages.outputTokens);
-            await m.addColumn(agentMessages, agentMessages.costMicros);
-          }
-          if (from < 4) {
-            // v3 → v4: AgentAssistants 新增压缩保留轮数字段
-            await m.addColumn(agentAssistants, agentAssistants.compressKeepTurns);
-          }
-          if (from < 5) {
-            // v4 → v5: AgentAssistants 新增拖动排序字段
-            await m.addColumn(agentAssistants, agentAssistants.sortOrder);
-          }
-          if (from < 6) {
-            // v5 → v6: 迁移 message_embeddings 到 memory_embeddings
-            await customStatement('''
+    onCreate: (m) async {
+      await m.createAll();
+      await _createFts5Table();
+      await _createEmbeddingTable();
+    },
+    onUpgrade: (m, from, to) async {
+      if (from < 2) {
+        // v1 → v2: 创建压缩快照表
+        await m.createTable(compressionSnapshots);
+      }
+      if (from < 3) {
+        // v2 → v3: AgentMessages 新增 token/cost 列
+        await m.addColumn(agentMessages, agentMessages.inputTokens);
+        await m.addColumn(agentMessages, agentMessages.outputTokens);
+        await m.addColumn(agentMessages, agentMessages.costMicros);
+      }
+      if (from < 4) {
+        // v3 → v4: AgentAssistants 新增压缩保留轮数字段
+        await m.addColumn(agentAssistants, agentAssistants.compressKeepTurns);
+      }
+      if (from < 5) {
+        // v4 → v5: AgentAssistants 新增拖动排序字段
+        await m.addColumn(agentAssistants, agentAssistants.sortOrder);
+      }
+      if (from < 6) {
+        // v5 → v6: 迁移 message_embeddings 到 memory_embeddings
+        await customStatement('''
               CREATE TABLE IF NOT EXISTS memory_embeddings (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 embedding_id TEXT NOT NULL UNIQUE,
@@ -70,11 +77,15 @@ class AgentDatabase extends _$AgentDatabase {
                 created_at INTEGER NOT NULL
               )
             ''');
-            await customStatement('CREATE INDEX IF NOT EXISTS idx_memory_group ON memory_embeddings(group_id)');
-            await customStatement('CREATE INDEX IF NOT EXISTS idx_memory_source ON memory_embeddings(source_type, source_id)');
+        await customStatement(
+          'CREATE INDEX IF NOT EXISTS idx_memory_group ON memory_embeddings(group_id)',
+        );
+        await customStatement(
+          'CREATE INDEX IF NOT EXISTS idx_memory_source ON memory_embeddings(source_type, source_id)',
+        );
 
-            // 迁移旧数据
-            await customStatement('''
+        // 迁移旧数据
+        await customStatement('''
               INSERT INTO memory_embeddings (
                 embedding_id, source_type, source_id, group_id, 
                 chunk_index, chunk_text, metadata_json, embedding, 
@@ -87,10 +98,10 @@ class AgentDatabase extends _$AgentDatabase {
                 session_id, chunk_index, chunk_text, '{}', embedding, dimension, model_id, created_at
               FROM message_embeddings
             ''');
-            await customStatement('DROP TABLE IF EXISTS message_embeddings');
-          }
-        },
-      );
+        await customStatement('DROP TABLE IF EXISTS message_embeddings');
+      }
+    },
+  );
 
   // ── FTS5 全文搜索 ──────────────────────────────────────────
 
@@ -147,7 +158,9 @@ class AgentDatabase extends _$AgentDatabase {
         'session_id': row.read<String>('session_id'),
         'role': row.read<String>('role'),
         'snippet': row.read<String>('snippet'),
-        'session_title': row.readNullable<String>('session_title') ?? t.agent.sessions.unnamed_session,
+        'session_title':
+            row.readNullable<String>('session_title') ??
+            t.agent.sessions.unnamed_session,
         'session_updated_at': row.readNullable<DateTime>('session_updated_at'),
       };
     }).toList();
@@ -193,7 +206,9 @@ class AgentDatabase extends _$AgentDatabase {
         "SELECT vector_init('memory_embeddings', 'embedding', "
         "'type=FLOAT32,dimension=$dimension,distance=COSINE')",
       );
-      debugPrint('sqlite-vector: vector index initialized (dim=$dimension, distance=COSINE)');
+      debugPrint(
+        'sqlite-vector: vector index initialized (dim=$dimension, distance=COSINE)',
+      );
     } catch (e) {
       // 索引已存在或扩展未加载时忽略
       debugPrint('sqlite-vector: vector_init skipped: $e');
@@ -248,8 +263,10 @@ class AgentDatabase extends _$AgentDatabase {
     final vectorJson = '[${queryEmbedding.join(',')}]';
     final effectiveDimension = dimension ?? queryEmbedding.length;
 
-    debugPrint('searchSimilar: queryLen=${queryEmbedding.length}, '
-        'dim=$effectiveDimension, topK=$topK');
+    debugPrint(
+      'searchSimilar: queryLen=${queryEmbedding.length}, '
+      'dim=$effectiveDimension, topK=$topK',
+    );
 
     try {
       // 确保当前连接已初始化向量索引（vector_init 必须在每个连接中调用）
@@ -299,7 +316,8 @@ class AgentDatabase extends _$AgentDatabase {
           'distance': row.read<double>('distance'),
           'created_at': row.read<int>('created_at'),
           'session_title':
-              row.readNullable<String>('session_title') ?? t.agent.sessions.unnamed_session,
+              row.readNullable<String>('session_title') ??
+              t.agent.sessions.unnamed_session,
         };
       }).toList();
     } catch (e) {
@@ -366,15 +384,19 @@ class AgentDatabase extends _$AgentDatabase {
       WHERE migrated = 0
       ORDER BY created_at, chunk_index
     ''').get();
-    return results.map((row) => {
-      'embedding_id': row.read<String>('embedding_id'),
-      'source_type': row.read<String>('source_type'),
-      'source_id': row.read<String>('source_id'),
-      'group_id': row.read<String>('group_id'),
-      'chunk_index': row.read<int>('chunk_index'),
-      'chunk_text': row.read<String>('chunk_text'),
-      'metadata_json': row.read<String>('metadata_json'),
-    }).toList();
+    return results
+        .map(
+          (row) => {
+            'embedding_id': row.read<String>('embedding_id'),
+            'source_type': row.read<String>('source_type'),
+            'source_id': row.read<String>('source_id'),
+            'group_id': row.read<String>('group_id'),
+            'chunk_index': row.read<int>('chunk_index'),
+            'chunk_text': row.read<String>('chunk_text'),
+            'metadata_json': row.read<String>('metadata_json'),
+          },
+        )
+        .toList();
   }
 
   /// 标记某条 chunk 迁移完成
@@ -395,10 +417,7 @@ class AgentDatabase extends _$AgentDatabase {
       'SELECT COUNT(*) AS cnt FROM memory_embeddings WHERE model_id != ?',
       variables: [Variable.withString(newModelId)],
     ).getSingle();
-    return (
-      unmigrated.read<int>('cnt') == 0,
-      stale.read<int>('cnt') == 0,
-    );
+    return (unmigrated.read<int>('cnt') == 0, stale.read<int>('cnt') == 0);
   }
 
   /// 删除迁移备份表（校验通过后调用）
@@ -419,7 +438,10 @@ class AgentDatabase extends _$AgentDatabase {
   }
 
   /// 根据唯一匹配来源信息删除相应的嵌入碎片
-  Future<void> deleteEmbeddingsBySource(String sourceType, String sourceId) async {
+  Future<void> deleteEmbeddingsBySource(
+    String sourceType,
+    String sourceId,
+  ) async {
     await customStatement(
       'DELETE FROM memory_embeddings WHERE source_type = ? AND source_id = ?',
       [sourceType, sourceId],
@@ -454,22 +476,24 @@ class AgentDatabase extends _$AgentDatabase {
       variables: [Variable.withInt(dimension)],
     ).getSingle();
     final deleted = count.read<int>('cnt');
-    await customStatement(
-      'DELETE FROM memory_embeddings WHERE dimension = ?',
-      [dimension],
-    );
+    await customStatement('DELETE FROM memory_embeddings WHERE dimension = ?', [
+      dimension,
+    ]);
     return deleted;
   }
 
   /// 获取某种特换类型的嵌入实体集合映射表
   /// Returns: Map<String, String> => { sourceId : metadataJson }
-  Future<Map<String, String>> getEmbeddedSourceMetadataByType(String sourceType) async {
+  Future<Map<String, String>> getEmbeddedSourceMetadataByType(
+    String sourceType,
+  ) async {
     final results = await customSelect(
       'SELECT DISTINCT source_id, metadata_json FROM memory_embeddings WHERE source_type = ?',
       variables: [Variable.withString(sourceType)],
     ).get();
     return {
-      for (final row in results) row.read<String>('source_id'): row.read<String>('metadata_json')
+      for (final row in results)
+        row.read<String>('source_id'): row.read<String>('metadata_json'),
     };
   }
 
@@ -494,11 +518,15 @@ class AgentDatabase extends _$AgentDatabase {
       'total_count': result.read<int>('total_count'),
       'model_count': result.read<int>('model_count'),
       'dimension_count': result.read<int>('dimension_count'),
-      'models': models.map((row) => {
-        'model_id': row.read<String>('model_id'),
-        'dimension': row.read<int>('dimension'),
-        'count': row.read<int>('count'),
-      }).toList(),
+      'models': models
+          .map(
+            (row) => {
+              'model_id': row.read<String>('model_id'),
+              'dimension': row.read<int>('dimension'),
+              'count': row.read<int>('count'),
+            },
+          )
+          .toList(),
     };
   }
 
@@ -539,7 +567,7 @@ class AgentDatabase extends _$AgentDatabase {
       await delete(agentSessions).go();
       await delete(agentAssistants).go();
       await delete(compressionSnapshots).go();
-      
+
       await customStatement('DELETE FROM memory_embeddings');
       await customStatement('DELETE FROM agent_messages_fts');
     });
@@ -566,24 +594,31 @@ class AgentDatabase extends _$AgentDatabase {
         'model_id': row.read<String>('model_id'),
         'created_at': row.read<int>('created_at'),
         // 取出原生 BLOB 供外部 Base64 编码
-        'embedding': row.read<Uint8List>('embedding'), 
+        'embedding': row.read<Uint8List>('embedding'),
       };
     }).toList();
   }
 
   /// 从导入数据的原生 BLOB 恢复嵌入
-  Future<void> importEmbeddingsRaw(List<Map<String, dynamic>> embeddings) async {
+  Future<void> importEmbeddingsRaw(
+    List<Map<String, dynamic>> embeddings,
+  ) async {
     await transaction(() async {
       // 在原生插入时由于使用 (?, ?) 语法，Uint8List 会自动由 drift 绑定为 sqlite3 BLOB
-      final stmt = 'INSERT INTO memory_embeddings '
+      final stmt =
+          'INSERT INTO memory_embeddings '
           '(id, embedding_id, source_type, source_id, group_id, chunk_index, chunk_text, '
           'metadata_json, embedding, dimension, model_id, created_at) '
           'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)';
-      
+
       for (final e in embeddings) {
         await customStatement(stmt, [
-          e['id'], e['embedding_id'], e['source_type'], e['source_id'], e['group_id'],
-          e['chunk_index'], e['chunk_text'], e['metadata_json'], 
+          e['id'],
+          e['embedding_id'],
+          e['source_type'],
+          e['source_id'],
+          e['group_id'],
+          e['chunk_index'], e['chunk_text'], e['metadata_json'],
           e['embedding'], // Uint8List
           e['dimension'], e['model_id'], e['created_at'],
         ]);
@@ -595,17 +630,19 @@ class AgentDatabase extends _$AgentDatabase {
   Future<void> rebuildFtsIndex() async {
     await transaction(() async {
       await customStatement('DELETE FROM agent_messages_fts');
-      
+
       // 获取用户与助手的所有有效消息
-      final messages = await (select(agentMessages)
-        ..where((t) => t.role.isIn(['user', 'assistant']))).get();
-        
+      final messages = await (select(
+        agentMessages,
+      )..where((t) => t.role.isIn(['user', 'assistant']))).get();
+
       if (messages.isEmpty) return;
-      
+
       // 取出文本类 Part 用于提取字符串
-      final parts = await (select(agentParts)
-        ..where((t) => t.type.equals('text'))).get();
-        
+      final parts = await (select(
+        agentParts,
+      )..where((t) => t.type.equals('text'))).get();
+
       final partsByMsg = <String, String>{};
       for (final p in parts) {
         try {
@@ -617,7 +654,7 @@ class AgentDatabase extends _$AgentDatabase {
           }
         } catch (_) {}
       }
-      
+
       // 将拼装好的纯文本写入 FTS 虚表
       for (final msg in messages) {
         final text = partsByMsg[msg.id];
@@ -636,7 +673,10 @@ class AgentDatabase extends _$AgentDatabase {
 
 /// 打开 Agent 数据库连接
 /// 使用 NativeDatabase + LazyDatabase，注入 sqlite-vec 扩展
-QueryExecutor _openAgentConnection(StoragePathService pathService, String workspace) {
+QueryExecutor _openAgentConnection(
+  StoragePathService pathService,
+  String workspace,
+) {
   return LazyDatabase(() async {
     final sysDir = await pathService.getVaultSystemDirectory(workspace);
     final dbFile = File(p.join(sysDir.path, 'agent.sqlite'));
@@ -676,7 +716,7 @@ AgentDatabase agentDatabase(Ref ref) {
 
   final db = AgentDatabase(_openAgentConnection(pathService, vaultName));
   _previousAgentDb = db;
-  
+
   ref.onDispose(() {
     // app 退出等场景的兜底关闭
     db.close();
@@ -684,6 +724,6 @@ AgentDatabase agentDatabase(Ref ref) {
       _previousAgentDb = null;
     }
   });
-  
+
   return db;
 }

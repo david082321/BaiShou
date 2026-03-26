@@ -30,16 +30,15 @@ class DiaryReadTool extends AgentTool {
 
   @override
   Map<String, dynamic> get parameterSchema => {
-        'type': 'object',
-        'properties': {
-          'date': {
-            'type': 'string',
-            'description':
-                'The date of the diary to read, in YYYY-MM-DD format.',
-          },
-        },
-        'required': ['date'],
-      };
+    'type': 'object',
+    'properties': {
+      'date': {
+        'type': 'string',
+        'description': 'The date of the diary to read, in YYYY-MM-DD format.',
+      },
+    },
+    'required': ['date'],
+  };
 
   @override
   Future<ToolResult> execute(
@@ -63,8 +62,7 @@ class DiaryReadTool extends AgentTool {
     final parts = date.split('-');
     final year = parts[0];
     final month = parts[1];
-    final filePath =
-        '${context.vaultPath}/Journals/$year/$month/$date.md';
+    final filePath = '${context.vaultPath}/Journals/$year/$month/$date.md';
 
     final file = File(filePath);
     if (!await file.exists()) {

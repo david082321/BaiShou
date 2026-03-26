@@ -30,21 +30,19 @@ class DiaryListTool extends AgentTool {
 
   @override
   Map<String, dynamic> get parameterSchema => {
-        'type': 'object',
-        'properties': {
-          'start_date': {
-            'type': 'string',
-            'description':
-                'Start date (inclusive), in YYYY-MM-DD format.',
-          },
-          'end_date': {
-            'type': 'string',
-            'description':
-                'End date (inclusive), in YYYY-MM-DD format.',
-          },
-        },
-        'required': ['start_date', 'end_date'],
-      };
+    'type': 'object',
+    'properties': {
+      'start_date': {
+        'type': 'string',
+        'description': 'Start date (inclusive), in YYYY-MM-DD format.',
+      },
+      'end_date': {
+        'type': 'string',
+        'description': 'End date (inclusive), in YYYY-MM-DD format.',
+      },
+    },
+    'required': ['start_date', 'end_date'],
+  };
 
   @override
   Future<ToolResult> execute(
@@ -65,9 +63,7 @@ class DiaryListTool extends AgentTool {
       startDate = DateTime.parse(startStr);
       endDate = DateTime.parse(endStr);
     } catch (e) {
-      return ToolResult.error(
-        'Invalid date format. Expected YYYY-MM-DD.',
-      );
+      return ToolResult.error('Invalid date format. Expected YYYY-MM-DD.');
     }
 
     if (endDate.isBefore(startDate)) {
@@ -77,7 +73,8 @@ class DiaryListTool extends AgentTool {
     final journalsDir = Directory('${context.vaultPath}/Journals');
     if (!await journalsDir.exists()) {
       return const ToolResult(
-        output: 'No diary entries found. The Journals directory does not exist.',
+        output:
+            'No diary entries found. The Journals directory does not exist.',
         success: true,
       );
     }
@@ -91,8 +88,7 @@ class DiaryListTool extends AgentTool {
           '${current.year}-${current.month.toString().padLeft(2, '0')}-${current.day.toString().padLeft(2, '0')}';
       final year = '${current.year}';
       final month = current.month.toString().padLeft(2, '0');
-      final filePath =
-          '${context.vaultPath}/Journals/$year/$month/$dateStr.md';
+      final filePath = '${context.vaultPath}/Journals/$year/$month/$dateStr.md';
 
       if (await File(filePath).exists()) {
         foundDates.add(dateStr);
@@ -103,8 +99,7 @@ class DiaryListTool extends AgentTool {
 
     if (foundDates.isEmpty) {
       return ToolResult(
-        output:
-            'No diary entries found between $startStr and $endStr.',
+        output: 'No diary entries found between $startStr and $endStr.',
         success: true,
         metadata: {'count': 0},
       );

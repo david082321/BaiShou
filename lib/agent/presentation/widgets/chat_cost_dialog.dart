@@ -32,13 +32,11 @@ void showCostDetailDialog(BuildContext context, AgentChatState chatState) {
           ),
           CostRow(
             label: t.agent.chat.cost_cumulative_input,
-            value:
-                '${chatState.totalInputTokens} ${t.agent.chat.tokens_unit}',
+            value: '${chatState.totalInputTokens} ${t.agent.chat.tokens_unit}',
           ),
           CostRow(
             label: t.agent.chat.cost_cumulative_output,
-            value:
-                '${chatState.totalOutputTokens} ${t.agent.chat.tokens_unit}',
+            value: '${chatState.totalOutputTokens} ${t.agent.chat.tokens_unit}',
           ),
           const Divider(height: 24),
           Text(

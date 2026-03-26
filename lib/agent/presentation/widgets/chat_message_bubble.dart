@@ -150,7 +150,8 @@ class ChatMessageBubble extends ConsumerWidget {
   }
 
   Widget _buildUserAvatar(ThemeData theme, UserProfile userProfile) {
-    if (userProfile.avatarPath != null && File(userProfile.avatarPath!).existsSync()) {
+    if (userProfile.avatarPath != null &&
+        File(userProfile.avatarPath!).existsSync()) {
       return CircleAvatar(
         radius: 18,
         backgroundColor: theme.colorScheme.primaryContainer,
@@ -253,41 +254,48 @@ class ChatMessageBubble extends ConsumerWidget {
                       MarkdownBody(
                         data: message.content ?? '',
                         selectable: true,
-                        styleSheet: MarkdownStyleSheet.fromTheme(theme).copyWith(
-                          p: theme.textTheme.bodyMedium?.copyWith(height: 1.6),
-                          // 中文斜体优化：不使用 FontStyle.italic（CJK 字体倾斜很丑），
-                          // 改用降低透明度 + 略小字号来表达"弱化/附注"语义
-                          em: theme.textTheme.bodyMedium?.copyWith(
-                            height: 1.6,
-                            fontStyle: FontStyle.normal,
-                            color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
-                            fontSize: (theme.textTheme.bodyMedium?.fontSize ?? 14) * 0.92,
-                          ),
-                          code: theme.textTheme.bodySmall?.copyWith(
-                            backgroundColor: theme.colorScheme.surfaceContainerLow,
-                            fontFamily: 'monospace',
-                          ),
-                          codeblockDecoration: BoxDecoration(
-                            color: theme.colorScheme.surfaceContainerLow,
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(
-                              color: theme.colorScheme.outlineVariant.withValues(
-                                alpha: 0.3,
+                        styleSheet: MarkdownStyleSheet.fromTheme(theme)
+                            .copyWith(
+                              p: theme.textTheme.bodyMedium?.copyWith(
+                                height: 1.6,
                               ),
-                            ),
-                          ),
-                          codeblockPadding: const EdgeInsets.all(14),
-                          horizontalRuleDecoration: BoxDecoration(
-                            border: Border(
-                              top: BorderSide(
-                                color: theme.colorScheme.outlineVariant.withValues(
-                                  alpha: 0.4,
+                              // 中文斜体优化：不使用 FontStyle.italic（CJK 字体倾斜很丑），
+                              // 改用降低透明度 + 略小字号来表达"弱化/附注"语义
+                              em: theme.textTheme.bodyMedium?.copyWith(
+                                height: 1.6,
+                                fontStyle: FontStyle.normal,
+                                color: theme.colorScheme.onSurface.withValues(
+                                  alpha: 0.7,
                                 ),
-                                width: 2,
+                                fontSize:
+                                    (theme.textTheme.bodyMedium?.fontSize ??
+                                        14) *
+                                    0.92,
+                              ),
+                              code: theme.textTheme.bodySmall?.copyWith(
+                                backgroundColor:
+                                    theme.colorScheme.surfaceContainerLow,
+                                fontFamily: 'monospace',
+                              ),
+                              codeblockDecoration: BoxDecoration(
+                                color: theme.colorScheme.surfaceContainerLow,
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: theme.colorScheme.outlineVariant
+                                      .withValues(alpha: 0.3),
+                                ),
+                              ),
+                              codeblockPadding: const EdgeInsets.all(14),
+                              horizontalRuleDecoration: BoxDecoration(
+                                border: Border(
+                                  top: BorderSide(
+                                    color: theme.colorScheme.outlineVariant
+                                        .withValues(alpha: 0.4),
+                                    width: 2,
+                                  ),
+                                ),
                               ),
                             ),
-                          ),
-                        ),
                       ),
                   ],
                 ),
@@ -346,7 +354,9 @@ class ChatMessageBubble extends ConsumerWidget {
 
     final atts = message.attachments!;
     return Padding(
-      padding: EdgeInsets.only(bottom: (message.content?.isNotEmpty ?? false) ? 8.0 : 0.0),
+      padding: EdgeInsets.only(
+        bottom: (message.content?.isNotEmpty ?? false) ? 8.0 : 0.0,
+      ),
       child: Wrap(
         spacing: 8,
         runSpacing: 8,
@@ -372,23 +382,33 @@ class ChatMessageBubble extends ConsumerWidget {
               width: 160,
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: theme.colorScheme.surfaceContainerHigh.withValues(alpha: 0.5),
+                color: theme.colorScheme.surfaceContainerHigh.withValues(
+                  alpha: 0.5,
+                ),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3)),
+                border: Border.all(
+                  color: theme.colorScheme.outlineVariant.withValues(
+                    alpha: 0.3,
+                  ),
+                ),
               ),
               child: Row(
                 children: [
                   Icon(
                     att.isPdf ? Icons.picture_as_pdf : Icons.insert_drive_file,
                     size: 24,
-                    color: isUser ? theme.colorScheme.onPrimary : theme.colorScheme.onSurface,
+                    color: isUser
+                        ? theme.colorScheme.onPrimary
+                        : theme.colorScheme.onSurface,
                   ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       att.fileName,
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: isUser ? theme.colorScheme.onPrimary : theme.colorScheme.onSurface,
+                        color: isUser
+                            ? theme.colorScheme.onPrimary
+                            : theme.colorScheme.onSurface,
                       ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,

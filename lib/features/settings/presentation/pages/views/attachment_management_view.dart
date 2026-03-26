@@ -56,8 +56,7 @@ class _AttachmentManagementViewState
           }
 
           // 当前展示列表
-          final displayList =
-              _showOrphansOnly ? orphans : allAttachments;
+          final displayList = _showOrphansOnly ? orphans : allAttachments;
 
           return Column(
             children: [
@@ -138,17 +137,16 @@ class _AttachmentManagementViewState
                             const SizedBox(height: 4),
                         itemBuilder: (context, index) {
                           final folder = displayList[index];
-                          final isChecked =
-                              _selectedIds.contains(folder.sessionId);
-                          return _buildFolderTile(
-                            theme, folder, isChecked);
+                          final isChecked = _selectedIds.contains(
+                            folder.sessionId,
+                          );
+                          return _buildFolderTile(theme, folder, isChecked);
                         },
                       ),
               ),
 
               // ─── 底部操作栏 ───
-              if (_selectedIds.isNotEmpty)
-                _buildBottomBar(theme, displayList),
+              if (_selectedIds.isNotEmpty) _buildBottomBar(theme, displayList),
             ],
           );
         },
@@ -263,7 +261,9 @@ class _AttachmentManagementViewState
         decoration: BoxDecoration(
           color: isActive
               ? theme.colorScheme.primaryContainer
-              : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+              : theme.colorScheme.surfaceContainerHighest.withValues(
+                  alpha: 0.4,
+                ),
           borderRadius: BorderRadius.circular(20),
         ),
         child: Row(
@@ -378,7 +378,9 @@ class _AttachmentManagementViewState
                 decoration: BoxDecoration(
                   color: folder.isOrphan
                       ? theme.colorScheme.errorContainer.withValues(alpha: 0.4)
-                      : theme.colorScheme.primaryContainer.withValues(alpha: 0.4),
+                      : theme.colorScheme.primaryContainer.withValues(
+                          alpha: 0.4,
+                        ),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(
@@ -556,9 +558,7 @@ class _AttachmentManagementViewState
 
       AppToast.showSuccess(
         context,
-        t.settings.attachment_clear_completed(
-          size: _formatBytes(freedBytes),
-        ),
+        t.settings.attachment_clear_completed(size: _formatBytes(freedBytes)),
       );
     }
   }

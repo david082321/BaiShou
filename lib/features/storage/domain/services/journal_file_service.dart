@@ -19,7 +19,8 @@ part 'journal_file_service.g.dart';
 @Riverpod(keepAlive: true)
 class JournalFileService extends _$JournalFileService {
   StoragePathService get _pathProvider => ref.read(storagePathServiceProvider);
-  FileStateScheduler get _fileStateScheduler => ref.read(fileStateSchedulerProvider.notifier);
+  FileStateScheduler get _fileStateScheduler =>
+      ref.read(fileStateSchedulerProvider.notifier);
 
   @override
   FutureOr<void> build() async {

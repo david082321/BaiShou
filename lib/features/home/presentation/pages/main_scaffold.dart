@@ -29,10 +29,7 @@ class _MainScaffoldState extends ConsumerState<MainScaffold>
 
   void _goBranch(int index) {
     NavigationGuard.markUserNavigation();
-    widget.navigationShell.goBranch(
-      index,
-      initialLocation: false,
-    );
+    widget.navigationShell.goBranch(index, initialLocation: false);
   }
 
   int _getMobileNavIndex() {

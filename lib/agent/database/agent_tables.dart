@@ -151,8 +151,7 @@ class AgentAssistants extends Table {
       integer().withDefault(const Constant(60000))();
 
   /// 压缩保留轮数：用户交互的最后 N 轮保持原文不压缩（默认 3）
-  IntColumn get compressKeepTurns =>
-      integer().withDefault(const Constant(3))();
+  IntColumn get compressKeepTurns => integer().withDefault(const Constant(3))();
 
   /// 排序权重（越小越靠前，用于手动拖动排序）
   IntColumn get sortOrder => integer().withDefault(const Constant(0))();

@@ -16,9 +16,9 @@ class OpenAiClient extends BaseAiClient {
 
   @override
   Map<String, String> get headers => {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ${provider.apiKey}',
-      };
+    'Content-Type': 'application/json',
+    'Authorization': 'Bearer ${provider.apiKey}',
+  };
 
   // ─── 原有能力：总结生成 ────────────────────────────────────
 
@@ -36,10 +36,7 @@ class OpenAiClient extends BaseAiClient {
           .post(
             uri,
             headers: headers,
-            body: jsonEncode({
-              'model': modelId,
-              'input': input,
-            }),
+            body: jsonEncode({'model': modelId, 'input': input}),
           )
           .timeout(const Duration(seconds: 30));
 
@@ -152,7 +149,6 @@ class OpenAiClient extends BaseAiClient {
     }
   }
 
-
   // ─── 新增能力：Agent 流式对话 + Tool Calling ─────────────────
 
   @override
@@ -174,14 +170,16 @@ class OpenAiClient extends BaseAiClient {
 
     if (tools != null && tools.isNotEmpty) {
       body['tools'] = tools
-          .map((t) => {
-                'type': 'function',
-                'function': {
-                  'name': t.name,
-                  'description': t.description,
-                  'parameters': t.parameterSchema,
-                },
-              })
+          .map(
+            (t) => {
+              'type': 'function',
+              'function': {
+                'name': t.name,
+                'description': t.description,
+                'parameters': t.parameterSchema,
+              },
+            },
+          )
           .toList();
     }
 
@@ -228,25 +226,28 @@ class OpenAiClient extends BaseAiClient {
         .map((line) => line.substring(6).trim())
         .where((data) => data.isNotEmpty && data != '[DONE]')
         .expand<StreamEvent>((data) {
-      try {
-        final json = jsonDecode(data) as Map<String, dynamic>;
+          try {
+            final json = jsonDecode(data) as Map<String, dynamic>;
 
-        // 解析 usage（OpenAI 在最后一个 chunk 中返回）
-        final usage = json['usage'] as Map<String, dynamic>?;
-        if (usage != null) {
-          lastUsage = TokenUsage(
-            inputTokens: usage['prompt_tokens'] as int? ?? 0,
-            outputTokens: usage['completion_tokens'] as int? ?? 0,
-            cachedInputTokens: usage['prompt_tokens_details']?['cached_tokens'] as int?,
-            reasoningTokens: usage['completion_tokens_details']?['reasoning_tokens'] as int?,
-          );
-        }
+            // 解析 usage（OpenAI 在最后一个 chunk 中返回）
+            final usage = json['usage'] as Map<String, dynamic>?;
+            if (usage != null) {
+              lastUsage = TokenUsage(
+                inputTokens: usage['prompt_tokens'] as int? ?? 0,
+                outputTokens: usage['completion_tokens'] as int? ?? 0,
+                cachedInputTokens:
+                    usage['prompt_tokens_details']?['cached_tokens'] as int?,
+                reasoningTokens:
+                    usage['completion_tokens_details']?['reasoning_tokens']
+                        as int?,
+              );
+            }
 
-        return _parseChunk(json, toolCallBuffers);
-      } catch (e, st) {
-        return [StreamError(e, st)];
-      }
-    });
+            return _parseChunk(json, toolCallBuffers);
+          } catch (e, st) {
+            return [StreamError(e, st)];
+          }
+        });
 
     yield StreamDone(usage: lastUsage);
   }
@@ -287,18 +288,16 @@ class OpenAiClient extends BaseAiClient {
           if (fn != null) {
             if (fn['name'] != null) {
               buffer.name = fn['name'] as String;
-              events.add(ToolCallStart(
-                callId: buffer.id,
-                toolName: buffer.name!,
-              ));
+              events.add(
+                ToolCallStart(callId: buffer.id, toolName: buffer.name!),
+              );
             }
             if (fn['arguments'] != null) {
               final argsDelta = fn['arguments'] as String;
               buffer.argumentsBuffer.write(argsDelta);
-              events.add(ToolCallDelta(
-                callId: buffer.id,
-                argumentsDelta: argsDelta,
-              ));
+              events.add(
+                ToolCallDelta(callId: buffer.id, argumentsDelta: argsDelta),
+              );
             }
           }
         }
@@ -310,14 +309,15 @@ class OpenAiClient extends BaseAiClient {
         if (buffer.name != null) {
           Map<String, dynamic> args = {};
           try {
-            args = jsonDecode(buffer.argumentsBuffer.toString())
-                as Map<String, dynamic>;
+            args =
+                jsonDecode(buffer.argumentsBuffer.toString())
+                    as Map<String, dynamic>;
           } catch (_) {}
-          events.add(ToolCallComplete(ToolCall(
-            id: buffer.id,
-            name: buffer.name!,
-            arguments: args,
-          )));
+          events.add(
+            ToolCallComplete(
+              ToolCall(id: buffer.id, name: buffer.name!, arguments: args),
+            ),
+          );
         }
       }
       toolCallBuffers.clear();
@@ -356,9 +356,7 @@ class OpenAiClient extends BaseAiClient {
                   final b64 = base64Encode(bytes);
                   contentParts.add({
                     'type': 'image_url',
-                    'image_url': {
-                      'url': 'data:${att.mimeType};base64,$b64',
-                    },
+                    'image_url': {'url': 'data:${att.mimeType};base64,$b64'},
                   });
                 }
               } catch (_) {
@@ -399,14 +397,16 @@ class OpenAiClient extends BaseAiClient {
         if (msg.content != null) map['content'] = msg.content;
         if (msg.toolCalls != null && msg.toolCalls!.isNotEmpty) {
           map['tool_calls'] = msg.toolCalls!
-              .map((tc) => {
-                    'id': tc.id,
-                    'type': 'function',
-                    'function': {
-                      'name': tc.name,
-                      'arguments': jsonEncode(tc.arguments),
-                    },
-                  })
+              .map(
+                (tc) => {
+                  'id': tc.id,
+                  'type': 'function',
+                  'function': {
+                    'name': tc.name,
+                    'arguments': jsonEncode(tc.arguments),
+                  },
+                },
+              )
               .toList();
         }
         break;

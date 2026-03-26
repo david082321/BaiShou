@@ -4,6 +4,7 @@ import 'package:baishou/agent/rag/embedding_service.dart';
 import 'package:baishou/features/settings/presentation/widgets/custom_model_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:baishou/agent/rag/batch_embedding_progress.dart';
 import 'package:baishou/i18n/strings.g.dart';
 
 // 全局默认模型配置视图
@@ -203,6 +204,9 @@ class _AiGlobalModelsViewState extends ConsumerState<AiGlobalModelsView> {
   /// 启动异步迁移并显示进度
   void _startMigration() {
     final embeddingService = ref.read(embeddingServiceProvider);
+    final progressNotifier = ref.read(ragProgressProvider.notifier);
+
+    progressNotifier.startMigration();
 
     AppToast.show(
       context,
@@ -212,21 +216,34 @@ class _AiGlobalModelsViewState extends ConsumerState<AiGlobalModelsView> {
 
     embeddingService.migrateEmbeddings().listen(
       (progress) {
-        if (!mounted) return;
-        AppToast.show(
-          context,
+        progressNotifier.updateMigration(
+          progress.completed,
+          progress.total,
           progress.status,
-          duration: progress.isDone
-              ? const Duration(seconds: 3)
-              : const Duration(seconds: 30),
         );
+
+        if (progress.isDone) {
+          progressNotifier.finish();
+          if (mounted) {
+            AppToast.showSuccess(
+              context,
+              '迁移完成',
+              duration: const Duration(seconds: 3),
+            );
+          }
+        }
       },
       onError: (e) {
-        if (!mounted) return;
-        AppToast.showError(
-          context,
-          t.agent.rag.migration_error(error: e.toString()),
-        );
+        progressNotifier.finish();
+        if (mounted) {
+          AppToast.showError(
+            context,
+            t.agent.rag.migration_error(error: e.toString()),
+          );
+        }
+      },
+      onDone: () {
+        progressNotifier.finish();
       },
     );
   }
@@ -246,7 +263,9 @@ class _AiGlobalModelsViewState extends ConsumerState<AiGlobalModelsView> {
       decoration: BoxDecoration(
         color: colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: colorScheme.outlineVariant.withOpacity(0.5)),
+        border: Border.all(
+          color: colorScheme.outlineVariant.withValues(alpha: 0.5),
+        ),
       ),
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -374,7 +393,7 @@ class _AiGlobalModelsViewState extends ConsumerState<AiGlobalModelsView> {
               items: embeddingModels,
               onChanged: (val) async {
                 if (val == null || val == _globalEmbeddingModel) return;
-                
+
                 final confirmed = await showDialog<bool>(
                   context: context,
                   builder: (ctx) => AlertDialog(
@@ -395,16 +414,18 @@ class _AiGlobalModelsViewState extends ConsumerState<AiGlobalModelsView> {
                     ],
                   ),
                 );
-                
+
                 if (confirmed == true && mounted) {
                   setState(() => _globalEmbeddingModel = val);
-                  
+
                   final parts = val.split(':');
                   if (parts.length >= 2) {
                     final newProviderId = parts[0];
                     final newModelId = parts.sublist(1).join(':');
-                    await ref.read(apiConfigServiceProvider).setGlobalEmbeddingModel(newProviderId, newModelId);
-                    
+                    await ref
+                        .read(apiConfigServiceProvider)
+                        .setGlobalEmbeddingModel(newProviderId, newModelId);
+
                     _startMigration();
                   }
                 }

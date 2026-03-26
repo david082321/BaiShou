@@ -56,7 +56,8 @@ class AiClientFactory {
     if (_testClient != null) return _testClient!;
 
     // 本地推理引擎（Ollama / LM Studio）不一定需要 API Key
-    final isLocalProvider = provider.type == ProviderType.ollama ||
+    final isLocalProvider =
+        provider.type == ProviderType.ollama ||
         provider.type == ProviderType.lmstudio;
 
     if (provider.apiKey.isEmpty && !isLocalProvider) {

@@ -27,7 +27,9 @@ Future<String?> showEmojiPickerDialog(BuildContext context) {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: Theme.of(ctx).colorScheme.outline.withValues(alpha: 0.3),
+                  color: Theme.of(
+                    ctx,
+                  ).colorScheme.outline.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),

@@ -148,7 +148,9 @@ class _AgentSidebarState extends ConsumerState<AgentSidebar> {
                                 overflow: TextOverflow.ellipsis,
                               ),
                               if (widget
-                                  .currentAssistant!.description.isNotEmpty)
+                                  .currentAssistant!
+                                  .description
+                                  .isNotEmpty)
                                 Text(
                                   widget.currentAssistant!.description,
                                   style: theme.textTheme.labelSmall?.copyWith(
@@ -247,53 +249,52 @@ class _AgentSidebarState extends ConsumerState<AgentSidebar> {
               child: widget.isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : (widget.sessions == null || widget.sessions!.isEmpty)
-                      ? Center(
-                          child: Text(
-                            t.agent.sessions.no_history,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.outline,
-                            ),
-                          ),
-                        )
-                      : ListView.builder(
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                          itemCount: widget.sessions!.length,
-                          itemBuilder: (context, index) {
-                            final session = widget.sessions![index];
-                            final isSelected =
-                                session.id == widget.selectedSessionId;
-
-                            return SessionListTile(
-                              key: ValueKey(session.id),
-                              session: session,
-                              isSelected: isSelected,
-                              isMultiSelect: _isMultiSelect,
-                              isChecked: _selectedIds.contains(session.id),
-                              onTap: () =>
-                                  widget.onSessionSelected(session.id),
-                              onCheckChanged: (v) => setState(() {
-                                if (v == true) {
-                                  _selectedIds.add(session.id);
-                                } else {
-                                  _selectedIds.remove(session.id);
-                                }
-                              }),
-                              onPin: () async {
-                                await ref
-                                    .read(sessionManagerProvider)
-                                    .togglePinSession(
-                                      session.id,
-                                      !session.isPinned,
-                                    );
-                                widget.onSessionsChanged();
-                              },
-                              onRename: () =>
-                                  _renameSession(session.id, session.title),
-                              onDelete: () =>
-                                  _deleteSession(session.id, session.title),
-                            );
-                          },
+                  ? Center(
+                      child: Text(
+                        t.agent.sessions.no_history,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.outline,
                         ),
+                      ),
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      itemCount: widget.sessions!.length,
+                      itemBuilder: (context, index) {
+                        final session = widget.sessions![index];
+                        final isSelected =
+                            session.id == widget.selectedSessionId;
+
+                        return SessionListTile(
+                          key: ValueKey(session.id),
+                          session: session,
+                          isSelected: isSelected,
+                          isMultiSelect: _isMultiSelect,
+                          isChecked: _selectedIds.contains(session.id),
+                          onTap: () => widget.onSessionSelected(session.id),
+                          onCheckChanged: (v) => setState(() {
+                            if (v == true) {
+                              _selectedIds.add(session.id);
+                            } else {
+                              _selectedIds.remove(session.id);
+                            }
+                          }),
+                          onPin: () async {
+                            await ref
+                                .read(sessionManagerProvider)
+                                .togglePinSession(
+                                  session.id,
+                                  !session.isPinned,
+                                );
+                            widget.onSessionsChanged();
+                          },
+                          onRename: () =>
+                              _renameSession(session.id, session.title),
+                          onDelete: () =>
+                              _deleteSession(session.id, session.title),
+                        );
+                      },
+                    ),
             ),
 
             // ─── 批量删除操作栏 ───
@@ -318,10 +319,14 @@ class _AgentSidebarState extends ConsumerState<AgentSidebar> {
                   CircleAvatar(
                     radius: 18,
                     backgroundColor: theme.colorScheme.primaryContainer,
-                    backgroundImage: userProfile.avatarPath != null && File(userProfile.avatarPath!).existsSync()
+                    backgroundImage:
+                        userProfile.avatarPath != null &&
+                            File(userProfile.avatarPath!).existsSync()
                         ? FileImage(File(userProfile.avatarPath!))
                         : null,
-                    child: userProfile.avatarPath == null || !File(userProfile.avatarPath!).existsSync()
+                    child:
+                        userProfile.avatarPath == null ||
+                            !File(userProfile.avatarPath!).existsSync()
                         ? Text(
                             userProfile.nickname.isNotEmpty
                                 ? userProfile.nickname[0].toUpperCase()
@@ -361,8 +366,7 @@ class _AgentSidebarState extends ConsumerState<AgentSidebar> {
       decoration: BoxDecoration(
         border: Border(
           top: BorderSide(
-            color:
-                theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
+            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
           ),
         ),
       ),
@@ -386,9 +390,7 @@ class _AgentSidebarState extends ConsumerState<AgentSidebar> {
           FilledButton.icon(
             onPressed: _selectedIds.isEmpty ? null : _batchDelete,
             icon: const Icon(Icons.delete_outline, size: 16),
-            label: Text(
-              t.agent.chat.delete_count(count: _selectedIds.length),
-            ),
+            label: Text(t.agent.chat.delete_count(count: _selectedIds.length)),
             style: FilledButton.styleFrom(
               backgroundColor: _selectedIds.isEmpty
                   ? theme.colorScheme.surfaceContainerHighest
@@ -427,9 +429,9 @@ class _AgentSidebarState extends ConsumerState<AgentSidebar> {
       ),
     );
     if (confirm == true) {
-      await ref.read(sessionManagerProvider).deleteSessions(
-            _selectedIds.toList(),
-          );
+      await ref
+          .read(sessionManagerProvider)
+          .deleteSessions(_selectedIds.toList());
       if (_selectedIds.contains(widget.selectedSessionId)) {
         ref.read(agentChatProvider.notifier).clearChat();
       }
@@ -471,9 +473,7 @@ class _AgentSidebarState extends ConsumerState<AgentSidebar> {
       ),
     );
     if (act == true) {
-      await ref
-          .read(sessionManagerProvider)
-          .deleteSession(id);
+      await ref.read(sessionManagerProvider).deleteSession(id);
       if (widget.selectedSessionId == id) {
         ref.read(agentChatProvider.notifier).clearChat();
       }

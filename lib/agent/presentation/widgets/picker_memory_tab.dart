@@ -52,10 +52,12 @@ class PickerMemoryTab extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  Text('窗口大小',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: colorScheme.onSurfaceVariant,
-                      )),
+                  Text(
+                    '窗口大小',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
                   const Spacer(),
                   if (!_isUnlimited)
                     Text(
@@ -104,10 +106,12 @@ class PickerMemoryTab extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  Text('状态',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: colorScheme.onSurfaceVariant,
-                      )),
+                  Text(
+                    '状态',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
                   const Spacer(),
                   if (isCompressEnabled)
                     Text(
@@ -136,14 +140,17 @@ class PickerMemoryTab extends StatelessWidget {
                 const Divider(height: 16),
                 Row(
                   children: [
-                    Text(t.agent.assistant.compress_keep_turns_label,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: colorScheme.onSurfaceVariant,
-                        )),
+                    Text(
+                      t.agent.assistant.compress_keep_turns_label,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
                     const Spacer(),
                     Text(
                       t.agent.assistant.compress_keep_turns_unit(
-                          count: compressKeepTurns.round()),
+                        count: compressKeepTurns.round(),
+                      ),
                       style: theme.textTheme.bodySmall?.copyWith(
                         fontWeight: FontWeight.bold,
                         color: colorScheme.primary,
@@ -169,8 +176,7 @@ class PickerMemoryTab extends StatelessWidget {
 
   String _formatTokens(int tokens) {
     if (tokens >= 10000) {
-      final w =
-          (tokens / 10000).toStringAsFixed(tokens % 10000 == 0 ? 0 : 1);
+      final w = (tokens / 10000).toStringAsFixed(tokens % 10000 == 0 ? 0 : 1);
       return '${w}w';
     }
     return '$tokens';

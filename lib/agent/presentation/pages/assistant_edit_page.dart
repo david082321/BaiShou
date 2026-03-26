@@ -191,7 +191,10 @@ class _AssistantEditPageState extends ConsumerState<AssistantEditPage> {
                 const SizedBox(height: 16),
 
                 // ── 简介 ──
-                Text(t.agent.assistant.description_label, style: theme.textTheme.titleSmall),
+                Text(
+                  t.agent.assistant.description_label,
+                  style: theme.textTheme.titleSmall,
+                ),
                 const SizedBox(height: 8),
                 TextField(
                   controller: _descriptionController,
@@ -299,7 +302,9 @@ class _AssistantEditPageState extends ConsumerState<AssistantEditPage> {
               ),
             const SizedBox(width: 4),
             Text(
-              _isUnlimitedContext ? t.agent.assistant.context_unlimited : t.agent.assistant.context_limited,
+              _isUnlimitedContext
+                  ? t.agent.assistant.context_unlimited
+                  : t.agent.assistant.context_limited,
               style: theme.textTheme.bodySmall,
             ),
             const SizedBox(width: 4),
@@ -345,7 +350,10 @@ class _AssistantEditPageState extends ConsumerState<AssistantEditPage> {
       children: [
         Row(
           children: [
-            Text(t.agent.assistant.bind_model_label, style: theme.textTheme.titleSmall),
+            Text(
+              t.agent.assistant.bind_model_label,
+              style: theme.textTheme.titleSmall,
+            ),
             const Spacer(),
             if (_selectedProviderId != null)
               TextButton(
@@ -427,7 +435,10 @@ class _AssistantEditPageState extends ConsumerState<AssistantEditPage> {
       children: [
         Row(
           children: [
-            Text(t.agent.assistant.compress_label, style: theme.textTheme.titleSmall),
+            Text(
+              t.agent.assistant.compress_label,
+              style: theme.textTheme.titleSmall,
+            ),
             const Spacer(),
             if (!_isCompressDisabled)
               Text(
@@ -447,7 +458,9 @@ class _AssistantEditPageState extends ConsumerState<AssistantEditPage> {
           ],
         ),
         Text(
-          _isCompressDisabled ? t.agent.assistant.compress_disabled_desc : t.agent.assistant.compress_enabled_desc,
+          _isCompressDisabled
+              ? t.agent.assistant.compress_disabled_desc
+              : t.agent.assistant.compress_enabled_desc,
           style: theme.textTheme.bodySmall?.copyWith(
             color: colorScheme.onSurfaceVariant,
           ),
@@ -467,10 +480,15 @@ class _AssistantEditPageState extends ConsumerState<AssistantEditPage> {
           const SizedBox(height: 16),
           Row(
             children: [
-              Text(t.agent.assistant.compress_keep_turns_label, style: theme.textTheme.titleSmall),
+              Text(
+                t.agent.assistant.compress_keep_turns_label,
+                style: theme.textTheme.titleSmall,
+              ),
               const Spacer(),
               Text(
-                t.agent.assistant.compress_keep_turns_unit(count: _compressKeepTurns.round()),
+                t.agent.assistant.compress_keep_turns_unit(
+                  count: _compressKeepTurns.round(),
+                ),
                 style: theme.textTheme.bodyMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: colorScheme.primary,

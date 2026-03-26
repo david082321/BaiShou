@@ -108,7 +108,7 @@ class _SettingsPageState extends State<SettingsPage> {
     return Scaffold(
       backgroundColor: colorScheme.surface,
       appBar: AppBar(
-        title: Text(t.settings.title), 
+        title: Text(t.settings.title),
         centerTitle: true,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),

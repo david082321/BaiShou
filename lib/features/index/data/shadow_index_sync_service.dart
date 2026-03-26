@@ -140,7 +140,6 @@ class ShadowIndexSyncService extends _$ShadowIndexSyncService {
     final journalService = ref.read(journalFileServiceProvider.notifier);
     final dbService = ref.read(shadowIndexDatabaseProvider.notifier);
 
-
     // 1. 获取物理文件对象
     final file = await journalService
         .getExactFilePath(date)
@@ -322,8 +321,9 @@ class ShadowIndexSyncService extends _$ShadowIndexSyncService {
             .first; // 提取 yyyy-MM-dd
 
         // 实时检查物理文件是否存在（而非依赖启动时的快照）
-        final filePath = await journalService
-            .getExactFilePath(DateTime.parse(dateStr));
+        final filePath = await journalService.getExactFilePath(
+          DateTime.parse(dateStr),
+        );
         if (!File(filePath).existsSync()) {
           // 物理文件确实不存在，安全执行影子清理
           await dbService.deleteJournalIndex(id);

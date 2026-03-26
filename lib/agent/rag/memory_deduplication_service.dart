@@ -62,11 +62,7 @@ class MemoryDeduplicationService {
   final AgentDatabase _db;
   final ApiConfigService _apiConfig;
 
-  MemoryDeduplicationService(
-    this._embeddingService,
-    this._db,
-    this._apiConfig,
-  );
+  MemoryDeduplicationService(this._embeddingService, this._db, this._apiConfig);
 
   /// 在存储新记忆前调用，返回去重/合并结果
   ///
@@ -140,7 +136,9 @@ class MemoryDeduplicationService {
 
     // ── 完全重复 ──
     if (best.similarity > duplicateThreshold) {
-      debugPrint('MemoryDedup: 完全重复 (${best.similarity.toStringAsFixed(4)}), 跳过存储');
+      debugPrint(
+        'MemoryDedup: 完全重复 (${best.similarity.toStringAsFixed(4)}), 跳过存储',
+      );
       // 更新已有记忆的时间戳（标记最近被提及）
       await _updateTimestamp(best.embeddingId);
       return DeduplicationResult(
@@ -151,10 +149,13 @@ class MemoryDeduplicationService {
 
     // ── 语义相关，需 LLM 判断 ──
     if (best.similarity > mergeThreshold) {
-      debugPrint('MemoryDedup: 进入 LLM 合并判断 (${best.similarity.toStringAsFixed(4)})');
+      debugPrint(
+        'MemoryDedup: 进入 LLM 合并判断 (${best.similarity.toStringAsFixed(4)})',
+      );
       // 取所有相似度 > mergeThreshold 的记忆
-      final relevantMemories =
-          scored.where((s) => s.similarity > mergeThreshold).toList();
+      final relevantMemories = scored
+          .where((s) => s.similarity > mergeThreshold)
+          .toList();
       return _llmMergeJudgment(
         newMemoryContent: newMemoryContent,
         sessionId: sessionId,
@@ -166,7 +167,9 @@ class MemoryDeduplicationService {
     }
 
     // ── 无关 ──
-    debugPrint('MemoryDedup: 无相关记忆 (${best.similarity.toStringAsFixed(4)}), 直接存储');
+    debugPrint(
+      'MemoryDedup: 无相关记忆 (${best.similarity.toStringAsFixed(4)}), 直接存储',
+    );
     return DeduplicationResult(
       action: DeduplicationAction.stored,
       highestSimilarity: best.similarity,
@@ -205,7 +208,9 @@ class MemoryDeduplicationService {
           );
 
         case 'merge':
-          debugPrint('MemoryDedup: LLM 判定 merge, 目标 IDs=${llmResult.mergeTargetIds}');
+          debugPrint(
+            'MemoryDedup: LLM 判定 merge, 目标 IDs=${llmResult.mergeTargetIds}',
+          );
           final mergedContent = llmResult.mergedContent;
           if (mergedContent.isEmpty) {
             return DeduplicationResult(
@@ -222,7 +227,10 @@ class MemoryDeduplicationService {
               (c) => c.embeddingId == targetId || c.sourceId == targetId,
               orElse: () => candidates.first,
             );
-            await _db.deleteEmbeddingsBySource(target.sourceType, target.sourceId);
+            await _db.deleteEmbeddingsBySource(
+              target.sourceType,
+              target.sourceId,
+            );
             removedIds.add(target.sourceId);
           }
 
@@ -230,7 +238,8 @@ class MemoryDeduplicationService {
           await _embeddingService.embedText(
             text: mergedContent,
             sourceType: sourceType,
-            sourceId: sourceId ?? 'mem_${DateTime.now().millisecondsSinceEpoch}',
+            sourceId:
+                sourceId ?? 'mem_${DateTime.now().millisecondsSinceEpoch}',
             groupId: sessionId,
           );
 
@@ -275,12 +284,15 @@ class MemoryDeduplicationService {
 
     // 构建 prompt
     final existingBlock = existingMemories
-        .map((m) =>
-            '- [ID: ${m.embeddingId}] ${m.chunkText}'
-            '（记录于 ${DateTime.fromMillisecondsSinceEpoch(m.createdAt).toIso8601String()}）')
+        .map(
+          (m) =>
+              '- [ID: ${m.embeddingId}] ${m.chunkText}'
+              '（记录于 ${DateTime.fromMillisecondsSinceEpoch(m.createdAt).toIso8601String()}）',
+        )
         .join('\n');
 
-    final prompt = '''你是AI记忆管理器。请判断新记忆是否应与已有记忆合并。
+    final prompt =
+        '''你是AI记忆管理器。请判断新记忆是否应与已有记忆合并。
 
 ## 已有记忆
 $existingBlock
@@ -321,7 +333,8 @@ $newMemory
 
       final json = jsonDecode(jsonStr) as Map<String, dynamic>;
       final action = json['action'] as String? ?? 'new';
-      final mergeTargetIds = (json['merge_target_ids'] as List<dynamic>?)
+      final mergeTargetIds =
+          (json['merge_target_ids'] as List<dynamic>?)
               ?.map((e) => e.toString())
               .toList() ??
           [];

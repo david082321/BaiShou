@@ -21,16 +21,16 @@ class ToolCall {
   });
 
   Map<String, dynamic> toMap() => {
-        'id': id,
-        'name': name,
-        'arguments': arguments,
-      };
+    'id': id,
+    'name': name,
+    'arguments': arguments,
+  };
 
   factory ToolCall.fromMap(Map<String, dynamic> map) => ToolCall(
-        id: map['id'] as String,
-        name: map['name'] as String,
-        arguments: Map<String, dynamic>.from(map['arguments'] as Map),
-      );
+    id: map['id'] as String,
+    name: map['name'] as String,
+    arguments: Map<String, dynamic>.from(map['arguments'] as Map),
+  );
 
   String toJson() => jsonEncode(toMap());
   factory ToolCall.fromJson(String source) =>
@@ -107,36 +107,34 @@ class ChatMessage {
 
   /// 创建 system 消息
   factory ChatMessage.system(String content) => ChatMessage(
-        id: _generateId(),
-        role: MessageRole.system,
-        content: content,
-      );
+    id: _generateId(),
+    role: MessageRole.system,
+    content: content,
+  );
 
   /// 创建 user 消息
   factory ChatMessage.user(
     String content, {
     List<MessageAttachment>? attachments,
-  }) =>
-      ChatMessage(
-        id: _generateId(),
-        role: MessageRole.user,
-        content: content,
-        attachments: attachments,
-      );
+  }) => ChatMessage(
+    id: _generateId(),
+    role: MessageRole.user,
+    content: content,
+    attachments: attachments,
+  );
 
   /// 创建 assistant 消息
   factory ChatMessage.assistant({
     String? content,
     List<ToolCall>? toolCalls,
     String? askId,
-  }) =>
-      ChatMessage(
-        id: _generateId(),
-        role: MessageRole.assistant,
-        content: content,
-        toolCalls: toolCalls,
-        askId: askId,
-      );
+  }) => ChatMessage(
+    id: _generateId(),
+    role: MessageRole.assistant,
+    content: content,
+    toolCalls: toolCalls,
+    askId: askId,
+  );
 
   /// 创建 tool 执行结果消息
   factory ChatMessage.tool({
@@ -144,47 +142,46 @@ class ChatMessage {
     required String content,
     String? toolName,
     String? askId,
-  }) =>
-      ChatMessage(
-        id: _generateId(),
-        role: MessageRole.tool,
-        content: content,
-        toolCallId: callId,
-        toolName: toolName,
-        askId: askId,
-      );
+  }) => ChatMessage(
+    id: _generateId(),
+    role: MessageRole.tool,
+    content: content,
+    toolCallId: callId,
+    toolName: toolName,
+    askId: askId,
+  );
 
   static const _uuid = Uuid();
   static String _generateId() => 'msg_${_uuid.v4()}';
 
   Map<String, dynamic> toMap() => {
-        'id': id,
-        'role': role.name,
-        'content': content,
-        'toolCalls': toolCalls?.map((t) => t.toMap()).toList(),
-        'toolCallId': toolCallId,
-        'toolName': toolName,
-        'askId': askId,
-        'timestamp': timestamp.toIso8601String(),
-        if (attachments != null && attachments!.isNotEmpty)
-          'attachments': attachments!.map((a) => a.toMap()).toList(),
-      };
+    'id': id,
+    'role': role.name,
+    'content': content,
+    'toolCalls': toolCalls?.map((t) => t.toMap()).toList(),
+    'toolCallId': toolCallId,
+    'toolName': toolName,
+    'askId': askId,
+    'timestamp': timestamp.toIso8601String(),
+    if (attachments != null && attachments!.isNotEmpty)
+      'attachments': attachments!.map((a) => a.toMap()).toList(),
+  };
 
   factory ChatMessage.fromMap(Map<String, dynamic> map) => ChatMessage(
-        id: map['id'] as String,
-        role: MessageRole.values.byName(map['role'] as String),
-        content: map['content'] as String?,
-        toolCalls: (map['toolCalls'] as List?)
-            ?.map((t) => ToolCall.fromMap(t as Map<String, dynamic>))
-            .toList(),
-        toolCallId: map['toolCallId'] as String?,
-        toolName: map['toolName'] as String?,
-        askId: map['askId'] as String?,
-        timestamp: DateTime.parse(map['timestamp'] as String),
-        attachments: (map['attachments'] as List?)
-            ?.map((a) => MessageAttachment.fromMap(a as Map<String, dynamic>))
-            .toList(),
-      );
+    id: map['id'] as String,
+    role: MessageRole.values.byName(map['role'] as String),
+    content: map['content'] as String?,
+    toolCalls: (map['toolCalls'] as List?)
+        ?.map((t) => ToolCall.fromMap(t as Map<String, dynamic>))
+        .toList(),
+    toolCallId: map['toolCallId'] as String?,
+    toolName: map['toolName'] as String?,
+    askId: map['askId'] as String?,
+    timestamp: DateTime.parse(map['timestamp'] as String),
+    attachments: (map['attachments'] as List?)
+        ?.map((a) => MessageAttachment.fromMap(a as Map<String, dynamic>))
+        .toList(),
+  );
 
   String toJson() => jsonEncode(toMap());
   factory ChatMessage.fromJson(String source) =>

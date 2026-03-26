@@ -39,8 +39,11 @@ class _PickerMobileViewState extends ConsumerState<PickerMobileView> {
           padding: const EdgeInsets.fromLTRB(24, 20, 16, 12),
           child: Row(
             children: [
-              Icon(Icons.auto_awesome_rounded,
-                  size: 20, color: colorScheme.primary),
+              Icon(
+                Icons.auto_awesome_rounded,
+                size: 20,
+                color: colorScheme.primary,
+              ),
               const SizedBox(width: 10),
               Text(
                 t.agent.assistant.select_title,
@@ -148,8 +151,9 @@ class _MobileCard extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: colorScheme.onSurfaceVariant
-                            .withValues(alpha: 0.7),
+                        color: colorScheme.onSurfaceVariant.withValues(
+                          alpha: 0.7,
+                        ),
                       ),
                     ),
                   ],
@@ -157,8 +161,11 @@ class _MobileCard extends StatelessWidget {
               ),
             ),
             if (isSelected)
-              Icon(Icons.check_circle_rounded,
-                  color: colorScheme.primary, size: 22),
+              Icon(
+                Icons.check_circle_rounded,
+                color: colorScheme.primary,
+                size: 22,
+              ),
           ],
         ),
       ),

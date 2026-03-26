@@ -17,8 +17,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class ChatInputBar extends ConsumerStatefulWidget {
   final bool isLoading;
+
   /// 发送回调 — 包含文本和可选附件
-  final void Function(String text, {List<MessageAttachment>? attachments}) onSend;
+  final void Function(String text, {List<MessageAttachment>? attachments})
+  onSend;
   final VoidCallback? onStop;
 
   /// 当前伙伴名称（显示在 chip 上）
@@ -81,13 +83,15 @@ class _ChatInputBarState extends ConsumerState<ChatInputBar> {
       for (final file in result.files) {
         if (file.path == null) continue;
         final ext = p.extension(file.path!).replaceFirst('.', '');
-        _attachments.add(MessageAttachment.create(
-          fileName: file.name,
-          filePath: file.path!,
-          fileSize: file.size,
-          type: MessageAttachment.typeFromExtension(ext),
-          mimeType: MessageAttachment.mimeFromExtension(ext),
-        ));
+        _attachments.add(
+          MessageAttachment.create(
+            fileName: file.name,
+            filePath: file.path!,
+            fileSize: file.size,
+            type: MessageAttachment.typeFromExtension(ext),
+            mimeType: MessageAttachment.mimeFromExtension(ext),
+          ),
+        );
       }
     });
   }
@@ -140,9 +144,18 @@ class _ChatInputBarState extends ConsumerState<ChatInputBar> {
     final mode = provider?.webSearchMode ?? WebSearchMode.off;
 
     final (icon, label) = switch (mode) {
-      WebSearchMode.off => (Icons.block_rounded, t.settings.web_search_mode_off),
-      WebSearchMode.builtin => (Icons.language_rounded, t.settings.web_search_mode_builtin),
-      WebSearchMode.tool => (Icons.travel_explore_rounded, t.settings.web_search_mode_tool),
+      WebSearchMode.off => (
+        Icons.block_rounded,
+        t.settings.web_search_mode_off,
+      ),
+      WebSearchMode.builtin => (
+        Icons.language_rounded,
+        t.settings.web_search_mode_builtin,
+      ),
+      WebSearchMode.tool => (
+        Icons.travel_explore_rounded,
+        t.settings.web_search_mode_tool,
+      ),
     };
 
     return _QuickActionChip(
@@ -206,53 +219,60 @@ class _ChatInputBarState extends ConsumerState<ChatInputBar> {
                 alignment: Alignment.bottomCenter,
                 curve: Curves.easeOutCubic,
                 child: ref.watch(apiConfigServiceProvider).showChatToolbar
-                  ? Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          children: [
-                            _QuickActionChip(
-                              icon: Icons.attach_file_rounded,
-                              label: '上传附件',
-                              onTap: _pickFiles,
-                            ),
-                            const SizedBox(width: 8),
-                            _QuickActionChip(
-                              icon: Icons.bolt_rounded,
-                              label: '快捷指令',
-                              onTap: () async {
-                                final text = await PromptShortcutSheet.show(context);
-                                if (text != null && text.isNotEmpty) {
-                                  _controller.text = text;
-                                  _controller.selection = TextSelection.fromPosition(
-                                    TextPosition(offset: _controller.text.length),
-                                  );
-                                  FocusScope.of(context).requestFocus(_focusNode);
-                                }
-                              },
-                            ),
-                            const SizedBox(width: 8),
-                            _QuickActionChip(
-                              icon: Icons.extension_outlined,
-                              label: t.agent.tools.tool_call,
-                              onTap: _openToolManager,
-                            ),
-                            const SizedBox(width: 8),
-                            _buildSearchModeChip(),
-                            if (widget.onRecall != null) ...[
+                    ? Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            children: [
+                              _QuickActionChip(
+                                icon: Icons.attach_file_rounded,
+                                label: '上传附件',
+                                onTap: _pickFiles,
+                              ),
                               const SizedBox(width: 8),
                               _QuickActionChip(
-                                icon: Icons.auto_stories_rounded,
-                                label: t.settings.recall_memories,
-                                onTap: widget.onRecall!,
+                                icon: Icons.bolt_rounded,
+                                label: '快捷指令',
+                                onTap: () async {
+                                  final text = await PromptShortcutSheet.show(
+                                    context,
+                                  );
+                                  if (text != null && text.isNotEmpty) {
+                                    _controller.text = text;
+                                    _controller.selection =
+                                        TextSelection.fromPosition(
+                                          TextPosition(
+                                            offset: _controller.text.length,
+                                          ),
+                                        );
+                                    FocusScope.of(
+                                      context,
+                                    ).requestFocus(_focusNode);
+                                  }
+                                },
                               ),
+                              const SizedBox(width: 8),
+                              _QuickActionChip(
+                                icon: Icons.extension_outlined,
+                                label: t.agent.tools.tool_call,
+                                onTap: _openToolManager,
+                              ),
+                              const SizedBox(width: 8),
+                              _buildSearchModeChip(),
+                              if (widget.onRecall != null) ...[
+                                const SizedBox(width: 8),
+                                _QuickActionChip(
+                                  icon: Icons.auto_stories_rounded,
+                                  label: t.settings.recall_memories,
+                                  onTap: widget.onRecall!,
+                                ),
+                              ],
                             ],
-                          ],
+                          ),
                         ),
-                      ),
-                    )
-                  : const SizedBox.shrink(),
+                      )
+                    : const SizedBox.shrink(),
               ),
 
               // 附件预览栏
@@ -306,7 +326,9 @@ class _ChatInputBarState extends ConsumerState<ChatInputBar> {
                           },
                           child: Center(
                             child: Icon(
-                              ref.read(apiConfigServiceProvider).showChatToolbar ? Icons.apps_rounded : Icons.apps_outlined,
+                              ref.read(apiConfigServiceProvider).showChatToolbar
+                                  ? Icons.apps_rounded
+                                  : Icons.apps_outlined,
                               color: theme.colorScheme.outline,
                               size: 24,
                             ),
@@ -349,7 +371,7 @@ class _ChatInputBarState extends ConsumerState<ChatInputBar> {
                                 border: InputBorder.none,
                                 contentPadding: const EdgeInsets.symmetric(
                                   horizontal: 6,
-                                  vertical: 0, 
+                                  vertical: 0,
                                 ),
                                 isDense: true,
                                 hintStyle: theme.textTheme.bodyMedium?.copyWith(
@@ -358,7 +380,9 @@ class _ChatInputBarState extends ConsumerState<ChatInputBar> {
                                   ),
                                 ),
                               ),
-                              style: theme.textTheme.bodyMedium, // 移除固定的行高，避免由于字体度量导致的偏下问题
+                              style: theme
+                                  .textTheme
+                                  .bodyMedium, // 移除固定的行高，避免由于字体度量导致的偏下问题
                             ),
                           ),
                         ),
@@ -690,11 +714,7 @@ class _AttachmentPreviewChip extends StatelessWidget {
                 color: colorScheme.error,
                 shape: BoxShape.circle,
               ),
-              child: Icon(
-                Icons.close,
-                size: 12,
-                color: colorScheme.onError,
-              ),
+              child: Icon(Icons.close, size: 12, color: colorScheme.onError),
             ),
           ),
         ),

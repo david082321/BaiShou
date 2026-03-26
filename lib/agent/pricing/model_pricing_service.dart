@@ -31,17 +31,15 @@ class ModelPrice {
   /// 根据 token 用量计算费用（美元）
   /// 自动判断是否使用 200K+ 阶梯价
   double calculateCost(TokenUsage usage) {
-    final totalInput =
-        usage.inputTokens + (usage.cachedInputTokens ?? 0);
+    final totalInput = usage.inputTokens + (usage.cachedInputTokens ?? 0);
 
     // 如果有 200K+ 阶梯价且总输入超过 200K，使用阶梯价
-    final effectivePrice =
-        (over200K != null && totalInput > 200000) ? over200K! : this;
+    final effectivePrice = (over200K != null && totalInput > 200000)
+        ? over200K!
+        : this;
 
-    final inputCost =
-        usage.inputTokens * effectivePrice.input / 1000000;
-    final outputCost =
-        usage.outputTokens * effectivePrice.output / 1000000;
+    final inputCost = usage.inputTokens * effectivePrice.input / 1000000;
+    final outputCost = usage.outputTokens * effectivePrice.output / 1000000;
     final cacheCost =
         (usage.cachedInputTokens ?? 0) * effectivePrice.cacheRead / 1000000;
     return inputCost + outputCost + cacheCost;
@@ -136,10 +134,11 @@ class ModelPricingService {
           if (over200KData != null) {
             over200K = ModelPrice(
               input: (over200KData['input'] as num?)?.toDouble() ?? inputPrice,
-              output: (over200KData['output'] as num?)?.toDouble() ??
-                  (cost['output'] as num?)?.toDouble() ?? 0,
-              cacheRead:
-                  (over200KData['cache_read'] as num?)?.toDouble() ?? 0,
+              output:
+                  (over200KData['output'] as num?)?.toDouble() ??
+                  (cost['output'] as num?)?.toDouble() ??
+                  0,
+              cacheRead: (over200KData['cache_read'] as num?)?.toDouble() ?? 0,
               cacheWrite:
                   (over200KData['cache_write'] as num?)?.toDouble() ?? 0,
             );

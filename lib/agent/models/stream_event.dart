@@ -20,18 +20,18 @@ class TokenUsage {
   int get totalTokens => inputTokens + outputTokens;
 
   Map<String, dynamic> toMap() => {
-        'inputTokens': inputTokens,
-        'outputTokens': outputTokens,
-        if (cachedInputTokens != null) 'cachedInputTokens': cachedInputTokens,
-        if (reasoningTokens != null) 'reasoningTokens': reasoningTokens,
-      };
+    'inputTokens': inputTokens,
+    'outputTokens': outputTokens,
+    if (cachedInputTokens != null) 'cachedInputTokens': cachedInputTokens,
+    if (reasoningTokens != null) 'reasoningTokens': reasoningTokens,
+  };
 
   factory TokenUsage.fromMap(Map<String, dynamic> map) => TokenUsage(
-        inputTokens: map['inputTokens'] as int? ?? 0,
-        outputTokens: map['outputTokens'] as int? ?? 0,
-        cachedInputTokens: map['cachedInputTokens'] as int?,
-        reasoningTokens: map['reasoningTokens'] as int?,
-      );
+    inputTokens: map['inputTokens'] as int? ?? 0,
+    outputTokens: map['outputTokens'] as int? ?? 0,
+    cachedInputTokens: map['cachedInputTokens'] as int?,
+    reasoningTokens: map['reasoningTokens'] as int?,
+  );
 }
 
 /// LLM 流式响应事件 — 统一所有供应商的输出格式
@@ -78,4 +78,3 @@ class StreamError extends StreamEvent {
   final StackTrace? stackTrace;
   const StreamError(this.error, [this.stackTrace]);
 }
-

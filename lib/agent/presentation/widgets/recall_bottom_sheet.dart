@@ -20,7 +20,9 @@ class RecallBottomSheet extends ConsumerStatefulWidget {
   ConsumerState<RecallBottomSheet> createState() => _RecallBottomSheetState();
 
   /// 便捷方法：显示弹窗
-  static void show(BuildContext context, WidgetRef ref, {
+  static void show(
+    BuildContext context,
+    WidgetRef ref, {
     required void Function(String contextText, int months) onConfirm,
   }) {
     showModalBottomSheet(
@@ -89,7 +91,9 @@ class _RecallBottomSheetState extends ConsumerState<RecallBottomSheet> {
               width: 36,
               height: 4,
               decoration: BoxDecoration(
-                color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
+                color: theme.colorScheme.onSurfaceVariant.withValues(
+                  alpha: 0.3,
+                ),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -99,8 +103,11 @@ class _RecallBottomSheetState extends ConsumerState<RecallBottomSheet> {
           // 标题
           Row(
             children: [
-              Icon(Icons.auto_stories_rounded,
-                  color: AppTheme.primary, size: 22),
+              Icon(
+                Icons.auto_stories_rounded,
+                color: AppTheme.primary,
+                size: 22,
+              ),
               const SizedBox(width: 8),
               Text(
                 t.settings.recall_dialog_title,
@@ -183,20 +190,40 @@ class _RecallBottomSheetState extends ConsumerState<RecallBottomSheet> {
                           runSpacing: 8,
                           children: [
                             if (_preview!.diaryCount > 0)
-                              _StatBadge(Icons.book_rounded, _preview!.diaryCount,
-                                  t.summary.stats_daily, Colors.green),
+                              _StatBadge(
+                                Icons.book_rounded,
+                                _preview!.diaryCount,
+                                t.summary.stats_daily,
+                                Colors.green,
+                              ),
                             if (_preview!.weekCount > 0)
-                              _StatBadge(Icons.view_week_rounded, _preview!.weekCount,
-                                  t.summary.stats_weekly, Colors.indigo),
+                              _StatBadge(
+                                Icons.view_week_rounded,
+                                _preview!.weekCount,
+                                t.summary.stats_weekly,
+                                Colors.indigo,
+                              ),
                             if (_preview!.monthCount > 0)
-                              _StatBadge(Icons.grid_view_rounded, _preview!.monthCount,
-                                  t.summary.stats_monthly, Colors.blue),
+                              _StatBadge(
+                                Icons.grid_view_rounded,
+                                _preview!.monthCount,
+                                t.summary.stats_monthly,
+                                Colors.blue,
+                              ),
                             if (_preview!.quarterCount > 0)
-                              _StatBadge(Icons.date_range_rounded, _preview!.quarterCount,
-                                  t.summary.stats_quarterly, Colors.amber.shade700),
+                              _StatBadge(
+                                Icons.date_range_rounded,
+                                _preview!.quarterCount,
+                                t.summary.stats_quarterly,
+                                Colors.amber.shade700,
+                              ),
                             if (_preview!.yearCount > 0)
-                              _StatBadge(Icons.calendar_today_rounded, _preview!.yearCount,
-                                  t.summary.stats_yearly, Colors.orange),
+                              _StatBadge(
+                                Icons.calendar_today_rounded,
+                                _preview!.yearCount,
+                                t.summary.stats_yearly,
+                                Colors.orange,
+                              ),
                           ],
                         ),
                       ),
@@ -219,7 +246,9 @@ class _RecallBottomSheetState extends ConsumerState<RecallBottomSheet> {
           SizedBox(
             width: double.infinity,
             child: FilledButton.icon(
-              onPressed: (_preview != null && !_isLoading) ? _handleConfirm : null,
+              onPressed: (_preview != null && !_isLoading)
+                  ? _handleConfirm
+                  : null,
               icon: const Icon(Icons.send_rounded, size: 16),
               label: Text(t.settings.recall_send),
               style: FilledButton.styleFrom(
@@ -270,10 +299,7 @@ class _StatBadge extends StatelessWidget {
           const SizedBox(width: 4),
           Text(
             label,
-            style: TextStyle(
-              fontSize: 12,
-              color: color.withValues(alpha: 0.8),
-            ),
+            style: TextStyle(fontSize: 12, color: color.withValues(alpha: 0.8)),
           ),
         ],
       ),

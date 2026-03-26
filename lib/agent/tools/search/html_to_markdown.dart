@@ -10,8 +10,11 @@ class HtmlToMarkdownConverter {
 
     // 1. 移除 script/style/nav/footer 等非内容块
     result = result.replaceAll(
-      RegExp(r'<(script|style|nav|footer|header|noscript|iframe|svg)[^>]*>.*?</\1>',
-          dotAll: true, caseSensitive: false),
+      RegExp(
+        r'<(script|style|nav|footer|header|noscript|iframe|svg)[^>]*>.*?</\1>',
+        dotAll: true,
+        caseSensitive: false,
+      ),
       '',
     );
 
@@ -35,7 +38,7 @@ class HtmlToMarkdownConverter {
       (m) => '\n${_stripTags(m.group(1) ?? '')}\n',
     );
     result = result.replaceAll(
-      RegExp(r'<br\s*/?>',  caseSensitive: false),
+      RegExp(r'<br\s*/?>', caseSensitive: false),
       '\n',
     );
     result = result.replaceAll(
@@ -45,7 +48,11 @@ class HtmlToMarkdownConverter {
 
     // 5. 粗体和斜体
     result = result.replaceAllMapped(
-      RegExp(r'<(strong|b)[^>]*>(.*?)</\1>', dotAll: true, caseSensitive: false),
+      RegExp(
+        r'<(strong|b)[^>]*>(.*?)</\1>',
+        dotAll: true,
+        caseSensitive: false,
+      ),
       (m) => '**${m.group(2) ?? ''}**',
     );
     result = result.replaceAllMapped(
@@ -55,8 +62,11 @@ class HtmlToMarkdownConverter {
 
     // 6. 链接 → [text](url)
     result = result.replaceAllMapped(
-      RegExp(r'<a[^>]+href="([^"]*)"[^>]*>(.*?)</a>',
-          dotAll: true, caseSensitive: false),
+      RegExp(
+        r'<a[^>]+href="([^"]*)"[^>]*>(.*?)</a>',
+        dotAll: true,
+        caseSensitive: false,
+      ),
       (m) {
         final url = m.group(1) ?? '';
         final text = _stripTags(m.group(2) ?? '');
@@ -67,8 +77,10 @@ class HtmlToMarkdownConverter {
 
     // 7. 图片 → ![alt](src)
     result = result.replaceAllMapped(
-      RegExp(r'<img[^>]+src="([^"]*)"[^>]*(?:alt="([^"]*)")?[^>]*/?>',
-          caseSensitive: false),
+      RegExp(
+        r'<img[^>]+src="([^"]*)"[^>]*(?:alt="([^"]*)")?[^>]*/?>',
+        caseSensitive: false,
+      ),
       (m) {
         final src = m.group(1) ?? '';
         final alt = m.group(2) ?? '';
@@ -84,8 +96,11 @@ class HtmlToMarkdownConverter {
 
     // 9. 代码块
     result = result.replaceAllMapped(
-      RegExp(r'<pre[^>]*><code[^>]*>(.*?)</code></pre>',
-          dotAll: true, caseSensitive: false),
+      RegExp(
+        r'<pre[^>]*><code[^>]*>(.*?)</code></pre>',
+        dotAll: true,
+        caseSensitive: false,
+      ),
       (m) => '\n```\n${_decodeEntities(m.group(1) ?? '')}\n```\n',
     );
     result = result.replaceAllMapped(
@@ -98,27 +113,24 @@ class HtmlToMarkdownConverter {
       RegExp(r'<t[dh][^>]*>(.*?)</t[dh]>', dotAll: true, caseSensitive: false),
       (m) => ' | ${_stripTags(m.group(1) ?? '')}',
     );
-    result = result.replaceAll(
-      RegExp(r'</tr>', caseSensitive: false),
-      ' |\n',
-    );
+    result = result.replaceAll(RegExp(r'</tr>', caseSensitive: false), ' |\n');
 
     // 11. 引用块
     result = result.replaceAllMapped(
-      RegExp(r'<blockquote[^>]*>(.*?)</blockquote>',
-          dotAll: true, caseSensitive: false),
+      RegExp(
+        r'<blockquote[^>]*>(.*?)</blockquote>',
+        dotAll: true,
+        caseSensitive: false,
+      ),
       (m) {
         final content = _stripTags(m.group(1) ?? '');
-        return content
-            .split('\n')
-            .map((line) => '> ${line.trim()}')
-            .join('\n');
+        return content.split('\n').map((line) => '> ${line.trim()}').join('\n');
       },
     );
 
     // 12. 水平线
     result = result.replaceAll(
-      RegExp(r'<hr\s*/?>',  caseSensitive: false),
+      RegExp(r'<hr\s*/?>', caseSensitive: false),
       '\n---\n',
     );
 

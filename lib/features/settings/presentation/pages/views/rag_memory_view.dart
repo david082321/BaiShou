@@ -109,8 +109,12 @@ class _RagMemoryViewState extends ConsumerState<RagMemoryView> {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     final totalCount = _stats['total_count'] as int? ?? 0;
-    final batchState = ref.watch(batchEmbeddingProgressProvider);
-    final isBatchEmbedding = batchState.isRunning;
+    final ragState = ref.watch(ragProgressProvider);
+    final isBatchEmbedding =
+        ragState.isRunning && ragState.type == RagProgressType.batchEmbed;
+    final isMigrating =
+        ragState.isRunning && ragState.type == RagProgressType.migration;
+    final isBusy = ragState.isRunning;
 
     return Container(
       color: colorScheme.surface,
@@ -208,6 +212,64 @@ class _RagMemoryViewState extends ConsumerState<RagMemoryView> {
 
           const SizedBox(height: 12),
 
+          // 如果正在进行模型迁移，显示专门的进度高亮区域
+          if (isMigrating)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: colorScheme.primaryContainer.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: colorScheme.primary.withValues(alpha: 0.5),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: colorScheme.primary,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          t.agent.rag.migration_preparing,
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: colorScheme.primary,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      ragState.statusText.isNotEmpty
+                          ? ragState.statusText
+                          : '...',
+                      style: textTheme.bodyMedium,
+                    ),
+                    const SizedBox(height: 8),
+                    LinearProgressIndicator(
+                      value: ragState.total > 0
+                          ? (ragState.progress / ragState.total).clamp(0.0, 1.0)
+                          : null,
+                      backgroundColor: colorScheme.outlineVariant.withValues(
+                        alpha: 0.3,
+                      ),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
           // 操作按钮行
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -219,34 +281,28 @@ class _RagMemoryViewState extends ConsumerState<RagMemoryView> {
                 RagActionChip(
                   icon: Icons.layers_clear,
                   label: t.agent.rag.action_clear_dimension,
-                  color: isBatchEmbedding
-                      ? colorScheme.outline
-                      : colorScheme.error,
-                  onTap: isBatchEmbedding ? null : _clearCurrentDimension,
+                  color: isBusy ? colorScheme.outline : colorScheme.error,
+                  onTap: isBusy ? null : _clearCurrentDimension,
                 ),
                 // 全量嵌入日记
                 RagActionChip(
                   icon: Icons.auto_stories,
                   label: isBatchEmbedding
                       ? t.agent.rag.batch_embed_progress(
-                          progress: batchState.progress.toString(),
-                          total: batchState.total.toString(),
+                          progress: ragState.progress.toString(),
+                          total: ragState.total.toString(),
                         )
                       : t.agent.rag.action_batch_embed,
-                  color: isBatchEmbedding
-                      ? colorScheme.outline
-                      : colorScheme.primary,
-                  onTap: isBatchEmbedding ? null : _batchEmbedDiaries,
+                  color: isBusy ? colorScheme.outline : colorScheme.primary,
+                  onTap: isBusy ? null : _batchEmbedDiaries,
                   isLoading: isBatchEmbedding,
                 ),
                 // 手动添加记忆
                 RagActionChip(
                   icon: Icons.add_comment_outlined,
                   label: t.agent.rag.action_add_memory,
-                  color: isBatchEmbedding
-                      ? colorScheme.outline
-                      : colorScheme.tertiary,
-                  onTap: isBatchEmbedding ? null : _addManualMemory,
+                  color: isBusy ? colorScheme.outline : colorScheme.tertiary,
+                  onTap: isBusy ? null : _addManualMemory,
                 ),
               ],
             ),

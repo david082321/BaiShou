@@ -36,25 +36,25 @@ class SummaryReadTool extends AgentTool {
 
   @override
   Map<String, dynamic> get parameterSchema => {
-        'type': 'object',
-        'properties': {
-          'type': {
-            'type': 'string',
-            'enum': ['weekly', 'monthly', 'quarterly', 'yearly'],
-            'description': 'The type of summary to retrieve.',
-          },
-          'start_date': {
-            'type': 'string',
-            'description':
-                'Start date of the summary period, in YYYY-MM-DD format. '
-                    'For weekly: the Monday of that week. '
-                    'For monthly: the first day of the month (e.g. 2026-03-01). '
-                    'For quarterly: the first day of the quarter. '
-                    'For yearly: the first day of the year (e.g. 2026-01-01).',
-          },
-        },
-        'required': ['type', 'start_date'],
-      };
+    'type': 'object',
+    'properties': {
+      'type': {
+        'type': 'string',
+        'enum': ['weekly', 'monthly', 'quarterly', 'yearly'],
+        'description': 'The type of summary to retrieve.',
+      },
+      'start_date': {
+        'type': 'string',
+        'description':
+            'Start date of the summary period, in YYYY-MM-DD format. '
+            'For weekly: the Monday of that week. '
+            'For monthly: the first day of the month (e.g. 2026-03-01). '
+            'For quarterly: the first day of the quarter. '
+            'For yearly: the first day of the year (e.g. 2026-01-01).',
+      },
+    },
+    'required': ['type', 'start_date'],
+  };
 
   @override
   Future<ToolResult> execute(
@@ -88,19 +88,20 @@ class SummaryReadTool extends AgentTool {
 
     try {
       // 查询匹配的总结
-      final results = await (_db.select(_db.summaries)
-            ..where((s) =>
-                s.type.equals(type) &
-                s.startDate.equals(startDate)))
-          .get();
+      final results =
+          await (_db.select(_db.summaries)..where(
+                (s) => s.type.equals(type) & s.startDate.equals(startDate),
+              ))
+              .get();
 
       if (results.isEmpty) {
         // 如果精确日期找不到，列出该类型的可用总结
-        final available = await (_db.select(_db.summaries)
-              ..where((s) => s.type.equals(type))
-              ..orderBy([(s) => OrderingTerm.desc(s.startDate)])
-              ..limit(5))
-            .get();
+        final available =
+            await (_db.select(_db.summaries)
+                  ..where((s) => s.type.equals(type))
+                  ..orderBy([(s) => OrderingTerm.desc(s.startDate)])
+                  ..limit(5))
+                .get();
 
         if (available.isEmpty) {
           return ToolResult(
@@ -111,8 +112,10 @@ class SummaryReadTool extends AgentTool {
         }
 
         final dates = available
-            .map((s) =>
-                '- ${s.startDate.toIso8601String().substring(0, 10)} ~ ${s.endDate.toIso8601String().substring(0, 10)}')
+            .map(
+              (s) =>
+                  '- ${s.startDate.toIso8601String().substring(0, 10)} ~ ${s.endDate.toIso8601String().substring(0, 10)}',
+            )
             .join('\n');
 
         return ToolResult(
@@ -132,8 +135,10 @@ class SummaryReadTool extends AgentTool {
           'found': true,
           'start_date': summary.startDate.toIso8601String().substring(0, 10),
           'end_date': summary.endDate.toIso8601String().substring(0, 10),
-          'generated_at':
-              summary.generatedAt.toIso8601String().substring(0, 10),
+          'generated_at': summary.generatedAt.toIso8601String().substring(
+            0,
+            10,
+          ),
         },
       );
     } catch (e) {

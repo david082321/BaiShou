@@ -101,7 +101,9 @@ class WebSearchTool extends AgentTool {
     final ragEnabled = apiConfig.webSearchRagEnabled;
     final tavilyApiKey = apiConfig.tavilyApiKey;
 
-    debugPrint('WebSearch: engine=$engineStr, tavilyKey=${tavilyApiKey.isEmpty ? "(EMPTY)" : "tvly-***${tavilyApiKey.length}chars"}');
+    debugPrint(
+      'WebSearch: engine=$engineStr, tavilyKey=${tavilyApiKey.isEmpty ? "(EMPTY)" : "tvly-***${tavilyApiKey.length}chars"}',
+    );
 
     final engine = _parseEngine(engineStr);
 
@@ -283,7 +285,6 @@ class WebSearchTool extends AgentTool {
     }
   }
 
-
   /// 普通模式格式化 — 带可点击引用链接
   ToolResult _formatPlainResults(
     List<String> queries,
@@ -306,12 +307,13 @@ class WebSearchTool extends AgentTool {
     for (var i = 0; i < results.length; i++) {
       final r = results[i];
       buffer.writeln('[${i + 1}] [${r.title}](${r.url})');
-      
+
       String snippet = r.snippet;
       if (snippet.length > maxLen) {
-        snippet = '${snippet.substring(0, maxLen)}... (truncated, use url_read for full text)';
+        snippet =
+            '${snippet.substring(0, maxLen)}... (truncated, use url_read for full text)';
       }
-      
+
       buffer.writeln(snippet);
       buffer.writeln();
     }

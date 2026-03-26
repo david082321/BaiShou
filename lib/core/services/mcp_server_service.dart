@@ -130,7 +130,7 @@ class McpServerService {
   Future<shelf.Response> _handleSse(shelf.Request request) async {
     final sessionId = DateTime.now().millisecondsSinceEpoch.toString();
     final controller = StreamController<String>();
-    
+
     _connections[sessionId] = controller;
 
     controller.onCancel = () {
@@ -163,7 +163,7 @@ class McpServerService {
     }
 
     final controller = _connections[sessionId]!;
-    
+
     // 我们必须先读取请求体，因为要立即返回 202 Accepted
     final body = await request.readAsString();
 
@@ -175,13 +175,17 @@ class McpServerService {
   }
 
   /// 异步处理 RPC 请求并推送到 SSE 端点
-  Future<void> _processRpcForSse(String body, StreamController<String> controller) async {
+  Future<void> _processRpcForSse(
+    String body,
+    StreamController<String> controller,
+  ) async {
     try {
       final jsonBody = jsonDecode(body) as Map<String, dynamic>;
       final method = jsonBody['method'] as String?;
-      
+
       // 忽略不需要返回结果的通知
-      if (method == 'notifications/initialized' || method == 'notifications/cancelled') {
+      if (method == 'notifications/initialized' ||
+          method == 'notifications/cancelled') {
         return;
       }
 
@@ -203,7 +207,6 @@ class McpServerService {
       });
 
       controller.add('event: message\ndata: $responseBody\n\n');
-
     } on _JsonRpcError catch (e) {
       final id = _extractId(body);
       final responseBody = jsonEncode({
@@ -230,9 +233,10 @@ class McpServerService {
     try {
       body = await request.readAsString();
       final jsonBody = jsonDecode(body) as Map<String, dynamic>;
-      
+
       final method = jsonBody['method'] as String?;
-      if (method == 'notifications/initialized' || method == 'notifications/cancelled') {
+      if (method == 'notifications/initialized' ||
+          method == 'notifications/cancelled') {
         return shelf.Response.ok('');
       }
 
@@ -265,10 +269,7 @@ class McpServerService {
       'capabilities': {
         'tools': {'listChanged': false},
       },
-      'serverInfo': {
-        'name': 'BaiShou MCP Server',
-        'version': '1.0.0',
-      },
+      'serverInfo': {'name': 'BaiShou MCP Server', 'version': '1.0.0'},
       'instructions':
           'BaiShou is an AI companion diary app. Use the tools below '
           'to read/edit diaries, search memories, and manage stored knowledge.',
@@ -278,9 +279,7 @@ class McpServerService {
   /// tools/list → 返回所有可用工具
   Map<String, dynamic> _handleToolsList(Map<String, dynamic> params) {
     final tools = _getAgentTools();
-    return {
-      'tools': tools.map((tool) => _agentToolToMcpTool(tool)).toList(),
-    };
+    return {'tools': tools.map((tool) => _agentToolToMcpTool(tool)).toList()};
   }
 
   /// tools/call → 执行指定工具
@@ -312,7 +311,7 @@ class McpServerService {
     final embeddingService = _ref.read(embeddingServiceProvider);
     final deduplicationService = _ref.read(memoryDeduplicationServiceProvider);
     final apiConfig = _ref.read(apiConfigServiceProvider);
-    
+
     final toolUserConfig = <String, dynamic>{
       'rag_top_k': apiConfig.ragTopK,
       'rag_similarity_threshold': apiConfig.ragSimilarityThreshold,
@@ -383,11 +382,7 @@ class McpServerService {
   /// JSON-RPC 成功响应
   shelf.Response _jsonRpcResponse(dynamic id, Map<String, dynamic> result) {
     return shelf.Response.ok(
-      jsonEncode({
-        'jsonrpc': '2.0',
-        'id': id,
-        'result': result,
-      }),
+      jsonEncode({'jsonrpc': '2.0', 'id': id, 'result': result}),
       headers: {'Content-Type': 'application/json'},
     );
   }
@@ -432,27 +427,26 @@ McpServerService mcpServerService(Ref ref) {
 /// 自动管理 MCP 服务器生命周期的启动器（不使用 Generator 因为它不需要返回值）
 final mcpAutoStarterProvider = Provider<void>((ref) {
   // 监听启用状态，启动时立刻触发一次（应用恢复上一次状态）
-  ref.listen(
-    apiConfigServiceProvider.select((c) => c.mcpEnabled),
-    (previous, isEnabled) {
-      final service = ref.read(mcpServerServiceProvider);
-      if (isEnabled) {
-        if (!service.isRunning) service.start();
-      } else {
-        if (service.isRunning) service.stop();
-      }
-    },
-    fireImmediately: true,
-  );
+  ref.listen(apiConfigServiceProvider.select((c) => c.mcpEnabled), (
+    previous,
+    isEnabled,
+  ) {
+    final service = ref.read(mcpServerServiceProvider);
+    if (isEnabled) {
+      if (!service.isRunning) service.start();
+    } else {
+      if (service.isRunning) service.stop();
+    }
+  }, fireImmediately: true);
 
   // 监听端口变化：如果 MCP 正在运行，则重启以应用新端口
-  ref.listen(
-    apiConfigServiceProvider.select((c) => c.mcpPort),
-    (previous, newPort) {
-      final service = ref.read(mcpServerServiceProvider);
-      if (service.isRunning && previous != newPort) {
-        service.stop().then((_) => service.start());
-      }
-    },
-  );
+  ref.listen(apiConfigServiceProvider.select((c) => c.mcpPort), (
+    previous,
+    newPort,
+  ) {
+    final service = ref.read(mcpServerServiceProvider);
+    if (service.isRunning && previous != newPort) {
+      service.stop().then((_) => service.start());
+    }
+  });
 });

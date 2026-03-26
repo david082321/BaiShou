@@ -546,7 +546,11 @@ class _AiModelServicesViewState extends ConsumerState<AiModelServicesView> {
           const SizedBox(height: 32),
 
           // 网络搜索模式选择器
-          _buildWebSearchModeSelector(activeProvider, colorScheme, setModalState),
+          _buildWebSearchModeSelector(
+            activeProvider,
+            colorScheme,
+            setModalState,
+          ),
 
           const SizedBox(height: 32),
           Divider(color: colorScheme.outlineVariant.withOpacity(0.5)),
@@ -652,16 +656,25 @@ class _AiModelServicesViewState extends ConsumerState<AiModelServicesView> {
                 child: InkWell(
                   borderRadius: BorderRadius.circular(12),
                   onTap: () async {
-                    final idx = _providers.indexWhere((p) => p.id == provider.id);
+                    final idx = _providers.indexWhere(
+                      (p) => p.id == provider.id,
+                    );
                     if (idx == -1) return;
-                    final updated = _providers[idx].copyWith(webSearchMode: mode);
+                    final updated = _providers[idx].copyWith(
+                      webSearchMode: mode,
+                    );
                     _providers[idx] = updated;
-                    await ref.read(apiConfigServiceProvider).updateProvider(updated);
+                    await ref
+                        .read(apiConfigServiceProvider)
+                        .updateProvider(updated);
                     setState(() {});
                     setModalState?.call(() {});
                   },
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
@@ -687,7 +700,9 @@ class _AiModelServicesViewState extends ConsumerState<AiModelServicesView> {
                               Text(
                                 label,
                                 style: TextStyle(
-                                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                                  fontWeight: isSelected
+                                      ? FontWeight.bold
+                                      : FontWeight.w500,
                                   color: isSelected
                                       ? colorScheme.primary
                                       : colorScheme.onSurface,
@@ -695,15 +710,20 @@ class _AiModelServicesViewState extends ConsumerState<AiModelServicesView> {
                               ),
                               Text(
                                 subtitle,
-                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                  color: colorScheme.onSurfaceVariant,
-                                ),
+                                style: Theme.of(context).textTheme.bodySmall
+                                    ?.copyWith(
+                                      color: colorScheme.onSurfaceVariant,
+                                    ),
                               ),
                             ],
                           ),
                         ),
                         if (isSelected)
-                          Icon(Icons.check_circle, size: 20, color: colorScheme.primary),
+                          Icon(
+                            Icons.check_circle,
+                            size: 20,
+                            color: colorScheme.primary,
+                          ),
                       ],
                     ),
                   ),

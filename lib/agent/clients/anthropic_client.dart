@@ -24,10 +24,10 @@ class AnthropicClient extends BaseAiClient {
 
   @override
   Map<String, String> get headers => {
-        'Content-Type': 'application/json',
-        'x-api-key': provider.apiKey,
-        'anthropic-version': '2023-06-01',
-      };
+    'Content-Type': 'application/json',
+    'x-api-key': provider.apiKey,
+    'anthropic-version': '2023-06-01',
+  };
 
   // ─── 原有能力：总结生成 ────────────────────────────────────
 
@@ -70,8 +70,7 @@ class AnthropicClient extends BaseAiClient {
         }
       } else {
         throw Exception(
-          t.ai.error_api_request(
-                  statusCode: response.statusCode.toString()) +
+          t.ai.error_api_request(statusCode: response.statusCode.toString()) +
               '\n${response.body}',
         );
       }
@@ -113,8 +112,7 @@ class AnthropicClient extends BaseAiClient {
         }
       } else {
         throw Exception(
-          t.ai.error_api_request(
-                  statusCode: response.statusCode.toString()) +
+          t.ai.error_api_request(statusCode: response.statusCode.toString()) +
               '\n${response.body}',
         );
       }
@@ -122,7 +120,6 @@ class AnthropicClient extends BaseAiClient {
       throw Exception(t.ai.error_generate_interface(e: e.toString()));
     }
   }
-
 
   // ─── 新增能力：Agent 流式对话 + Tool Calling ─────────────────
 
@@ -151,11 +148,13 @@ class AnthropicClient extends BaseAiClient {
 
     if (tools != null && tools.isNotEmpty) {
       body['tools'] = tools
-          .map((t) => {
-                'name': t.name,
-                'description': t.description,
-                'input_schema': t.parameterSchema,
-              })
+          .map(
+            (t) => {
+              'name': t.name,
+              'description': t.description,
+              'input_schema': t.parameterSchema,
+            },
+          )
           .toList();
     }
 
@@ -210,86 +209,95 @@ class AnthropicClient extends BaseAiClient {
         .map((line) => line.substring(6).trim())
         .where((data) => data.isNotEmpty)
         .expand<StreamEvent>((data) {
-      try {
-        final json = jsonDecode(data) as Map<String, dynamic>;
-        final type = json['type'] as String?;
-        final events = <StreamEvent>[];
+          try {
+            final json = jsonDecode(data) as Map<String, dynamic>;
+            final type = json['type'] as String?;
+            final events = <StreamEvent>[];
 
-        switch (type) {
-          case 'message_start':
-            // Anthropic 在 message_start 中返回 input tokens
-            final msg = json['message'] as Map<String, dynamic>?;
-            final usage = msg?['usage'] as Map<String, dynamic>?;
-            if (usage != null) {
-              inputTokens = usage['input_tokens'] as int? ?? 0;
-              cacheReadTokens = usage['cache_read_input_tokens'] as int?;
+            switch (type) {
+              case 'message_start':
+                // Anthropic 在 message_start 中返回 input tokens
+                final msg = json['message'] as Map<String, dynamic>?;
+                final usage = msg?['usage'] as Map<String, dynamic>?;
+                if (usage != null) {
+                  inputTokens = usage['input_tokens'] as int? ?? 0;
+                  cacheReadTokens = usage['cache_read_input_tokens'] as int?;
+                }
+                break;
+
+              case 'content_block_start':
+                final block = json['content_block'] as Map<String, dynamic>?;
+                if (block != null && block['type'] == 'tool_use') {
+                  currentToolId = block['id'] as String;
+                  currentToolName = block['name'] as String;
+                  argumentsBuffer.clear();
+                  events.add(
+                    ToolCallStart(
+                      callId: currentToolId!,
+                      toolName: currentToolName!,
+                    ),
+                  );
+                }
+                break;
+
+              case 'content_block_delta':
+                final delta = json['delta'] as Map<String, dynamic>?;
+                if (delta != null) {
+                  if (delta['type'] == 'text_delta') {
+                    events.add(TextDelta(delta['text'] as String));
+                  } else if (delta['type'] == 'input_json_delta') {
+                    final partial = delta['partial_json'] as String? ?? '';
+                    argumentsBuffer.write(partial);
+                    events.add(
+                      ToolCallDelta(
+                        callId: currentToolId ?? '',
+                        argumentsDelta: partial,
+                      ),
+                    );
+                  }
+                }
+                break;
+
+              case 'content_block_stop':
+                if (currentToolId != null && currentToolName != null) {
+                  Map<String, dynamic> args = {};
+                  try {
+                    args =
+                        jsonDecode(argumentsBuffer.toString())
+                            as Map<String, dynamic>;
+                  } catch (_) {}
+                  events.add(
+                    ToolCallComplete(
+                      ToolCall(
+                        id: currentToolId!,
+                        name: currentToolName!,
+                        arguments: args,
+                      ),
+                    ),
+                  );
+                  currentToolId = null;
+                  currentToolName = null;
+                  argumentsBuffer.clear();
+                }
+                break;
+
+              case 'message_delta':
+                // Anthropic 在 message_delta 中返回 output tokens
+                final usage = json['usage'] as Map<String, dynamic>?;
+                if (usage != null) {
+                  outputTokens = usage['output_tokens'] as int? ?? 0;
+                }
+                break;
+
+              case 'message_stop':
+                break;
             }
-            break;
 
-          case 'content_block_start':
-            final block = json['content_block'] as Map<String, dynamic>?;
-            if (block != null && block['type'] == 'tool_use') {
-              currentToolId = block['id'] as String;
-              currentToolName = block['name'] as String;
-              argumentsBuffer.clear();
-              events.add(ToolCallStart(
-                callId: currentToolId!,
-                toolName: currentToolName!,
-              ));
-            }
-            break;
-
-          case 'content_block_delta':
-            final delta = json['delta'] as Map<String, dynamic>?;
-            if (delta != null) {
-              if (delta['type'] == 'text_delta') {
-                events.add(TextDelta(delta['text'] as String));
-              } else if (delta['type'] == 'input_json_delta') {
-                final partial = delta['partial_json'] as String? ?? '';
-                argumentsBuffer.write(partial);
-                events.add(ToolCallDelta(
-                  callId: currentToolId ?? '',
-                  argumentsDelta: partial,
-                ));
-              }
-            }
-            break;
-
-          case 'content_block_stop':
-            if (currentToolId != null && currentToolName != null) {
-              Map<String, dynamic> args = {};
-              try {
-                args = jsonDecode(argumentsBuffer.toString())
-                    as Map<String, dynamic>;
-              } catch (_) {}
-              events.add(ToolCallComplete(ToolCall(
-                id: currentToolId!,
-                name: currentToolName!,
-                arguments: args,
-              )));
-              currentToolId = null;
-              currentToolName = null;
-              argumentsBuffer.clear();
-            }
-            break;
-
-          case 'message_delta':
-            // Anthropic 在 message_delta 中返回 output tokens
-            final usage = json['usage'] as Map<String, dynamic>?;
-            if (usage != null) {
-              outputTokens = usage['output_tokens'] as int? ?? 0;
-            }
-            break;
-
-          case 'message_stop':
-            break;
-        }
-
-        return events;
-      } catch (e, st) {
-        return [StreamError(e, st)];
-      }
-    });
+            return events;
+          } catch (e, st) {
+            return [StreamError(e, st)];
+          }
+        });
 
     yield StreamDone(
       usage: TokenUsage(
@@ -380,8 +388,7 @@ class AnthropicClient extends BaseAiClient {
               });
             }
           }
-          result
-              .add({'role': 'assistant', 'content': content});
+          result.add({'role': 'assistant', 'content': content});
           break;
 
         case MessageRole.tool:

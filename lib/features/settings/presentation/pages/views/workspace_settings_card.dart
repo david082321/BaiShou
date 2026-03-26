@@ -54,7 +54,9 @@ class _WorkspaceSettingsCardState extends ConsumerState<WorkspaceSettingsCard> {
                 ListTile(
                   leading: const Icon(Icons.folder_special),
                   title: Text(vault.name),
-                  subtitle: Text('上次访问: ${vault.lastAccessedAt.toString().split('.')[0]}'),
+                  subtitle: Text(
+                    '上次访问: ${vault.lastAccessedAt.toString().split('.')[0]}',
+                  ),
                   trailing: activeVault?.name == vault.name
                       ? const Icon(Icons.check_circle, color: Colors.green)
                       : TextButton(
@@ -67,7 +69,7 @@ class _WorkspaceSettingsCardState extends ConsumerState<WorkspaceSettingsCard> {
                 leading: const Icon(Icons.add),
                 title: const Text('创建新空间'),
                 onTap: _showCreateVaultDialog,
-              )
+              ),
             ],
           ),
         ],

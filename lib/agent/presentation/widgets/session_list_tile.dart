@@ -73,7 +73,9 @@ class SessionListTile extends StatelessWidget {
                       ? t.agent.sessions.new_chat
                       : session.title,
                   style: theme.textTheme.bodyMedium?.copyWith(
-                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                    fontWeight: isSelected
+                        ? FontWeight.w600
+                        : FontWeight.normal,
                     color: isSelected
                         ? theme.colorScheme.primary
                         : theme.colorScheme.onSurface,

@@ -184,7 +184,8 @@ class AgentChatNotifier extends _$AgentChatNotifier {
     String? guidelines,
     List<MessageAttachment>? attachments,
   }) async {
-    if (text.trim().isEmpty && (attachments == null || attachments.isEmpty)) return;
+    if (text.trim().isEmpty && (attachments == null || attachments.isEmpty))
+      return;
     if (state.isLoading) return;
 
     _currentRunId++;
@@ -285,9 +286,7 @@ class AgentChatNotifier extends _$AgentChatNotifier {
     if (msgsAfter.isNotEmpty) {
       final idsToDelete = msgsAfter.map((m) => m.id).toList();
       await manager.deleteMessagesByIds(idsToDelete);
-      state = state.copyWith(
-        messages: state.messages.sublist(userMsgIndex),
-      );
+      state = state.copyWith(messages: state.messages.sublist(userMsgIndex));
       _sessionStateCache[sessionId] = state;
     }
 
@@ -472,9 +471,7 @@ class AgentChatNotifier extends _$AgentChatNotifier {
 
         if (result.isChanged && result.meta != null) {
           ref.read(vaultIndexProvider.notifier).upsert(result.meta!);
-          debugPrint(
-            'AgentChatNotifier: Diary index refreshed for $dateStr',
-          );
+          debugPrint('AgentChatNotifier: Diary index refreshed for $dateStr');
         }
       } catch (e) {
         debugPrint('AgentChatNotifier: Failed to refresh diary index: $e');

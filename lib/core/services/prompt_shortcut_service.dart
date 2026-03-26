@@ -21,14 +21,24 @@ class PromptShortcutService extends _$PromptShortcutService {
     if (jsonStr == null || jsonStr.isEmpty) {
       // 默认快捷指令
       return [
-        PromptShortcut(icon: '🌐', name: t.agent.tools.shortcuts.translate_name, content: t.agent.tools.shortcuts.translate_content),
-        PromptShortcut(icon: '📝', name: t.agent.tools.shortcuts.summarize_name, content: t.agent.tools.shortcuts.summarize_content),
+        PromptShortcut(
+          icon: '🌐',
+          name: t.agent.tools.shortcuts.translate_name,
+          content: t.agent.tools.shortcuts.translate_content,
+        ),
+        PromptShortcut(
+          icon: '📝',
+          name: t.agent.tools.shortcuts.summarize_name,
+          content: t.agent.tools.shortcuts.summarize_content,
+        ),
       ];
     }
-    
+
     try {
       final list = jsonDecode(jsonStr) as List;
-      return list.map((e) => PromptShortcut.fromJson(e as Map<String, dynamic>)).toList();
+      return list
+          .map((e) => PromptShortcut.fromJson(e as Map<String, dynamic>))
+          .toList();
     } catch (e) {
       return [];
     }
@@ -47,7 +57,9 @@ class PromptShortcutService extends _$PromptShortcutService {
   }
 
   Future<void> updateShortcut(PromptShortcut shortcut) async {
-    final newList = state.map((e) => e.id == shortcut.id ? shortcut : e).toList();
+    final newList = state
+        .map((e) => e.id == shortcut.id ? shortcut : e)
+        .toList();
     await _saveShortcuts(newList);
   }
 

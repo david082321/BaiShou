@@ -28,17 +28,17 @@ class MessageSearchTool extends AgentTool {
 
   @override
   List<ToolConfigParam> get configurableParams => [
-        ToolConfigParam(
-          key: 'max_results',
-          label: t.agent.tools.param_max_results,
-          description: t.agent.tools.param_max_results_desc,
-          type: ParamType.integer,
-          defaultValue: 10,
-          min: 1,
-          max: 50,
-          icon: Icons.format_list_numbered,
-        ),
-      ];
+    ToolConfigParam(
+      key: 'max_results',
+      label: t.agent.tools.param_max_results,
+      description: t.agent.tools.param_max_results_desc,
+      type: ParamType.integer,
+      defaultValue: 10,
+      min: 1,
+      max: 50,
+      icon: Icons.format_list_numbered,
+    ),
+  ];
 
   @override
   String get description =>
@@ -49,21 +49,20 @@ class MessageSearchTool extends AgentTool {
 
   @override
   Map<String, dynamic> get parameterSchema => {
-        'type': 'object',
-        'properties': {
-          'query': {
-            'type': 'string',
-            'description':
-                'The search keyword or phrase to find in past conversations.',
-          },
-          'limit': {
-            'type': 'integer',
-            'description':
-                'Maximum number of results to return. Defaults to 10.',
-          },
-        },
-        'required': ['query'],
-      };
+    'type': 'object',
+    'properties': {
+      'query': {
+        'type': 'string',
+        'description':
+            'The search keyword or phrase to find in past conversations.',
+      },
+      'limit': {
+        'type': 'integer',
+        'description': 'Maximum number of results to return. Defaults to 10.',
+      },
+    },
+    'required': ['query'],
+  };
 
   @override
   Future<ToolResult> execute(
@@ -78,10 +77,7 @@ class MessageSearchTool extends AgentTool {
     }
 
     try {
-      final results = await _sessionManager.searchMessages(
-        query,
-        limit: limit,
-      );
+      final results = await _sessionManager.searchMessages(query, limit: limit);
 
       if (results.isEmpty) {
         return ToolResult(output: '未找到包含「$query」的历史消息。');
@@ -111,4 +107,3 @@ class MessageSearchTool extends AgentTool {
     }
   }
 }
-

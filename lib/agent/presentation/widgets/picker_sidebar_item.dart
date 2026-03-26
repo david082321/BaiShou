@@ -50,9 +50,8 @@ class _PickerSidebarItemState extends State<PickerSidebarItem> {
               color: widget.isSelected
                   ? colorScheme.primaryContainer.withValues(alpha: 0.4)
                   : _isHovered
-                      ? colorScheme.surfaceContainerHighest
-                          .withValues(alpha: 0.5)
-                      : Colors.transparent,
+                  ? colorScheme.surfaceContainerHighest.withValues(alpha: 0.5)
+                  : Colors.transparent,
               borderRadius: BorderRadius.circular(10),
               border: widget.isSelected
                   ? Border.all(
@@ -105,8 +104,11 @@ class _PickerSidebarItemState extends State<PickerSidebarItem> {
                           ),
                           if (widget.isCurrent) ...[
                             const SizedBox(width: 4),
-                            Icon(Icons.circle,
-                                size: 6, color: colorScheme.primary),
+                            Icon(
+                              Icons.circle,
+                              size: 6,
+                              color: colorScheme.primary,
+                            ),
                           ],
                         ],
                       ),
@@ -116,8 +118,9 @@ class _PickerSidebarItemState extends State<PickerSidebarItem> {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: theme.textTheme.labelSmall?.copyWith(
-                            color: colorScheme.onSurfaceVariant
-                                .withValues(alpha: 0.6),
+                            color: colorScheme.onSurfaceVariant.withValues(
+                              alpha: 0.6,
+                            ),
                             fontSize: 10,
                           ),
                         ),

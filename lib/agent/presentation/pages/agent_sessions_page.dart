@@ -161,7 +161,12 @@ class _AgentSessionsPageState extends ConsumerState<AgentSessionsPage> {
                     context: context,
                     builder: (ctx) => AlertDialog(
                       title: Text(t.agent.sessions.delete_title),
-                      content: Text(t.agent.sessions.delete_confirm.replaceAll('{title}', session.title)),
+                      content: Text(
+                        t.agent.sessions.delete_confirm.replaceAll(
+                          '{title}',
+                          session.title,
+                        ),
+                      ),
                       actions: [
                         TextButton(
                           onPressed: () => Navigator.pop(ctx, false),
@@ -272,8 +277,9 @@ class _AgentSessionsPageState extends ConsumerState<AgentSessionsPage> {
                           height: 4,
                           margin: const EdgeInsets.only(bottom: 16),
                           decoration: BoxDecoration(
-                            color: theme.colorScheme.outline
-                                .withValues(alpha: 0.3),
+                            color: theme.colorScheme.outline.withValues(
+                              alpha: 0.3,
+                            ),
                             borderRadius: BorderRadius.circular(2),
                           ),
                         ),
@@ -290,7 +296,10 @@ class _AgentSessionsPageState extends ConsumerState<AgentSessionsPage> {
                         contentPadding: EdgeInsets.zero,
                         title: Text(t.agent.sessions.memory_window),
                         subtitle: Text(
-                          t.agent.sessions.memory_window_desc.replaceAll('{count}', windowSize.toString()),
+                          t.agent.sessions.memory_window_desc.replaceAll(
+                            '{count}',
+                            windowSize.toString(),
+                          ),
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: theme.colorScheme.outline,
                           ),
@@ -312,8 +321,7 @@ class _AgentSessionsPageState extends ConsumerState<AgentSessionsPage> {
                             onFieldSubmitted: (v) async {
                               final size = int.tryParse(v);
                               if (size != null) {
-                                await apiConfig
-                                    .setAgentContextWindowSize(size);
+                                await apiConfig.setAgentContextWindowSize(size);
                                 setSheetState(() {});
                               }
                             },

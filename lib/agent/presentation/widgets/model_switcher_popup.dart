@@ -134,8 +134,8 @@ class _ModelSwitcherContentState extends State<_ModelSwitcherContent> {
       final matched = _searchQuery.isEmpty
           ? modelList
           : modelList
-              .where((m) => m.toLowerCase().contains(_searchQuery))
-              .toList();
+                .where((m) => m.toLowerCase().contains(_searchQuery))
+                .toList();
 
       if (matched.isNotEmpty) {
         filteredProviders.add(provider);
@@ -150,8 +150,11 @@ class _ModelSwitcherContentState extends State<_ModelSwitcherContent> {
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
           child: Row(
             children: [
-              Icon(Icons.swap_vert_rounded,
-                  size: 20, color: colorScheme.primary),
+              Icon(
+                Icons.swap_vert_rounded,
+                size: 20,
+                color: colorScheme.primary,
+              ),
               const SizedBox(width: 8),
               Text(
                 '切换模型',
@@ -173,11 +176,15 @@ class _ModelSwitcherContentState extends State<_ModelSwitcherContent> {
               hintStyle: theme.textTheme.bodySmall?.copyWith(
                 color: colorScheme.outline,
               ),
-              prefixIcon:
-                  Icon(Icons.search_rounded, size: 18, color: colorScheme.outline),
+              prefixIcon: Icon(
+                Icons.search_rounded,
+                size: 18,
+                color: colorScheme.outline,
+              ),
               filled: true,
-              fillColor:
-                  colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+              fillColor: colorScheme.surfaceContainerHighest.withValues(
+                alpha: 0.4,
+              ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
                 borderSide: BorderSide.none,
@@ -267,11 +274,14 @@ class _ProviderGroup extends StatelessWidget {
                 ),
                 const SizedBox(width: 6),
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 1,
+                  ),
                   decoration: BoxDecoration(
-                    color: colorScheme.surfaceContainerHighest
-                        .withValues(alpha: 0.5),
+                    color: colorScheme.surfaceContainerHighest.withValues(
+                      alpha: 0.5,
+                    ),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
@@ -288,8 +298,7 @@ class _ProviderGroup extends StatelessWidget {
 
           // \u6a21\u578b\u5217\u8868
           ...models.map((modelId) {
-            final isSelected =
-                isCurrentProvider && modelId == currentModelId;
+            final isSelected = isCurrentProvider && modelId == currentModelId;
 
             return Material(
               color: Colors.transparent,
@@ -297,8 +306,10 @@ class _ProviderGroup extends StatelessWidget {
                 borderRadius: BorderRadius.circular(10),
                 onTap: () => onSelect(provider.id, modelId),
                 child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
                   decoration: BoxDecoration(
                     color: isSelected
                         ? colorScheme.primaryContainer.withValues(alpha: 0.3)

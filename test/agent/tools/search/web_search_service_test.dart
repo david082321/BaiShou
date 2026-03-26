@@ -119,11 +119,14 @@ void main() {
 
     test('应按 maxResults 限制结果数量', () {
       final json = {
-        'results': List.generate(20, (i) => {
-          'title': 'Result $i',
-          'url': 'https://example.com/$i',
-          'content': 'Content $i',
-        }),
+        'results': List.generate(
+          20,
+          (i) => {
+            'title': 'Result $i',
+            'url': 'https://example.com/$i',
+            'content': 'Content $i',
+          },
+        ),
       };
 
       final results = WebSearchService.parseTavilyResults(json, 5);
@@ -151,13 +154,33 @@ void main() {
   group('Multi-Query 去重逻辑', () {
     test('按 URL 去重，保留先出现的结果', () {
       final query1Results = [
-        SearchResult(title: 'A', url: 'https://a.com', snippet: 'snippet aaa aaa'),
-        SearchResult(title: 'B', url: 'https://b.com', snippet: 'snippet bbb bbb'),
-        SearchResult(title: 'C', url: 'https://c.com', snippet: 'snippet ccc ccc'),
+        SearchResult(
+          title: 'A',
+          url: 'https://a.com',
+          snippet: 'snippet aaa aaa',
+        ),
+        SearchResult(
+          title: 'B',
+          url: 'https://b.com',
+          snippet: 'snippet bbb bbb',
+        ),
+        SearchResult(
+          title: 'C',
+          url: 'https://c.com',
+          snippet: 'snippet ccc ccc',
+        ),
       ];
       final query2Results = [
-        SearchResult(title: 'B copy', url: 'https://b.com', snippet: 'bbb2 bbb2 bbb2'),
-        SearchResult(title: 'D', url: 'https://d.com', snippet: 'snippet ddd ddd'),
+        SearchResult(
+          title: 'B copy',
+          url: 'https://b.com',
+          snippet: 'bbb2 bbb2 bbb2',
+        ),
+        SearchResult(
+          title: 'D',
+          url: 'https://d.com',
+          snippet: 'snippet ddd ddd',
+        ),
       ];
 
       // 模拟 multiSearch 内部去重逻辑
@@ -216,16 +239,40 @@ void main() {
 
     test('三个查询的结果交叉去重', () {
       final q1 = [
-        SearchResult(title: 'A', url: 'https://a.com', snippet: 'snippet a long enough'),
-        SearchResult(title: 'B', url: 'https://b.com', snippet: 'snippet b long enough'),
+        SearchResult(
+          title: 'A',
+          url: 'https://a.com',
+          snippet: 'snippet a long enough',
+        ),
+        SearchResult(
+          title: 'B',
+          url: 'https://b.com',
+          snippet: 'snippet b long enough',
+        ),
       ];
       final q2 = [
-        SearchResult(title: 'B2', url: 'https://b.com', snippet: 'snippet b2 again'),
-        SearchResult(title: 'C', url: 'https://c.com', snippet: 'snippet c long enough'),
+        SearchResult(
+          title: 'B2',
+          url: 'https://b.com',
+          snippet: 'snippet b2 again',
+        ),
+        SearchResult(
+          title: 'C',
+          url: 'https://c.com',
+          snippet: 'snippet c long enough',
+        ),
       ];
       final q3 = [
-        SearchResult(title: 'A3', url: 'https://a.com', snippet: 'snippet a3 again'),
-        SearchResult(title: 'D', url: 'https://d.com', snippet: 'snippet d long enough'),
+        SearchResult(
+          title: 'A3',
+          url: 'https://a.com',
+          snippet: 'snippet a3 again',
+        ),
+        SearchResult(
+          title: 'D',
+          url: 'https://d.com',
+          snippet: 'snippet d long enough',
+        ),
       ];
 
       final seen = <String>{};

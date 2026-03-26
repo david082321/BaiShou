@@ -7,19 +7,19 @@ import 'package:uuid/uuid.dart';
 
 /// 附件类型
 enum AttachmentType {
-  image,  // 图片文件 (png/jpg/gif/webp)
-  pdf,    // PDF 文档
-  text,   // 纯文本文件
+  image, // 图片文件 (png/jpg/gif/webp)
+  pdf, // PDF 文档
+  text, // 纯文本文件
 }
 
 /// 消息附件
 class MessageAttachment {
   final String id;
   final String fileName;
-  final String filePath;       // 应用内存储路径
-  final int fileSize;          // 字节数
+  final String filePath; // 应用内存储路径
+  final int fileSize; // 字节数
   final AttachmentType type;
-  final String mimeType;       // image/png, application/pdf, text/plain
+  final String mimeType; // image/png, application/pdf, text/plain
 
   const MessageAttachment({
     required this.id,
@@ -57,7 +57,8 @@ class MessageAttachment {
   /// 人类可读的文件大小
   String get readableSize {
     if (fileSize < 1024) return '$fileSize B';
-    if (fileSize < 1024 * 1024) return '${(fileSize / 1024).toStringAsFixed(1)} KB';
+    if (fileSize < 1024 * 1024)
+      return '${(fileSize / 1024).toStringAsFixed(1)} KB';
     return '${(fileSize / (1024 * 1024)).toStringAsFixed(1)} MB';
   }
 
@@ -81,16 +82,25 @@ class MessageAttachment {
   /// 根据文件扩展名推断 MIME 类型
   static String mimeFromExtension(String ext) {
     switch (ext.toLowerCase()) {
-      case 'png': return 'image/png';
+      case 'png':
+        return 'image/png';
       case 'jpg':
-      case 'jpeg': return 'image/jpeg';
-      case 'gif': return 'image/gif';
-      case 'webp': return 'image/webp';
-      case 'bmp': return 'image/bmp';
-      case 'pdf': return 'application/pdf';
-      case 'txt': return 'text/plain';
-      case 'md': return 'text/markdown';
-      default: return 'application/octet-stream';
+      case 'jpeg':
+        return 'image/jpeg';
+      case 'gif':
+        return 'image/gif';
+      case 'webp':
+        return 'image/webp';
+      case 'bmp':
+        return 'image/bmp';
+      case 'pdf':
+        return 'application/pdf';
+      case 'txt':
+        return 'text/plain';
+      case 'md':
+        return 'text/markdown';
+      default:
+        return 'application/octet-stream';
     }
   }
 

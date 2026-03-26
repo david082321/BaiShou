@@ -364,7 +364,11 @@ class _VaultSwitcher extends ConsumerStatefulWidget {
   final ThemeData theme;
   final GoRouter router;
 
-  const _VaultSwitcher({required this.activeVaultName, required this.theme, required this.router});
+  const _VaultSwitcher({
+    required this.activeVaultName,
+    required this.theme,
+    required this.router,
+  });
 
   @override
   ConsumerState<_VaultSwitcher> createState() => _VaultSwitcherState();
@@ -376,14 +380,22 @@ class _VaultSwitcherState extends ConsumerState<_VaultSwitcher> {
   void _showVaultMenu() {
     final navContext = widget.router.routerDelegate.navigatorKey.currentContext;
     if (navContext == null) return;
-    
+
     final RenderBox button = context.findRenderObject() as RenderBox;
-    final RenderBox overlay = Navigator.of(navContext).overlay!.context.findRenderObject() as RenderBox;
-    
+    final RenderBox overlay =
+        Navigator.of(navContext).overlay!.context.findRenderObject()
+            as RenderBox;
+
     final RelativeRect position = RelativeRect.fromRect(
       Rect.fromPoints(
-        button.localToGlobal(button.size.bottomLeft(Offset.zero), ancestor: overlay),
-        button.localToGlobal(button.size.bottomRight(Offset.zero), ancestor: overlay),
+        button.localToGlobal(
+          button.size.bottomLeft(Offset.zero),
+          ancestor: overlay,
+        ),
+        button.localToGlobal(
+          button.size.bottomRight(Offset.zero),
+          ancestor: overlay,
+        ),
       ),
       Offset.zero & overlay.size,
     );
@@ -397,20 +409,26 @@ class _VaultSwitcherState extends ConsumerState<_VaultSwitcher> {
       elevation: 4,
       color: widget.theme.colorScheme.surfaceContainerHigh,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      items: vaults.map((v) => PopupMenuItem<String>(
-        value: v.name,
-        child: Row(
-          children: [
-            Icon(
-              v.name == widget.activeVaultName ? Icons.check : Icons.circle_outlined, 
-              size: 16, 
-              color: widget.theme.colorScheme.primary
+      items: vaults
+          .map(
+            (v) => PopupMenuItem<String>(
+              value: v.name,
+              child: Row(
+                children: [
+                  Icon(
+                    v.name == widget.activeVaultName
+                        ? Icons.check
+                        : Icons.circle_outlined,
+                    size: 16,
+                    color: widget.theme.colorScheme.primary,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(v.name),
+                ],
+              ),
             ),
-            const SizedBox(width: 8),
-            Text(v.name),
-          ],
-        ),
-      )).toList(),
+          )
+          .toList(),
     ).then((name) {
       if (name != null && name != widget.activeVaultName) {
         ref.read(vaultServiceProvider.notifier).switchVault(name);
@@ -440,17 +458,25 @@ class _VaultSwitcherState extends ConsumerState<_VaultSwitcher> {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.folder_shared_outlined, size: 16, color: widget.theme.colorScheme.onSurfaceVariant),
+              Icon(
+                Icons.folder_shared_outlined,
+                size: 16,
+                color: widget.theme.colorScheme.onSurfaceVariant,
+              ),
               const SizedBox(width: 8),
               Text(
-                widget.activeVaultName!, 
+                widget.activeVaultName!,
                 style: widget.theme.textTheme.bodySmall?.copyWith(
                   fontWeight: FontWeight.w600,
                   color: widget.theme.colorScheme.onSurfaceVariant,
                 ),
               ),
               const SizedBox(width: 4),
-              Icon(Icons.arrow_drop_down, size: 16, color: widget.theme.colorScheme.onSurfaceVariant),
+              Icon(
+                Icons.arrow_drop_down,
+                size: 16,
+                color: widget.theme.colorScheme.onSurfaceVariant,
+              ),
             ],
           ),
         ),
@@ -458,4 +484,3 @@ class _VaultSwitcherState extends ConsumerState<_VaultSwitcher> {
     );
   }
 }
-

@@ -25,9 +25,6 @@ class DiaryMetaCard extends ConsumerWidget {
       updatedAt: meta.updatedAt,
     );
 
-    return DiaryCard(
-      diary: diaryStub,
-      onDelete: onDelete,
-    );
+    return DiaryCard(diary: diaryStub, onDelete: onDelete);
   }
 }

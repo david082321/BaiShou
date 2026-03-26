@@ -21,7 +21,8 @@ class MissingSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isError = status != null &&
+    final isError =
+        status != null &&
         (status!.startsWith(t.summary.generation_failed) ||
             status!.startsWith(t.summary.content_empty) ||
             status == t.summary.tap_to_retry);

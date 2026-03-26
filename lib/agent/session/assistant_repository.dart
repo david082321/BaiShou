@@ -16,12 +16,11 @@ class AssistantRepository {
 
   /// 获取所有伙伴（按排序权重升序，同权重按创建时间降序）
   Future<List<AgentAssistant>> getAll() {
-    return (_db.select(
-      _db.agentAssistants,
-    )..orderBy([
-        (t) => OrderingTerm.asc(t.sortOrder),
-        (t) => OrderingTerm.desc(t.createdAt),
-      ])).get();
+    return (_db.select(_db.agentAssistants)..orderBy([
+          (t) => OrderingTerm.asc(t.sortOrder),
+          (t) => OrderingTerm.desc(t.createdAt),
+        ]))
+        .get();
   }
 
   /// 获取单个伙伴
@@ -40,12 +39,11 @@ class AssistantRepository {
 
   /// 监听伙伴列表变更
   Stream<List<AgentAssistant>> watchAll() {
-    return (_db.select(
-      _db.agentAssistants,
-    )..orderBy([
-        (t) => OrderingTerm.asc(t.sortOrder),
-        (t) => OrderingTerm.desc(t.createdAt),
-      ])).watch();
+    return (_db.select(_db.agentAssistants)..orderBy([
+          (t) => OrderingTerm.asc(t.sortOrder),
+          (t) => OrderingTerm.desc(t.createdAt),
+        ]))
+        .watch();
   }
 
   // ─── 写入 ──────────────────────────────────────────

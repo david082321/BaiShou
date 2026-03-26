@@ -207,15 +207,17 @@ class RagMemoryDialogs {
 
     if (confirmed != true) return false;
 
-    final progress = ref.read(batchEmbeddingProgressProvider.notifier);
+    final progress = ref.read(ragProgressProvider.notifier);
 
     try {
       final diaryRepo = ref.read(diaryRepositoryProvider);
       final agentDb = ref.read(agentDatabaseProvider);
-      
+
       final diaries = await diaryRepo.getAllDiaries();
-      final existingMemories = await agentDb.getEmbeddedSourceMetadataByType('diary');
-      
+      final existingMemories = await agentDb.getEmbeddedSourceMetadataByType(
+        'diary',
+      );
+
       // 过滤出未被嵌入或已被外部修改（过时）的日记进行补充更新
       final diariesToEmbed = diaries.where((d) {
         final metaStr = existingMemories[d.id.toString()];
@@ -229,13 +231,16 @@ class RagMemoryDialogs {
           return true;
         }
       }).toList();
-      
-      progress.start(diariesToEmbed.length);
+
+      progress.startBatch(diariesToEmbed.length);
 
       if (diariesToEmbed.isEmpty) {
         progress.finish();
         if (context.mounted) {
-          AppToast.showSuccess(context, t.agent.rag.batch_embed_success(count: '0'));
+          AppToast.showSuccess(
+            context,
+            t.agent.rag.batch_embed_success(count: '0'),
+          );
         }
         return true;
       }
@@ -245,7 +250,7 @@ class RagMemoryDialogs {
       for (final diary in diariesToEmbed) {
         if (diary.content.trim().isEmpty) {
           progressCounter++;
-          progress.updateProgress(progressCounter);
+          progress.updateBatch(progressCounter);
           continue;
         }
         final dateLabel = DateFormat('yyyy-MM-dd').format(diary.date);
@@ -254,11 +259,13 @@ class RagMemoryDialogs {
           sourceType: 'diary',
           sourceId: diary.id.toString(),
           groupId: 'diary_batch',
-          metadataJson: jsonEncode({'updated_at': diary.updatedAt.millisecondsSinceEpoch}),
+          metadataJson: jsonEncode({
+            'updated_at': diary.updatedAt.millisecondsSinceEpoch,
+          }),
         );
         embedded++;
         progressCounter++;
-        progress.updateProgress(progressCounter);
+        progress.updateBatch(progressCounter);
       }
 
       progress.finish();

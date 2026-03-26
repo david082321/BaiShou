@@ -58,7 +58,6 @@ void main() {
       expect(queriesDef['minItems'], 1);
       expect(queriesDef['maxItems'], 3);
     });
-
   });
 
   // ════════════════════════════════════════════════════════════
@@ -79,10 +78,7 @@ void main() {
     });
 
     test('缺少参数应该返回错误', () async {
-      final context = ToolContext(
-        sessionId: 'test',
-        vaultPath: '/tmp',
-      );
+      final context = ToolContext(sessionId: 'test', vaultPath: '/tmp');
 
       final result = await tool.execute({}, context);
 

@@ -94,10 +94,7 @@ class DiaryRepositoryImpl implements DiaryRepository {
   Future<Diary?> getDiaryById(int id) async {
     // 先查数据库获取这个文件的基本元数据
     final db = _dbService.database;
-    final rows = db.select(
-      'SELECT * FROM journals_index WHERE id = ?',
-      [id],
-    );
+    final rows = db.select('SELECT * FROM journals_index WHERE id = ?', [id]);
     if (rows.isEmpty) return null;
 
     final row = rows.first;
@@ -216,10 +213,9 @@ class DiaryRepositoryImpl implements DiaryRepository {
   Future<void> deleteDiary(int id) async {
     final db = _dbService.database;
     // 1. 首先查询数据库，获取该日记的创建时间，以便定位物理文件
-    final rows = db.select(
-      'SELECT date FROM journals_index WHERE id = ?',
-      [id],
-    );
+    final rows = db.select('SELECT date FROM journals_index WHERE id = ?', [
+      id,
+    ]);
 
     if (rows.isNotEmpty) {
       // 2. 尝试同步删除物理磁盘上的 Markdown 文件

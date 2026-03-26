@@ -181,85 +181,93 @@ class _DiaryCardState extends State<DiaryCard> {
                         },
                         blendMode: BlendMode.dstIn,
                         child: ScrollConfiguration(
-                          behavior: ScrollConfiguration.of(context)
-                              .copyWith(scrollbars: false),
+                          behavior: ScrollConfiguration.of(
+                            context,
+                          ).copyWith(scrollbars: false),
                           child: SingleChildScrollView(
-                            physics: const NeverScrollableScrollPhysics(), // 禁止滚动，只做展示
+                            physics:
+                                const NeverScrollableScrollPhysics(), // 禁止滚动，只做展示
                             child: MarkdownBody(
-                              data: widget.diary.content.length > 1000 
-                                  ? '${widget.diary.content.substring(0, 1000)}...' 
+                              data: widget.diary.content.length > 1000
+                                  ? '${widget.diary.content.substring(0, 1000)}...'
                                   : widget.diary.content,
                               selectable: false,
-                            styleSheet: MarkdownStyleSheet(
-                              p: TextStyle(
-                                fontSize: 15,
-                                height: 1.6,
-                                color: theme.textTheme.bodyLarge?.color?.withOpacity(0.9),
-                              ),
-                              h1: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: theme.textTheme.bodyLarge?.color,
-                                height: 1.4,
-                              ),
-                              h2: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: theme.textTheme.bodyLarge?.color,
-                                height: 1.4,
-                              ),
-                              h3: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                color: theme.textTheme.bodyLarge?.color,
-                                height: 1.4,
-                              ),
-                              h4: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w600,
-                                color: theme.textTheme.bodyLarge?.color,
-                                height: 1.4,
-                              ),
-                              h5: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                                color: AppTheme.primary.withOpacity(0.8),
-                                height: 1.6,
-                              ),
-                              h6: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.bold,
-                                color: const Color.fromARGB(255, 255, 173, 218),
-                                height: 1.6,
-                              ),
-                              listBullet: TextStyle(
-                                color: theme.textTheme.bodyLarge?.color,
-                              ),
-                              blockSpacing: 12,
-                              blockquoteDecoration: BoxDecoration(
-                                color: isDark
-                                    ? Colors.white.withOpacity(0.05)
-                                    : Colors.black.withOpacity(0.03),
-                                borderRadius: const BorderRadius.only(
-                                  topRight: Radius.circular(8),
-                                  bottomRight: Radius.circular(8),
+                              styleSheet: MarkdownStyleSheet(
+                                p: TextStyle(
+                                  fontSize: 15,
+                                  height: 1.6,
+                                  color: theme.textTheme.bodyLarge?.color
+                                      ?.withOpacity(0.9),
                                 ),
-                                border: Border(
-                                  left: BorderSide(
-                                    color: AppTheme.primary.withOpacity(0.5),
-                                    width: 3,
+                                h1: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: theme.textTheme.bodyLarge?.color,
+                                  height: 1.4,
+                                ),
+                                h2: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: theme.textTheme.bodyLarge?.color,
+                                  height: 1.4,
+                                ),
+                                h3: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: theme.textTheme.bodyLarge?.color,
+                                  height: 1.4,
+                                ),
+                                h4: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                  color: theme.textTheme.bodyLarge?.color,
+                                  height: 1.4,
+                                ),
+                                h5: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppTheme.primary.withOpacity(0.8),
+                                  height: 1.6,
+                                ),
+                                h6: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                  color: const Color.fromARGB(
+                                    255,
+                                    255,
+                                    173,
+                                    218,
+                                  ),
+                                  height: 1.6,
+                                ),
+                                listBullet: TextStyle(
+                                  color: theme.textTheme.bodyLarge?.color,
+                                ),
+                                blockSpacing: 12,
+                                blockquoteDecoration: BoxDecoration(
+                                  color: isDark
+                                      ? Colors.white.withOpacity(0.05)
+                                      : Colors.black.withOpacity(0.03),
+                                  borderRadius: const BorderRadius.only(
+                                    topRight: Radius.circular(8),
+                                    bottomRight: Radius.circular(8),
+                                  ),
+                                  border: Border(
+                                    left: BorderSide(
+                                      color: AppTheme.primary.withOpacity(0.5),
+                                      width: 3,
+                                    ),
                                   ),
                                 ),
-                              ),
-                              blockquotePadding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 8,
+                                blockquotePadding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 8,
+                                ),
                               ),
                             ),
                           ),
                         ),
                       ),
-                    ),
                     ),
 
                     // ===== Tags =====

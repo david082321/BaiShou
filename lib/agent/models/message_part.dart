@@ -37,12 +37,12 @@ sealed class MessagePart {
 
   /// 完整序列化（含元信息）
   Map<String, dynamic> toMap() => {
-        'id': id,
-        'messageId': messageId,
-        'sessionId': sessionId,
-        'type': type.name,
-        'data': toDataMap(),
-      };
+    'id': id,
+    'messageId': messageId,
+    'sessionId': sessionId,
+    'type': type.name,
+    'data': toDataMap(),
+  };
 
   /// 从 DB 行反序列化
   static MessagePart fromRow({
@@ -57,55 +57,55 @@ sealed class MessagePart {
 
     return switch (partType) {
       PartType.text => TextPart(
-          id: id,
-          messageId: messageId,
-          sessionId: sessionId,
-          text: data['text'] as String? ?? '',
-          toolCallId: data['toolCallId'] as String?,
-          toolName: data['toolName'] as String?,
-        ),
+        id: id,
+        messageId: messageId,
+        sessionId: sessionId,
+        text: data['text'] as String? ?? '',
+        toolCallId: data['toolCallId'] as String?,
+        toolName: data['toolName'] as String?,
+      ),
       PartType.tool => ToolPart(
-          id: id,
-          messageId: messageId,
-          sessionId: sessionId,
-          callId: data['callId'] as String,
-          toolName: data['toolName'] as String,
-          status: ToolPartStatus.values.byName(
-            data['status'] as String? ?? 'pending',
-          ),
-          input: data['input'] as Map<String, dynamic>? ?? {},
-          output: data['output'] as String?,
-          timeStartMs: data['timeStartMs'] as int?,
-          timeEndMs: data['timeEndMs'] as int?,
-          timeCompactedMs: data['timeCompactedMs'] as int?,
+        id: id,
+        messageId: messageId,
+        sessionId: sessionId,
+        callId: data['callId'] as String,
+        toolName: data['toolName'] as String,
+        status: ToolPartStatus.values.byName(
+          data['status'] as String? ?? 'pending',
         ),
+        input: data['input'] as Map<String, dynamic>? ?? {},
+        output: data['output'] as String?,
+        timeStartMs: data['timeStartMs'] as int?,
+        timeEndMs: data['timeEndMs'] as int?,
+        timeCompactedMs: data['timeCompactedMs'] as int?,
+      ),
       PartType.stepFinish => StepFinishPart(
-          id: id,
-          messageId: messageId,
-          sessionId: sessionId,
-          inputTokens: data['inputTokens'] as int? ?? 0,
-          outputTokens: data['outputTokens'] as int? ?? 0,
-          cachedInputTokens: data['cachedInputTokens'] as int?,
-          costMicros: data['costMicros'] as int? ?? 0,
-        ),
+        id: id,
+        messageId: messageId,
+        sessionId: sessionId,
+        inputTokens: data['inputTokens'] as int? ?? 0,
+        outputTokens: data['outputTokens'] as int? ?? 0,
+        cachedInputTokens: data['cachedInputTokens'] as int?,
+        costMicros: data['costMicros'] as int? ?? 0,
+      ),
       PartType.compaction => CompactionPart(
-          id: id,
-          messageId: messageId,
-          sessionId: sessionId,
-          auto: data['auto'] as bool? ?? true,
-        ),
+        id: id,
+        messageId: messageId,
+        sessionId: sessionId,
+        auto: data['auto'] as bool? ?? true,
+      ),
       PartType.contextSnapshot => ContextSnapshotPart(
-          id: id,
-          messageId: messageId,
-          sessionId: sessionId,
-          messagesJson: data['messages'] as List<dynamic>? ?? [],
-        ),
+        id: id,
+        messageId: messageId,
+        sessionId: sessionId,
+        messagesJson: data['messages'] as List<dynamic>? ?? [],
+      ),
       PartType.attachment => AttachmentPart(
-          id: id,
-          messageId: messageId,
-          sessionId: sessionId,
-          attachmentMap: data['attachment'] as Map<String, dynamic>,
-        ),
+        id: id,
+        messageId: messageId,
+        sessionId: sessionId,
+        attachmentMap: data['attachment'] as Map<String, dynamic>,
+      ),
     };
   }
 }
@@ -113,8 +113,10 @@ sealed class MessagePart {
 /// 文本 Part — 消息的文本内容
 class TextPart extends MessagePart {
   final String text;
+
   /// tool result 消息的 toolCallId（仅 role=tool 时有值）
   final String? toolCallId;
+
   /// tool result 消息的 toolName（仅 role=tool 时有值）
   final String? toolName;
 
@@ -132,10 +134,10 @@ class TextPart extends MessagePart {
 
   @override
   Map<String, dynamic> toDataMap() => {
-        'text': text,
-        if (toolCallId != null) 'toolCallId': toolCallId,
-        if (toolName != null) 'toolName': toolName,
-      };
+    'text': text,
+    if (toolCallId != null) 'toolCallId': toolCallId,
+    if (toolName != null) 'toolName': toolName,
+  };
 }
 
 /// 工具调用 Part 状态
@@ -167,10 +169,9 @@ class ToolPart extends MessagePart {
   });
 
   /// 工具执行耗时（毫秒）
-  int? get durationMs =>
-      timeStartMs != null && timeEndMs != null
-          ? timeEndMs! - timeStartMs!
-          : null;
+  int? get durationMs => timeStartMs != null && timeEndMs != null
+      ? timeEndMs! - timeStartMs!
+      : null;
 
   /// 是否已被压缩（prune 后的工具输出不再发给 LLM）
   bool get isCompacted => timeCompactedMs != null;
@@ -180,15 +181,15 @@ class ToolPart extends MessagePart {
 
   @override
   Map<String, dynamic> toDataMap() => {
-        'callId': callId,
-        'toolName': toolName,
-        'status': status.name,
-        'input': input,
-        if (output != null) 'output': output,
-        if (timeStartMs != null) 'timeStartMs': timeStartMs,
-        if (timeEndMs != null) 'timeEndMs': timeEndMs,
-        if (timeCompactedMs != null) 'timeCompactedMs': timeCompactedMs,
-      };
+    'callId': callId,
+    'toolName': toolName,
+    'status': status.name,
+    'input': input,
+    if (output != null) 'output': output,
+    if (timeStartMs != null) 'timeStartMs': timeStartMs,
+    if (timeEndMs != null) 'timeEndMs': timeEndMs,
+    if (timeCompactedMs != null) 'timeCompactedMs': timeCompactedMs,
+  };
 
   /// 创建一个更新了状态的副本
   ToolPart copyWith({
@@ -197,20 +198,19 @@ class ToolPart extends MessagePart {
     int? timeStartMs,
     int? timeEndMs,
     int? timeCompactedMs,
-  }) =>
-      ToolPart(
-        id: id,
-        messageId: messageId,
-        sessionId: sessionId,
-        callId: callId,
-        toolName: toolName,
-        status: status ?? this.status,
-        input: input,
-        output: output ?? this.output,
-        timeStartMs: timeStartMs ?? this.timeStartMs,
-        timeEndMs: timeEndMs ?? this.timeEndMs,
-        timeCompactedMs: timeCompactedMs ?? this.timeCompactedMs,
-      );
+  }) => ToolPart(
+    id: id,
+    messageId: messageId,
+    sessionId: sessionId,
+    callId: callId,
+    toolName: toolName,
+    status: status ?? this.status,
+    input: input,
+    output: output ?? this.output,
+    timeStartMs: timeStartMs ?? this.timeStartMs,
+    timeEndMs: timeEndMs ?? this.timeEndMs,
+    timeCompactedMs: timeCompactedMs ?? this.timeCompactedMs,
+  );
 }
 
 /// LLM 单步统计 Part — 记录每次 LLM 调用的 token 和费用
@@ -235,11 +235,11 @@ class StepFinishPart extends MessagePart {
 
   @override
   Map<String, dynamic> toDataMap() => {
-        'inputTokens': inputTokens,
-        'outputTokens': outputTokens,
-        if (cachedInputTokens != null) 'cachedInputTokens': cachedInputTokens,
-        'costMicros': costMicros,
-      };
+    'inputTokens': inputTokens,
+    'outputTokens': outputTokens,
+    if (cachedInputTokens != null) 'cachedInputTokens': cachedInputTokens,
+    'costMicros': costMicros,
+  };
 }
 
 /// 压缩标记 Part — 标记此消息是一次上下文压缩的结果

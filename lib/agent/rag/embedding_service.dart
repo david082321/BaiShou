@@ -20,8 +20,6 @@ import 'package:baishou/agent/rag/embedding_models.dart';
 
 part 'embedding_service.g.dart';
 
-
-
 /// 嵌入服务
 class EmbeddingService {
   static const int _maxChunkLength = 512; // 字符数
@@ -29,6 +27,7 @@ class EmbeddingService {
 
   final ApiConfigService _apiConfig;
   final AgentDatabase _db;
+  bool _isMigrating = false;
 
   EmbeddingService(this._apiConfig, this._db);
 
@@ -208,7 +207,7 @@ class EmbeddingService {
   }) async {
     await _db.deleteEmbeddingsBySource(sourceType, sourceId);
     await embedText(
-      text: text, 
+      text: text,
       sourceType: sourceType,
       sourceId: sourceId,
       groupId: groupId,
@@ -252,71 +251,100 @@ class EmbeddingService {
   /// 5. 全部完成后校验完整性
   /// 6. 校验通过 → DROP backup
   Stream<MigrationProgress> migrateEmbeddings() async* {
-    if (!isConfigured) {
-      yield MigrationProgress(total: 0, completed: 0, status: '嵌入模型未配置');
+    if (_isMigrating) {
+      yield MigrationProgress(total: 0, completed: 0, status: '已经有迁移任务在运行');
       return;
     }
+    _isMigrating = true;
+    try {
+      if (!isConfigured) {
+        yield MigrationProgress(total: 0, completed: 0, status: '嵌入模型未配置');
+        return;
+      }
 
-    final embeddingModelId = _apiConfig.globalEmbeddingModelId;
-    final embeddingProviderId = _apiConfig.globalEmbeddingProviderId;
-    final provider = _apiConfig.getProvider(embeddingProviderId);
-    if (provider == null) {
-      yield MigrationProgress(total: 0, completed: 0, status: '供应商未找到');
-      return;
+      final embeddingModelId = _apiConfig.globalEmbeddingModelId;
+      final embeddingProviderId = _apiConfig.globalEmbeddingProviderId;
+      final provider = _apiConfig.getProvider(embeddingProviderId);
+      if (provider == null) {
+        yield MigrationProgress(total: 0, completed: 0, status: '供应商未找到');
+        return;
+      }
+
+      final client = AiClientFactory.createClient(provider);
+
+      // ── 步骤 1: 创建备份表 ──
+      yield MigrationProgress(total: 0, completed: 0, status: '正在备份元数据...');
+      final total = await _db.createMigrationBackup();
+
+      if (total == 0) {
+        await _db.dropMigrationBackup();
+        yield MigrationProgress(total: 0, completed: 0, status: '没有需要迁移的数据');
+        return;
+      }
+
+      // ── 步骤 2: 检测新维度 + 清空 + 重建索引（原子操作） ──
+      yield MigrationProgress(
+        total: total,
+        completed: 0,
+        status: '正在检测新模型维度...',
+      );
+      final newDimension = await _detectDimensionWithClient(
+        client,
+        embeddingModelId,
+      );
+      if (newDimension <= 0) {
+        yield MigrationProgress(
+          total: total,
+          completed: 0,
+          status: '新模型维度检测失败，迁移中止',
+        );
+        return;
+      }
+      await _db.clearAndReinitEmbeddings(newDimension);
+      await _apiConfig.setGlobalEmbeddingDimension(newDimension);
+
+      // ── 步骤 3-4: 逐条重嵌入 ──
+      yield* _doReEmbedFromBackup(client, embeddingModelId, total);
+    } finally {
+      _isMigrating = false;
     }
-
-    final client = AiClientFactory.createClient(provider);
-
-    // ── 步骤 1: 创建备份表 ──
-    yield MigrationProgress(total: 0, completed: 0, status: '正在备份元数据...');
-    final total = await _db.createMigrationBackup();
-
-    if (total == 0) {
-      await _db.dropMigrationBackup();
-      yield MigrationProgress(total: 0, completed: 0, status: '没有需要迁移的数据');
-      return;
-    }
-
-    // ── 步骤 2: 检测新维度 + 清空 + 重建索引（原子操作） ──
-    yield MigrationProgress(total: total, completed: 0, status: '正在检测新模型维度...');
-    final newDimension = await _detectDimensionWithClient(client, embeddingModelId);
-    if (newDimension <= 0) {
-      yield MigrationProgress(total: total, completed: 0, status: '新模型维度检测失败，迁移中止');
-      return;
-    }
-    await _db.clearAndReinitEmbeddings(newDimension);
-    await _apiConfig.setGlobalEmbeddingDimension(newDimension);
-
-    // ── 步骤 3-4: 逐条重嵌入 ──
-    yield* _doReEmbedFromBackup(client, embeddingModelId, total);
   }
 
   /// 继续未完成的迁移（崩溃恢复）
   Stream<MigrationProgress> continueMigration() async* {
-    if (!isConfigured) {
-      yield MigrationProgress(total: 0, completed: 0, status: '嵌入模型未配置');
+    if (_isMigrating) {
+      yield MigrationProgress(total: 0, completed: 0, status: '已经有迁移任务在运行');
       return;
     }
+    _isMigrating = true;
+    try {
+      if (!isConfigured) {
+        yield MigrationProgress(total: 0, completed: 0, status: '嵌入模型未配置');
+        return;
+      }
 
-    final embeddingModelId = _apiConfig.globalEmbeddingModelId;
-    final embeddingProviderId = _apiConfig.globalEmbeddingProviderId;
-    final provider = _apiConfig.getProvider(embeddingProviderId);
-    if (provider == null) {
-      yield MigrationProgress(total: 0, completed: 0, status: '供应商未找到');
-      return;
+      final embeddingModelId = _apiConfig.globalEmbeddingModelId;
+      final embeddingProviderId = _apiConfig.globalEmbeddingProviderId;
+      final provider = _apiConfig.getProvider(embeddingProviderId);
+      if (provider == null) {
+        yield MigrationProgress(total: 0, completed: 0, status: '供应商未找到');
+        return;
+      }
+
+      final client = AiClientFactory.createClient(provider);
+      final remaining = await _db.getUnmigratedCount();
+
+      if (remaining == 0) {
+        // 上次其实已完成，直接清理
+        await _db.dropMigrationBackup();
+        yield MigrationProgress(total: 0, completed: 0, status: '迁移已完成');
+        return;
+      }
+
+      yield* _doReEmbedFromBackup(client, embeddingModelId, remaining);
+    } finally {
+      _isMigrating = false;
     }
-
-    final client = AiClientFactory.createClient(provider);
-    final remaining = await _db.getUnmigratedCount();
-
-    if (remaining == 0) {
-      // 上次其实已完成，直接清理
-      await _db.dropMigrationBackup();
-      yield MigrationProgress(total: 0, completed: 0, status: '迁移已完成');
-      return;
-    }
-
-    yield* _doReEmbedFromBackup(client, embeddingModelId, remaining);
   }
 
   /// 逐条从备份表重嵌入（共用逻辑）
@@ -369,8 +397,9 @@ class EmbeddingService {
     }
 
     // ── 步骤 5: 校验完整性 ──
-    final (allMigrated, noStale) =
-        await _db.verifyMigrationComplete(embeddingModelId);
+    final (allMigrated, noStale) = await _db.verifyMigrationComplete(
+      embeddingModelId,
+    );
 
     if (allMigrated && noStale) {
       // ── 步骤 6: 校验通过，清理备份 ──
@@ -386,7 +415,8 @@ class EmbeddingService {
         total: total,
         completed: completed,
         failed: failed,
-        status: '迁移完成但校验未通过 ⚠️'
+        status:
+            '迁移完成但校验未通过 ⚠️'
             '${!allMigrated ? ' (部分 chunk 未迁移)' : ''}'
             '${!noStale ? ' (存在旧模型数据)' : ''}',
       );
@@ -422,7 +452,7 @@ class EmbeddingService {
       if (end > text.length) end = text.length;
 
       chunks.add(ChunkResult(index: index, text: text.substring(start, end)));
-      
+
       if (end >= text.length) break;
 
       start = end - _chunkOverlap;
@@ -484,4 +514,3 @@ EmbeddingService embeddingService(Ref ref) {
     ref.read(agentDatabaseProvider),
   );
 }
-

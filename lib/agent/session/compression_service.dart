@@ -74,8 +74,8 @@ class CompressionService {
   /// 保护区 = 阈值 × 50%，最小收益 = 阈值 × 20%。
   /// 纯本地操作，不需要 AI 调用。
   Future<int> prune(String sessionId, int threshold) async {
-    final pruneProtect = (threshold * 0.5).toInt();  // 保护区
-    final pruneMinimum = (threshold * 0.2).toInt();  // 最小收益
+    final pruneProtect = (threshold * 0.5).toInt(); // 保护区
+    final pruneMinimum = (threshold * 0.2).toInt(); // 最小收益
 
     final allMessages = await sessionManager.getMessages(sessionId);
 
@@ -107,8 +107,10 @@ class CompressionService {
 
     // 收益不够就不剪
     if (prunedTokens < pruneMinimum) {
-      debugPrint('CompressionService: prune skipped '
-          '(gain=$prunedTokens < min=$pruneMinimum)');
+      debugPrint(
+        'CompressionService: prune skipped '
+        '(gain=$prunedTokens < min=$pruneMinimum)',
+      );
       return 0;
     }
 
@@ -129,7 +131,11 @@ class CompressionService {
   /// 执行压缩：先剪枝，再摘要
   ///
   /// [threshold] 压缩阈值，用于计算剪枝保护区大小
-  Future<void> compress(String sessionId, {required int threshold, int? keepTurns}) async {
+  Future<void> compress(
+    String sessionId, {
+    required int threshold,
+    int? keepTurns,
+  }) async {
     final retainTurns = keepTurns ?? _kDefaultRetainUserTurns;
     try {
       debugPrint('CompressionService: Starting compression for $sessionId');
@@ -143,7 +149,8 @@ class CompressionService {
 
       // 获取压缩点之后的消息
       final messagesAfterPoint = _getMessagesAfterCompressionPoint(
-        allMessages, snapshot,
+        allMessages,
+        snapshot,
       );
 
       // 保留最近 N 轮 user 消息及其后续的所有消息不参与压缩
@@ -215,14 +222,16 @@ class CompressionService {
       final coveredUpToMessageId = lastCompressedMessage.id;
 
       // 存入快照表（追加）
-      await db.into(db.compressionSnapshots).insert(
-        CompressionSnapshotsCompanion.insert(
-          sessionId: sessionId,
-          summaryText: summaryText,
-          coveredUpToMessageId: coveredUpToMessageId,
-          messageCount: newCount,
-        ),
-      );
+      await db
+          .into(db.compressionSnapshots)
+          .insert(
+            CompressionSnapshotsCompanion.insert(
+              sessionId: sessionId,
+              summaryText: summaryText,
+              coveredUpToMessageId: coveredUpToMessageId,
+              messageCount: newCount,
+            ),
+          );
 
       debugPrint(
         'CompressionService: Compressed $newCount messages into summary',

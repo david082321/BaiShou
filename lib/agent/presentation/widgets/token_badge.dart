@@ -195,18 +195,21 @@ class ContextChainDialog extends StatelessWidget {
                   children: [
                     _InfoChip(
                       icon: Icons.arrow_upward_rounded,
-                      label: '${t.agent.chat.round_input} ${_formatTokens(input)}',
+                      label:
+                          '${t.agent.chat.round_input} ${_formatTokens(input)}',
                       theme: theme,
                     ),
                     _InfoChip(
                       icon: Icons.arrow_downward_rounded,
-                      label: '${t.agent.chat.round_output} ${_formatTokens(output)}',
+                      label:
+                          '${t.agent.chat.round_output} ${_formatTokens(output)}',
                       theme: theme,
                     ),
                     if (cost != null && cost > 0)
                       _InfoChip(
                         icon: Icons.attach_money_rounded,
-                        label: '${t.agent.chat.round_cost} ${cost.toStringAsFixed(4)}',
+                        label:
+                            '${t.agent.chat.round_cost} ${cost.toStringAsFixed(4)}',
                         theme: theme,
                       ),
                   ],
@@ -303,11 +306,7 @@ class ContextChainDialog extends StatelessWidget {
     );
   }
 
-  void _showMessageDetail(
-    BuildContext context,
-    ChatMessage msg,
-    int index,
-  ) {
+  void _showMessageDetail(BuildContext context, ChatMessage msg, int index) {
     final theme = Theme.of(context);
     final roleColor = _roleColor(theme, msg.role);
 
@@ -365,9 +364,7 @@ class ContextChainDialog extends StatelessWidget {
                   padding: const EdgeInsets.all(16),
                   child: SelectableText(
                     msg.content ?? t.agent.chat.no_content,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      height: 1.6,
-                    ),
+                    style: theme.textTheme.bodyMedium?.copyWith(height: 1.6),
                   ),
                 ),
               ),

@@ -61,7 +61,9 @@ class VaultService extends _$VaultService {
     if (!_registryFile!.existsSync()) {
       // 首次启动（或本次迁移），创建一个名为 "Personal" 的默认空间
       final defaultVaultName = 'Personal';
-      final defaultVaultDir = await _pathProvider.getVaultDirectory(defaultVaultName);
+      final defaultVaultDir = await _pathProvider.getVaultDirectory(
+        defaultVaultName,
+      );
       final defaultVault = VaultInfo(
         name: defaultVaultName,
         path: defaultVaultDir.path,
@@ -74,7 +76,9 @@ class VaultService extends _$VaultService {
       // 执行向后兼容物理文件迁移：全局 sqlite 文件 -> Personal 空间
       try {
         final globalSysDir = await _pathProvider.getGlobalRegistryDirectory();
-        final personalSysDir = await _pathProvider.getVaultSystemDirectory(defaultVaultName);
+        final personalSysDir = await _pathProvider.getVaultSystemDirectory(
+          defaultVaultName,
+        );
 
         final oldBaishouDb = File(p.join(globalSysDir.path, 'baishou.sqlite'));
         final oldAgentDb = File(p.join(globalSysDir.path, 'agent.sqlite'));
@@ -85,7 +89,7 @@ class VaultService extends _$VaultService {
             if (!File(newPath).existsSync()) {
               await file.rename(newPath);
               debugPrint('VaultService: Migrated ${file.path} to $newPath');
-              
+
               final walFile = File('${file.path}-wal');
               final shmFile = File('${file.path}-shm');
               if (walFile.existsSync()) {
@@ -100,7 +104,6 @@ class VaultService extends _$VaultService {
       } catch (e) {
         debugPrint('VaultService: Failed to migrate old sqlite databases: $e');
       }
-
     } else {
       final content = await _registryFile!.readAsString();
       if (content.trim().isNotEmpty) {
@@ -108,16 +111,20 @@ class VaultService extends _$VaultService {
           final List<dynamic> jsonList = jsonDecode(content);
           _vaults = jsonList.map((e) => VaultInfo.fromJson(e)).toList();
         } catch (e) {
-          debugPrint('VaultService: Corrupted registry file detected, resetting to Personal: $e');
+          debugPrint(
+            'VaultService: Corrupted registry file detected, resetting to Personal: $e',
+          );
           // If registry is corrupted, fallback to a clean slate rather than crashing the app
-          final defaultVaultDir = await _pathProvider.getVaultDirectory('Personal');
+          final defaultVaultDir = await _pathProvider.getVaultDirectory(
+            'Personal',
+          );
           _vaults = [
             VaultInfo(
               name: 'Personal',
               path: defaultVaultDir.path,
               createdAt: DateTime.now(),
               lastAccessedAt: DateTime.now(),
-            )
+            ),
           ];
           await _saveRegistry();
         }

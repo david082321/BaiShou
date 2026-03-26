@@ -41,9 +41,7 @@ List<AgentTool> builtInTools(Ref ref) {
     MessageSearchTool(ref.read(sessionManagerProvider)),
 
     // ── 语义搜索工具 ──
-    VectorSearchTool(
-      ref.read(agentDatabaseProvider),
-    ),
+    VectorSearchTool(ref.read(agentDatabaseProvider)),
 
     // ── 记忆存储 / 删除工具 ──
     MemoryStoreTool(),

@@ -440,11 +440,7 @@ class RagMemoryStatsBoard extends ConsumerWidget {
                 ),
                 if (!isDetectingDimension) ...[
                   const SizedBox(width: 4),
-                  Icon(
-                    Icons.refresh,
-                    size: 12,
-                    color: Colors.green.shade700,
-                  ),
+                  Icon(Icons.refresh, size: 12, color: Colors.green.shade700),
                 ],
               ],
             ),

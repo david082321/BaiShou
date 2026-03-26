@@ -99,13 +99,15 @@ class _LanTransferPageState extends ConsumerState<LanTransferPage>
         backgroundColor: Colors.transparent,
         elevation: 0,
         automaticallyImplyLeading: false,
-        leading: (Platform.isWindows || Platform.isLinux || Platform.isMacOS) ? null : IconButton(
-          icon: Icon(
-            Icons.arrow_back_ios_new,
-            color: isDark ? Colors.grey[300] : Colors.grey[800],
-          ),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
+        leading: (Platform.isWindows || Platform.isLinux || Platform.isMacOS)
+            ? null
+            : IconButton(
+                icon: Icon(
+                  Icons.arrow_back_ios_new,
+                  color: isDark ? Colors.grey[300] : Colors.grey[800],
+                ),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
         title: Text(
           t.lan_transfer.title,
           style: TextStyle(

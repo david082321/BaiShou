@@ -41,8 +41,9 @@ class ShadowIndexDatabase extends _$ShadowIndexDatabase {
 
       // 获取当前版本
       final versionResult = _db!.select('PRAGMA user_version');
-      final currentVersion =
-          versionResult.isNotEmpty ? versionResult.first['user_version'] as int : 0;
+      final currentVersion = versionResult.isNotEmpty
+          ? versionResult.first['user_version'] as int
+          : 0;
 
       if (currentVersion < 1) {
         _onCreate();
@@ -112,9 +113,7 @@ class ShadowIndexDatabase extends _$ShadowIndexDatabase {
     try {
       _db!.execute('DROP TABLE IF EXISTS journals_fts');
     } catch (e) {
-      debugPrint(
-        'ShadowIndexDatabase: Failed to drop old FTS table: $e',
-      );
+      debugPrint('ShadowIndexDatabase: Failed to drop old FTS table: $e');
     }
 
     try {
@@ -175,9 +174,18 @@ class ShadowIndexDatabase extends _$ShadowIndexDatabase {
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ''');
     stmt.execute([
-      id, filePath, date, createdAt, updatedAt, contentHash,
-      weather, mood, location, locationDetail,
-      isFavorite ? 1 : 0, hasMedia ? 1 : 0,
+      id,
+      filePath,
+      date,
+      createdAt,
+      updatedAt,
+      contentHash,
+      weather,
+      mood,
+      location,
+      locationDetail,
+      isFavorite ? 1 : 0,
+      hasMedia ? 1 : 0,
     ]);
     stmt.dispose();
 

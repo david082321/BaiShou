@@ -36,16 +36,10 @@ class ToolResult {
   final bool success;
   final Map<String, dynamic>? metadata;
 
-  const ToolResult({
-    required this.output,
-    this.success = true,
-    this.metadata,
-  });
+  const ToolResult({required this.output, this.success = true, this.metadata});
 
-  factory ToolResult.error(String message) => ToolResult(
-        output: 'Error: $message',
-        success: false,
-      );
+  factory ToolResult.error(String message) =>
+      ToolResult(output: 'Error: $message', success: false);
 }
 
 /// 工具定义基类
@@ -90,10 +84,10 @@ abstract class AgentTool {
 
   /// 转换为发送给 LLM 的 ToolDefinition
   ToolDefinition toDefinition() => ToolDefinition(
-        name: id,
-        description: description,
-        parameterSchema: parameterSchema,
-      );
+    name: id,
+    description: description,
+    parameterSchema: parameterSchema,
+  );
 }
 
 /// 工具注册中心

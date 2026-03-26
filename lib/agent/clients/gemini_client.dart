@@ -105,8 +105,7 @@ class GeminiClient extends BaseAiClient {
           }
         } else {
           throw Exception(
-            t.ai.error_api_request(
-                    statusCode: response.statusCode.toString()) +
+            t.ai.error_api_request(statusCode: response.statusCode.toString()) +
                 '\n${response.body}',
           );
         }
@@ -140,9 +139,7 @@ class GeminiClient extends BaseAiClient {
                   ],
                 },
               ],
-              'generationConfig': {
-                'maxOutputTokens': 8192,
-              },
+              'generationConfig': {'maxOutputTokens': 8192},
             }),
           )
           .timeout(const Duration(seconds: 120));
@@ -164,8 +161,7 @@ class GeminiClient extends BaseAiClient {
         }
       } else {
         throw Exception(
-          t.ai.error_api_request(
-                  statusCode: response.statusCode.toString()) +
+          t.ai.error_api_request(statusCode: response.statusCode.toString()) +
               '\n${response.body}',
         );
       }
@@ -173,7 +169,6 @@ class GeminiClient extends BaseAiClient {
       throw Exception(t.ai.error_generate_interface(e: e.toString()));
     }
   }
-
 
   // ─── 新增能力：Agent 流式对话 + Tool Calling ─────────────────
 
@@ -191,9 +186,7 @@ class GeminiClient extends BaseAiClient {
 
     // 构建 Gemini contents 并应用中间件链（如 thought_signature 跳过）
     final contents = middlewareChain.apply(_messagesToGemini(messages));
-    final body = <String, dynamic>{
-      'contents': contents,
-    };
+    final body = <String, dynamic>{'contents': contents};
 
     // System Prompt 单独提取
     final systemMsg = messages.where((m) => m.role == MessageRole.system);
@@ -209,11 +202,13 @@ class GeminiClient extends BaseAiClient {
       body['tools'] = <Map<String, dynamic>>[
         <String, dynamic>{
           'functionDeclarations': tools
-              .map((t) => <String, dynamic>{
-                    'name': t.name,
-                    'description': t.description,
-                    'parameters': t.parameterSchema,
-                  })
+              .map(
+                (t) => <String, dynamic>{
+                  'name': t.name,
+                  'description': t.description,
+                  'parameters': t.parameterSchema,
+                },
+              )
               .toList(),
         },
       ];
@@ -228,9 +223,7 @@ class GeminiClient extends BaseAiClient {
       // Gemini 要求同时使用内置工具（Google Search）和自定义函数调用时，
       if (tools != null && tools.isNotEmpty) {
         body['tool_config'] = <String, dynamic>{
-          'function_calling_config': <String, dynamic>{
-            'mode': 'AUTO',
-          },
+          'function_calling_config': <String, dynamic>{'mode': 'AUTO'},
           'include_server_side_tool_invocations': true,
         };
       }
@@ -270,24 +263,24 @@ class GeminiClient extends BaseAiClient {
         .map((line) => line.substring(6).trim())
         .where((data) => data.isNotEmpty)
         .expand<StreamEvent>((data) {
-      try {
-        final json = jsonDecode(data) as Map<String, dynamic>;
+          try {
+            final json = jsonDecode(data) as Map<String, dynamic>;
 
-        // 解析 usageMetadata（Gemini 在每个 chunk 都可能返回）
-        final usage = json['usageMetadata'] as Map<String, dynamic>?;
-        if (usage != null) {
-          lastUsage = TokenUsage(
-            inputTokens: usage['promptTokenCount'] as int? ?? 0,
-            outputTokens: usage['candidatesTokenCount'] as int? ?? 0,
-            cachedInputTokens: usage['cachedContentTokenCount'] as int?,
-          );
-        }
+            // 解析 usageMetadata（Gemini 在每个 chunk 都可能返回）
+            final usage = json['usageMetadata'] as Map<String, dynamic>?;
+            if (usage != null) {
+              lastUsage = TokenUsage(
+                inputTokens: usage['promptTokenCount'] as int? ?? 0,
+                outputTokens: usage['candidatesTokenCount'] as int? ?? 0,
+                cachedInputTokens: usage['cachedContentTokenCount'] as int?,
+              );
+            }
 
-        return _parseGeminiChunk(json);
-      } catch (e, st) {
-        return [StreamError(e, st)];
-      }
-    });
+            return _parseGeminiChunk(json);
+          } catch (e, st) {
+            return [StreamError(e, st)];
+          }
+        });
 
     yield StreamDone(usage: lastUsage);
   }
@@ -318,14 +311,13 @@ class GeminiClient extends BaseAiClient {
         final fc = partMap['functionCall'] as Map<String, dynamic>;
         final name = fc['name'] as String;
         final args = fc['args'] as Map<String, dynamic>? ?? {};
-        final callId = 'gemini_${name}_${DateTime.now().millisecondsSinceEpoch}';
+        final callId =
+            'gemini_${name}_${DateTime.now().millisecondsSinceEpoch}';
 
         events.add(ToolCallStart(callId: callId, toolName: name));
-        events.add(ToolCallComplete(ToolCall(
-          id: callId,
-          name: name,
-          arguments: args,
-        )));
+        events.add(
+          ToolCallComplete(ToolCall(id: callId, name: name, arguments: args)),
+        );
       }
     }
 
@@ -395,7 +387,9 @@ class GeminiClient extends BaseAiClient {
               parts.add({
                 'functionCall': {
                   'name': tc.name,
-                  'args': tc.arguments.isNotEmpty ? tc.arguments : <String, dynamic>{},
+                  'args': tc.arguments.isNotEmpty
+                      ? tc.arguments
+                      : <String, dynamic>{},
                 },
               });
             }
@@ -434,7 +428,9 @@ class GeminiClient extends BaseAiClient {
     if (contents.isEmpty) {
       contents.add({
         'role': 'user',
-        'parts': [{'text': 'Hello'}],
+        'parts': [
+          {'text': 'Hello'},
+        ],
       });
     }
 

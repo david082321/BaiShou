@@ -24,19 +24,10 @@ class PromptShortcut {
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'icon': icon,
-      'name': name,
-      'content': content,
-    };
+    return {'id': id, 'icon': icon, 'name': name, 'content': content};
   }
 
-  PromptShortcut copyWith({
-    String? icon,
-    String? name,
-    String? content,
-  }) {
+  PromptShortcut copyWith({String? icon, String? name, String? content}) {
     return PromptShortcut(
       id: id,
       icon: icon ?? this.icon,

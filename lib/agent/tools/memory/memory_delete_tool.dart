@@ -37,23 +37,23 @@ class MemoryDeleteTool extends AgentTool {
 
   @override
   Map<String, dynamic> get parameterSchema => {
-        'type': 'object',
-        'properties': {
-          'query': {
-            'type': 'string',
-            'description':
-                'Search query to find memories to delete. '
-                'Describe the content of memories you want to remove.',
-          },
-          'message_id': {
-            'type': 'string',
-            'description':
-                'Optional. Delete a specific memory by its message ID. '
-                'If provided, query is ignored.',
-          },
-        },
-        'required': ['query'],
-      };
+    'type': 'object',
+    'properties': {
+      'query': {
+        'type': 'string',
+        'description':
+            'Search query to find memories to delete. '
+            'Describe the content of memories you want to remove.',
+      },
+      'message_id': {
+        'type': 'string',
+        'description':
+            'Optional. Delete a specific memory by its message ID. '
+            'If provided, query is ignored.',
+      },
+    },
+    'required': ['query'],
+  };
 
   @override
   Future<ToolResult> execute(
@@ -68,7 +68,8 @@ class MemoryDeleteTool extends AgentTool {
         // 精确删除：按 message_id
         await _db.deleteEmbeddingsBySource('chat', messageId);
         return ToolResult(
-          output: 'Memory chunks for message ID "$messageId" have been deleted.',
+          output:
+              'Memory chunks for message ID "$messageId" have been deleted.',
           success: true,
           metadata: {'message_id': messageId},
         );
@@ -103,7 +104,8 @@ class MemoryDeleteTool extends AgentTool {
 
       if (results.isEmpty) {
         return ToolResult(
-          output: 'No memories found matching "$query" with sufficient '
+          output:
+              'No memories found matching "$query" with sufficient '
               'similarity (≥0.5). Nothing deleted.',
           success: true,
           metadata: {'deleted_count': 0},
@@ -114,24 +116,24 @@ class MemoryDeleteTool extends AgentTool {
       final deletedPreviews = <String>[];
 
       for (final result in results) {
-        await _db.deleteEmbeddingsBySource(result['source_type'] as String, result['source_id'] as String);
+        await _db.deleteEmbeddingsBySource(
+          result['source_type'] as String,
+          result['source_id'] as String,
+        );
         final chunkText = result['chunk_text'] as String;
         final preview = chunkText.length > 60
             ? '${chunkText.substring(0, 60)}...'
             : chunkText;
         final score = 1.0 - (result['distance'] as double);
-        deletedPreviews.add(
-          '- [${score.toStringAsFixed(2)}] $preview',
-        );
+        deletedPreviews.add('- [${score.toStringAsFixed(2)}] $preview');
       }
 
       return ToolResult(
-        output: 'Deleted ${results.length} matching memory entries:\n'
+        output:
+            'Deleted ${results.length} matching memory entries:\n'
             '${deletedPreviews.join('\n')}',
         success: true,
-        metadata: {
-          'matched_entries': results.length,
-        },
+        metadata: {'matched_entries': results.length},
       );
     } catch (e) {
       return ToolResult.error('Failed to delete memories: $e');

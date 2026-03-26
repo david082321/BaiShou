@@ -17,8 +17,9 @@ abstract class BaseAiClient implements AiClient {
   final MiddlewareChain middlewareChain;
 
   BaseAiClient({required this.provider})
-      : middlewareChain =
-            MiddlewareChain(MiddlewareFactory.buildFor(provider.type));
+    : middlewareChain = MiddlewareChain(
+        MiddlewareFactory.buildFor(provider.type),
+      );
 
   /// 规范化后的 base URL（去掉尾部斜杠）
   String get baseUrl {
@@ -47,9 +48,7 @@ abstract class BaseAiClient implements AiClient {
       final decodedBody = utf8.decode(response.bodyBytes);
       return jsonDecode(decodedBody) as Map<String, dynamic>;
     } else {
-      throw Exception(
-        'API Error ${response.statusCode}\n${response.body}',
-      );
+      throw Exception('API Error ${response.statusCode}\n${response.body}');
     }
   }
 
@@ -59,17 +58,13 @@ abstract class BaseAiClient implements AiClient {
     Duration timeout = const Duration(seconds: 10),
   }) async {
     final uri = Uri.parse(url);
-    final response = await http
-        .get(uri, headers: headers)
-        .timeout(timeout);
+    final response = await http.get(uri, headers: headers).timeout(timeout);
 
     if (response.statusCode >= 200 && response.statusCode < 300) {
       final decodedBody = utf8.decode(response.bodyBytes);
       return jsonDecode(decodedBody) as Map<String, dynamic>;
     } else {
-      throw Exception(
-        'API Error ${response.statusCode}\n${response.body}',
-      );
+      throw Exception('API Error ${response.statusCode}\n${response.body}');
     }
   }
 

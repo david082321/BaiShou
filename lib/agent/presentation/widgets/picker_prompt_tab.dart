@@ -61,8 +61,9 @@ class PickerPromptTab extends ConsumerWidget {
                 ),
               ),
               filled: true,
-              fillColor: colorScheme.surfaceContainerHighest
-                  .withValues(alpha: 0.2),
+              fillColor: colorScheme.surfaceContainerHighest.withValues(
+                alpha: 0.2,
+              ),
               contentPadding: const EdgeInsets.all(14),
             ),
             style: theme.textTheme.bodySmall?.copyWith(height: 1.5),
@@ -82,8 +83,9 @@ class PickerPromptTab extends ConsumerWidget {
             child: Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: colorScheme.surfaceContainerHighest
-                    .withValues(alpha: 0.2),
+                color: colorScheme.surfaceContainerHighest.withValues(
+                  alpha: 0.2,
+                ),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
                   color: colorScheme.outlineVariant.withValues(alpha: 0.3),
@@ -127,15 +129,21 @@ class PickerPromptTab extends ConsumerWidget {
                   ),
                   if (selectedProviderId != null)
                     IconButton(
-                      icon: Icon(Icons.close, size: 16,
-                          color: colorScheme.outline),
+                      icon: Icon(
+                        Icons.close,
+                        size: 16,
+                        color: colorScheme.outline,
+                      ),
                       onPressed: onModelCleared,
                       visualDensity: VisualDensity.compact,
                       tooltip: t.agent.assistant.use_global_model,
                     )
                   else
-                    Icon(Icons.chevron_right,
-                        color: colorScheme.outline, size: 18),
+                    Icon(
+                      Icons.chevron_right,
+                      color: colorScheme.outline,
+                      size: 18,
+                    ),
                 ],
               ),
             ),
@@ -147,8 +155,10 @@ class PickerPromptTab extends ConsumerWidget {
 
   void _showModelPicker(BuildContext context, WidgetRef ref) {
     final apiConfig = ref.read(apiConfigServiceProvider);
-    final providers =
-        apiConfig.getProviders().where((p) => p.isEnabled).toList();
+    final providers = apiConfig
+        .getProviders()
+        .where((p) => p.isEnabled)
+        .toList();
 
     showDialog(
       context: context,
@@ -171,8 +181,11 @@ class PickerPromptTab extends ConsumerWidget {
                   padding: const EdgeInsets.fromLTRB(24, 20, 16, 12),
                   child: Row(
                     children: [
-                      Icon(Icons.auto_awesome_outlined,
-                          size: 20, color: colorScheme.primary),
+                      Icon(
+                        Icons.auto_awesome_outlined,
+                        size: 20,
+                        color: colorScheme.primary,
+                      ),
                       const SizedBox(width: 8),
                       Text(
                         t.agent.assistant.select_model_title,
@@ -233,22 +246,24 @@ class PickerPromptTab extends ConsumerWidget {
                               selectedProviderId == provider.id &&
                               selectedModelId == modelId;
                           return ListTile(
-                            contentPadding:
-                                const EdgeInsets.symmetric(horizontal: 40),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 40,
+                            ),
                             title: Text(
                               modelId,
                               style: theme.textTheme.bodySmall?.copyWith(
                                 fontWeight: isSelected
                                     ? FontWeight.bold
                                     : FontWeight.normal,
-                                color: isSelected
-                                    ? colorScheme.primary
-                                    : null,
+                                color: isSelected ? colorScheme.primary : null,
                               ),
                             ),
                             trailing: isSelected
-                                ? Icon(Icons.check_circle,
-                                    color: colorScheme.primary, size: 18)
+                                ? Icon(
+                                    Icons.check_circle,
+                                    color: colorScheme.primary,
+                                    size: 18,
+                                  )
                                 : null,
                             onTap: () {
                               onModelSelected(provider.id, modelId);
@@ -293,20 +308,35 @@ class PickerPromptTab extends ConsumerWidget {
   Widget _getProviderIcon(String providerId) {
     final id = providerId.toLowerCase();
     if (id.contains('openai')) {
-      return Image.asset('assets/ai_provider_icon/openai.png',
-          width: 24, height: 24);
+      return Image.asset(
+        'assets/ai_provider_icon/openai.png',
+        width: 24,
+        height: 24,
+      );
     } else if (id.contains('gemini') || id.contains('google')) {
-      return Image.asset('assets/ai_provider_icon/gemini-color.png',
-          width: 24, height: 24);
+      return Image.asset(
+        'assets/ai_provider_icon/gemini-color.png',
+        width: 24,
+        height: 24,
+      );
     } else if (id.contains('anthropic') || id.contains('claude')) {
-      return Image.asset('assets/ai_provider_icon/claude-color.png',
-          width: 24, height: 24);
+      return Image.asset(
+        'assets/ai_provider_icon/claude-color.png',
+        width: 24,
+        height: 24,
+      );
     } else if (id.contains('deepseek')) {
-      return Image.asset('assets/ai_provider_icon/deepseek-color.png',
-          width: 24, height: 24);
+      return Image.asset(
+        'assets/ai_provider_icon/deepseek-color.png',
+        width: 24,
+        height: 24,
+      );
     } else if (id.contains('kimi') || id.contains('moonshot')) {
-      return Image.asset('assets/ai_provider_icon/moonshot.png',
-          width: 24, height: 24);
+      return Image.asset(
+        'assets/ai_provider_icon/moonshot.png',
+        width: 24,
+        height: 24,
+      );
     }
     return const Icon(Icons.cloud_outlined, size: 24, color: Colors.grey);
   }

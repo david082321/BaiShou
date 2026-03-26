@@ -76,7 +76,9 @@ class _DesktopSidebarState extends ConsumerState<DesktopSidebar> {
     final saved = prefs.getStringList(_kNavOrderKey);
     if (saved != null && saved.length == _defaultItems.length) {
       final parsed = saved.map(int.tryParse).toList();
-      if (parsed.every((e) => e != null && _defaultItems.any((item) => item.branchIndex == e))) {
+      if (parsed.every(
+        (e) => e != null && _defaultItems.any((item) => item.branchIndex == e),
+      )) {
         setState(() => _order = parsed.cast<int>());
         return;
       }
@@ -179,12 +181,14 @@ class _DesktopSidebarState extends ConsumerState<DesktopSidebar> {
                                 key: ValueKey(_order[i]),
                                 item: _getItem(_order[i]),
                                 index: i,
-                                isSelected: widget.navigationShell
-                                        .currentIndex ==
+                                isSelected:
+                                    widget.navigationShell.currentIndex ==
                                     _order[i],
                                 onTap: () {
                                   if (_order[i] == 0) {
-                                    ref.read(diaryScrollToTopProvider.notifier).trigger();
+                                    ref
+                                        .read(diaryScrollToTopProvider.notifier)
+                                        .trigger();
                                   }
                                   widget.onBranchChange(_order[i]);
                                 },
@@ -258,10 +262,14 @@ class _DesktopSidebarState extends ConsumerState<DesktopSidebar> {
               CircleAvatar(
                 radius: 18,
                 backgroundColor: theme.colorScheme.primaryContainer,
-                backgroundImage: userProfile.avatarPath != null && File(userProfile.avatarPath!).existsSync()
+                backgroundImage:
+                    userProfile.avatarPath != null &&
+                        File(userProfile.avatarPath!).existsSync()
                     ? FileImage(File(userProfile.avatarPath!))
                     : null,
-                child: userProfile.avatarPath == null || !File(userProfile.avatarPath!).existsSync()
+                child:
+                    userProfile.avatarPath == null ||
+                        !File(userProfile.avatarPath!).existsSync()
                     ? Text(
                         userProfile.nickname.isNotEmpty
                             ? userProfile.nickname[0].toUpperCase()
@@ -335,8 +343,7 @@ class _DraggableNavItemState extends State<_DraggableNavItem> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
           child: Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             decoration: BoxDecoration(
               color: widget.isSelected
                   ? colorScheme.primaryContainer.withValues(alpha: 0.4)
@@ -368,8 +375,9 @@ class _DraggableNavItemState extends State<_DraggableNavItem> {
                 Text(
                   widget.item.labelBuilder(),
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontWeight:
-                        widget.isSelected ? FontWeight.bold : FontWeight.w500,
+                    fontWeight: widget.isSelected
+                        ? FontWeight.bold
+                        : FontWeight.w500,
                     color: widget.isSelected
                         ? colorScheme.primary
                         : colorScheme.onSurfaceVariant,
@@ -410,8 +418,7 @@ class _NavMenuItem extends StatelessWidget {
         child: MouseRegion(
           cursor: SystemMouseCursors.click,
           child: Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             decoration: BoxDecoration(
               color: isSelected
                   ? colorScheme.primaryContainer.withValues(alpha: 0.4)
@@ -432,8 +439,7 @@ class _NavMenuItem extends StatelessWidget {
                 Text(
                   label,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontWeight:
-                        isSelected ? FontWeight.bold : FontWeight.w500,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
                     color: isSelected
                         ? colorScheme.primary
                         : colorScheme.onSurfaceVariant,

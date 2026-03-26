@@ -32,8 +32,9 @@ class GalleryTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final summaryStream =
-        ref.watch(summaryRepositoryProvider).watchSummaries(type);
+    final summaryStream = ref
+        .watch(summaryRepositoryProvider)
+        .watchSummaries(type);
 
     return StreamBuilder<List<Summary>>(
       stream: summaryStream,
@@ -47,8 +48,11 @@ class GalleryTab extends ConsumerWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.auto_awesome_outlined,
-                    size: 48, color: theme.colorScheme.outlineVariant),
+                Icon(
+                  Icons.auto_awesome_outlined,
+                  size: 48,
+                  color: theme.colorScheme.outlineVariant,
+                ),
                 const SizedBox(height: 12),
                 Text(
                   t.summary.no_summary_type(type: typeLabel(type)),
@@ -64,7 +68,8 @@ class GalleryTab extends ConsumerWidget {
         return LayoutBuilder(
           builder: (context, constraints) {
             final isWide = constraints.maxWidth > 600;
-            final selected = selectedSummary != null &&
+            final selected =
+                selectedSummary != null &&
                     summaries.any((s) => s.id == selectedSummary!.id)
                 ? selectedSummary
                 : summaries.first;
@@ -75,13 +80,20 @@ class GalleryTab extends ConsumerWidget {
                 children: [
                   SizedBox(
                     width: 280,
-                    child: _buildList(context, theme, summaries, selected,
-                        isWide: true, ref: ref),
+                    child: _buildList(
+                      context,
+                      theme,
+                      summaries,
+                      selected,
+                      isWide: true,
+                      ref: ref,
+                    ),
                   ),
                   Container(
                     width: 1,
-                    color:
-                        theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
+                    color: theme.colorScheme.outlineVariant.withValues(
+                      alpha: 0.5,
+                    ),
                   ),
                   Expanded(
                     child: selected != null
@@ -91,17 +103,28 @@ class GalleryTab extends ConsumerWidget {
                 ],
               );
             }
-            return _buildList(context, theme, summaries, selected,
-                isWide: false, ref: ref);
+            return _buildList(
+              context,
+              theme,
+              summaries,
+              selected,
+              isWide: false,
+              ref: ref,
+            );
           },
         );
       },
     );
   }
 
-  Widget _buildList(BuildContext context, ThemeData theme,
-      List<Summary> summaries, Summary? selected,
-      {bool isWide = true, WidgetRef? ref}) {
+  Widget _buildList(
+    BuildContext context,
+    ThemeData theme,
+    List<Summary> summaries,
+    Summary? selected, {
+    bool isWide = true,
+    WidgetRef? ref,
+  }) {
     return ListView.builder(
       padding: const EdgeInsets.only(right: 8, top: 8),
       itemCount: summaries.length,
@@ -125,7 +148,11 @@ class GalleryTab extends ConsumerWidget {
 
   /// 移动端展示总结详情的底部面板
   void _showMobileDetail(
-      BuildContext context, WidgetRef ref, ThemeData theme, Summary summary) {
+    BuildContext context,
+    WidgetRef ref,
+    ThemeData theme,
+    Summary summary,
+  ) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -162,7 +189,9 @@ class GalleryTab extends ConsumerWidget {
                           children: [
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 10, vertical: 4),
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
                               decoration: BoxDecoration(
                                 color: AppTheme.primary.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(6),
@@ -191,7 +220,8 @@ class GalleryTab extends ConsumerWidget {
                               onPressed: () {
                                 Navigator.pop(ctx);
                                 context.push(
-                                    '/diary/edit?summaryId=${summary.id}');
+                                  '/diary/edit?summaryId=${summary.id}',
+                                );
                               },
                             ),
                             IconButton(
@@ -209,8 +239,9 @@ class GalleryTab extends ConsumerWidget {
                         MarkdownBody(
                           data: summary.content,
                           styleSheet: MarkdownStyleSheet(
-                            p: theme.textTheme.bodyMedium
-                                ?.copyWith(height: 1.7),
+                            p: theme.textTheme.bodyMedium?.copyWith(
+                              height: 1.7,
+                            ),
                             h1: theme.textTheme.titleLarge,
                             h2: theme.textTheme.titleMedium,
                             h3: theme.textTheme.titleSmall,
@@ -238,7 +269,11 @@ class GalleryTab extends ConsumerWidget {
   }
 
   Widget _buildDetail(
-      BuildContext context, WidgetRef ref, ThemeData theme, Summary summary) {
+    BuildContext context,
+    WidgetRef ref,
+    ThemeData theme,
+    Summary summary,
+  ) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -247,8 +282,10 @@ class GalleryTab extends ConsumerWidget {
           Row(
             children: [
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: AppTheme.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(6),
@@ -297,7 +334,9 @@ class GalleryTab extends ConsumerWidget {
               horizontalRuleDecoration: BoxDecoration(
                 border: Border(
                   top: BorderSide(
-                    color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
+                    color: theme.colorScheme.outlineVariant.withValues(
+                      alpha: 0.5,
+                    ),
                     width: 1,
                   ),
                 ),
@@ -324,7 +363,9 @@ class GalleryTab extends ConsumerWidget {
             style: FilledButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () async {
               Navigator.pop(ctx);
-              await ref.read(summaryRepositoryProvider).deleteSummary(summary.id);
+              await ref
+                  .read(summaryRepositoryProvider)
+                  .deleteSummary(summary.id);
               ref.read(dataRefreshProvider.notifier).refresh();
               onDelete?.call();
             },
@@ -392,14 +433,22 @@ class GalleryListItem extends StatelessWidget {
           end: DateFormat('M/d').format(summary.endDate),
         );
       case SummaryType.monthly:
-        title = t.summary.card_month_title(month: summary.startDate.month.toString());
-        dateStr = t.summary.card_year_suffix(year: summary.startDate.year.toString());
+        title = t.summary.card_month_title(
+          month: summary.startDate.month.toString(),
+        );
+        dateStr = t.summary.card_year_suffix(
+          year: summary.startDate.year.toString(),
+        );
       case SummaryType.quarterly:
         final q = (summary.startDate.month / 3).ceil();
         title = '${t.common.quarter_prefix}$q';
-        dateStr = t.summary.card_year_suffix(year: summary.startDate.year.toString());
+        dateStr = t.summary.card_year_suffix(
+          year: summary.startDate.year.toString(),
+        );
       case SummaryType.yearly:
-        title = t.summary.card_year_suffix(year: summary.startDate.year.toString());
+        title = t.summary.card_year_suffix(
+          year: summary.startDate.year.toString(),
+        );
         dateStr = '';
     }
 
@@ -433,12 +482,7 @@ class GalleryListItem extends StatelessWidget {
                 : Colors.transparent,
             borderRadius: BorderRadius.circular(10),
             border: isSelected
-                ? Border(
-                    left: BorderSide(
-                      color: AppTheme.primary,
-                      width: 3,
-                    ),
-                  )
+                ? Border(left: BorderSide(color: AppTheme.primary, width: 3))
                 : null,
           ),
           child: Column(
@@ -450,8 +494,9 @@ class GalleryListItem extends StatelessWidget {
                   Text(
                     title,
                     style: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight:
-                          isSelected ? FontWeight.bold : FontWeight.w600,
+                      fontWeight: isSelected
+                          ? FontWeight.bold
+                          : FontWeight.w600,
                       color: isSelected
                           ? AppTheme.primary
                           : theme.colorScheme.onSurface,

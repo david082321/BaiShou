@@ -28,17 +28,17 @@ class DiarySearchTool extends AgentTool {
 
   @override
   List<ToolConfigParam> get configurableParams => [
-        ToolConfigParam(
-          key: 'max_results',
-          label: t.agent.tools.param_max_results,
-          description: t.agent.tools.param_max_results_desc,
-          type: ParamType.integer,
-          defaultValue: 10,
-          min: 1,
-          max: 50,
-          icon: Icons.format_list_numbered,
-        ),
-      ];
+    ToolConfigParam(
+      key: 'max_results',
+      label: t.agent.tools.param_max_results,
+      description: t.agent.tools.param_max_results_desc,
+      type: ParamType.integer,
+      defaultValue: 10,
+      min: 1,
+      max: 50,
+      icon: Icons.format_list_numbered,
+    ),
+  ];
 
   @override
   String get description =>
@@ -50,32 +50,30 @@ class DiarySearchTool extends AgentTool {
 
   @override
   Map<String, dynamic> get parameterSchema => {
-        'type': 'object',
-        'properties': {
-          'query': {
-            'type': 'string',
-            'description':
-                'The search keyword or phrase to find in diary entries.',
-          },
-          'start_date': {
-            'type': 'string',
-            'description':
-                'Optional. Only search diary entries on or after this date (YYYY-MM-DD). '
-                    'Use this to narrow results to a specific time period.',
-          },
-          'end_date': {
-            'type': 'string',
-            'description':
-                'Optional. Only search diary entries on or before this date (YYYY-MM-DD).',
-          },
-          'limit': {
-            'type': 'integer',
-            'description':
-                'Maximum number of results to return. Defaults to 10.',
-          },
-        },
-        'required': ['query'],
-      };
+    'type': 'object',
+    'properties': {
+      'query': {
+        'type': 'string',
+        'description': 'The search keyword or phrase to find in diary entries.',
+      },
+      'start_date': {
+        'type': 'string',
+        'description':
+            'Optional. Only search diary entries on or after this date (YYYY-MM-DD). '
+            'Use this to narrow results to a specific time period.',
+      },
+      'end_date': {
+        'type': 'string',
+        'description':
+            'Optional. Only search diary entries on or before this date (YYYY-MM-DD).',
+      },
+      'limit': {
+        'type': 'integer',
+        'description': 'Maximum number of results to return. Defaults to 10.',
+      },
+    },
+    'required': ['query'],
+  };
 
   @override
   Future<ToolResult> execute(
@@ -110,8 +108,7 @@ class DiarySearchTool extends AgentTool {
 
       // 使用 FTS5 MATCH 语法搜索
       // snippet() 函数返回匹配上下文，方便 Agent 理解内容
-      final results = db.select(
-        '''
+      final results = db.select('''
         SELECT 
           ji.date,
           ji.mood,
@@ -123,9 +120,7 @@ class DiarySearchTool extends AgentTool {
         WHERE journals_fts MATCH ?$dateFilter
         ORDER BY ji.date DESC
         LIMIT ?
-        ''',
-        params,
-      );
+        ''', params);
 
       if (results.isEmpty) {
         return ToolResult(
@@ -208,15 +203,17 @@ class DiarySearchTool extends AgentTool {
 
       final buffer = StringBuffer()
         ..writeln(
-            'Found ${results.length} diary entries matching "$query" (fuzzy):')
+          'Found ${results.length} diary entries matching "$query" (fuzzy):',
+        )
         ..writeln();
 
       for (final row in results) {
         final date = row['date'] as String;
         final content = row['content'] as String? ?? '';
         // 截取前 200 字作为摘要
-        final preview =
-            content.length > 200 ? '${content.substring(0, 200)}...' : content;
+        final preview = content.length > 200
+            ? '${content.substring(0, 200)}...'
+            : content;
         buffer.writeln('## $date');
         buffer.writeln(preview);
         buffer.writeln();

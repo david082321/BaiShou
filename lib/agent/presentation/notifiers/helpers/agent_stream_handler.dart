@@ -58,7 +58,11 @@ class AgentStreamHandler {
             );
             break;
 
-          case AgentToolComplete(:final toolCall, :final result, :final durationMs):
+          case AgentToolComplete(
+            :final toolCall,
+            :final result,
+            :final durationMs,
+          ):
             updateSessionState(
               sessionId,
               currentState.copyWith(
@@ -71,7 +75,8 @@ class AgentStreamHandler {
             );
 
             // 日记编辑/删除成功后，触发外部回调刷新索引
-            if ((toolCall.name == 'diary_edit' || toolCall.name == 'diary_delete') &&
+            if ((toolCall.name == 'diary_edit' ||
+                    toolCall.name == 'diary_delete') &&
                 result.success) {
               onDiaryWriteSuccess(toolCall.arguments);
             }
@@ -125,7 +130,8 @@ class AgentStreamHandler {
                 completedTools: const [],
                 totalInputTokens: newInputTokens,
                 totalOutputTokens: newOutputTokens,
-                lastInputTokens: usage?.inputTokens ?? latestState.lastInputTokens,
+                lastInputTokens:
+                    usage?.inputTokens ?? latestState.lastInputTokens,
               ),
             );
 
@@ -158,9 +164,9 @@ class AgentStreamHandler {
 
             // 异步副作用：压缩检查
             if (usage != null) {
-              final session = await (db.select(db.agentSessions)
-                    ..where((t) => t.id.equals(sessionId)))
-                  .getSingleOrNull();
+              final session = await (db.select(
+                db.agentSessions,
+              )..where((t) => t.id.equals(sessionId))).getSingleOrNull();
               if (session?.assistantId != null) {
                 final assist = await assistantRepo.get(session!.assistantId!);
                 final threshold = assist?.compressTokenThreshold ?? 0;

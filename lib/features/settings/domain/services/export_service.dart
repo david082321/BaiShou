@@ -92,16 +92,38 @@ class ExportService {
     _addJsonFile(archive, 'data/summaries.json', summariesJson);
 
     // 4.5 提取并写入所有 Agent 表结构与 RAG 向量
-    final assistants = await _agentDatabase.select(_agentDatabase.agentAssistants).get();
-    final sessions = await _agentDatabase.select(_agentDatabase.agentSessions).get();
-    final messages = await _agentDatabase.select(_agentDatabase.agentMessages).get();
+    final assistants = await _agentDatabase
+        .select(_agentDatabase.agentAssistants)
+        .get();
+    final sessions = await _agentDatabase
+        .select(_agentDatabase.agentSessions)
+        .get();
+    final messages = await _agentDatabase
+        .select(_agentDatabase.agentMessages)
+        .get();
     final parts = await _agentDatabase.select(_agentDatabase.agentParts).get();
     final embeddings = await _agentDatabase.getAllEmbeddingsForExport();
 
-    _addJsonFile(archive, 'data/ai_assistants.json', assistants.map((e) => e.toJson()).toList());
-    _addJsonFile(archive, 'data/agent_sessions.json', sessions.map((e) => e.toJson()).toList());
-    _addJsonFile(archive, 'data/agent_messages.json', messages.map((e) => e.toJson()).toList());
-    _addJsonFile(archive, 'data/agent_parts.json', parts.map((e) => e.toJson()).toList());
+    _addJsonFile(
+      archive,
+      'data/ai_assistants.json',
+      assistants.map((e) => e.toJson()).toList(),
+    );
+    _addJsonFile(
+      archive,
+      'data/agent_sessions.json',
+      sessions.map((e) => e.toJson()).toList(),
+    );
+    _addJsonFile(
+      archive,
+      'data/agent_messages.json',
+      messages.map((e) => e.toJson()).toList(),
+    );
+    _addJsonFile(
+      archive,
+      'data/agent_parts.json',
+      parts.map((e) => e.toJson()).toList(),
+    );
 
     final embeddingsJson = embeddings.map((e) {
       final copy = Map<String, dynamic>.from(e);
@@ -118,7 +140,9 @@ class ExportService {
     // VaultService 返回的是 AsyncData。
     final currentVault = _vaultService.state.value;
     if (currentVault != null) {
-      final vaultDir = await _storagePathService.getVaultDirectory(currentVault.name);
+      final vaultDir = await _storagePathService.getVaultDirectory(
+        currentVault.name,
+      );
       final attachmentsDir = Directory(p.join(vaultDir.path, 'attachments'));
       if (attachmentsDir.existsSync()) {
         final entities = attachmentsDir.listSync(recursive: true);
@@ -237,10 +261,12 @@ class ExportService {
         sb.writeln();
       }
 
-      final year = dateStr.substring(0, 4);  // yyyy
+      final year = dateStr.substring(0, 4); // yyyy
       final month = dateStr.substring(5, 7); // MM
       final bytes = utf8.encode(sb.toString());
-      archive.addFile(ArchiveFile('markdown/$year/$month/$dateStr.md', bytes.length, bytes));
+      archive.addFile(
+        ArchiveFile('markdown/$year/$month/$dateStr.md', bytes.length, bytes),
+      );
     }
   }
 

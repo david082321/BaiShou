@@ -23,7 +23,11 @@ class DiaryScrollToTopNotifier extends Notifier<int> {
   int build() => 0;
   void trigger() => state++;
 }
-final diaryScrollToTopProvider = NotifierProvider<DiaryScrollToTopNotifier, int>(DiaryScrollToTopNotifier.new);
+
+final diaryScrollToTopProvider =
+    NotifierProvider<DiaryScrollToTopNotifier, int>(
+      DiaryScrollToTopNotifier.new,
+    );
 
 /// 日记列表页面
 /// 架构：UI 直接绑定内存 VaultIndex（Obsidian 模式），无游标分页，无 StreamSubscription。
@@ -241,9 +245,17 @@ class _DiaryListPageState extends ConsumerState<DiaryListPage> {
       icon: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.folder_rounded, size: 18, color: theme.colorScheme.primary),
+          Icon(
+            Icons.folder_rounded,
+            size: 18,
+            color: theme.colorScheme.primary,
+          ),
           const SizedBox(width: 2),
-          Icon(Icons.arrow_drop_down, size: 16, color: theme.colorScheme.onSurfaceVariant),
+          Icon(
+            Icons.arrow_drop_down,
+            size: 16,
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
         ],
       ),
       tooltip: t.common.switch_vault,
@@ -252,22 +264,28 @@ class _DiaryListPageState extends ConsumerState<DiaryListPage> {
           service.switchVault(name);
         }
       },
-      itemBuilder: (context) => vaults.map((v) => PopupMenuItem<String>(
-        value: v.name,
-        child: Row(
-          children: [
-            Icon(
-              v.name == activeVaultName ? Icons.check_circle : Icons.circle_outlined,
-              size: 16,
-              color: v.name == activeVaultName
-                  ? theme.colorScheme.primary
-                  : theme.colorScheme.onSurfaceVariant,
+      itemBuilder: (context) => vaults
+          .map(
+            (v) => PopupMenuItem<String>(
+              value: v.name,
+              child: Row(
+                children: [
+                  Icon(
+                    v.name == activeVaultName
+                        ? Icons.check_circle
+                        : Icons.circle_outlined,
+                    size: 16,
+                    color: v.name == activeVaultName
+                        ? theme.colorScheme.primary
+                        : theme.colorScheme.onSurfaceVariant,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(v.name),
+                ],
+              ),
             ),
-            const SizedBox(width: 8),
-            Text(v.name),
-          ],
-        ),
-      )).toList(),
+          )
+          .toList(),
     );
   }
 

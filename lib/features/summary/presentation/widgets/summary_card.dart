@@ -122,20 +122,21 @@ class SummaryCard extends StatelessWidget {
                   },
                   blendMode: BlendMode.dstIn,
                   child: ScrollConfiguration(
-                    behavior: ScrollConfiguration.of(context)
-                        .copyWith(scrollbars: false),
+                    behavior: ScrollConfiguration.of(
+                      context,
+                    ).copyWith(scrollbars: false),
                     child: SingleChildScrollView(
                       physics: const NeverScrollableScrollPhysics(), // 禁止滚动
                       child: MarkdownBody(
                         data: summary.content.length > 1000
                             ? '${summary.content.substring(0, 1000)}...'
                             : summary.content, // 截断过长内容以优化性能
-                      styleSheet: MarkdownStyleSheet(
-                        p: TextStyle(
-                          fontSize: 14,
-                          height: 1.5,
-                          color: theme.textTheme.bodyMedium?.color?.withOpacity(
-                            0.8,
+                        styleSheet: MarkdownStyleSheet(
+                          p: TextStyle(
+                            fontSize: 14,
+                            height: 1.5,
+                            color: theme.textTheme.bodyMedium?.color
+                                ?.withOpacity(0.8),
                           ),
                         ),
                       ),
@@ -143,7 +144,6 @@ class SummaryCard extends StatelessWidget {
                   ),
                 ),
               ),
-            ),
 
               const SizedBox(height: 16),
 

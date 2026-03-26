@@ -44,16 +44,17 @@ class AgentContextBuilder {
 
     final db = ref.read(agentDatabaseProvider);
     final assistantRepo = ref.read(assistantRepositoryProvider);
-    final session = await (db.select(db.agentSessions)
-          ..where((t) => t.id.equals(sessionId)))
-        .getSingleOrNull();
+    final session = await (db.select(
+      db.agentSessions,
+    )..where((t) => t.id.equals(sessionId))).getSingleOrNull();
 
     if (session?.assistantId != null) {
       final assistant = await assistantRepo.get(session!.assistantId!);
       if (assistant != null) {
         hasAssistant = true;
-        resolvedPersona =
-            assistant.systemPrompt.isNotEmpty ? assistant.systemPrompt : null;
+        resolvedPersona = assistant.systemPrompt.isNotEmpty
+            ? assistant.systemPrompt
+            : null;
         assistantContextWindow = assistant.contextWindow;
       }
     }
@@ -63,8 +64,9 @@ class AgentContextBuilder {
 
     final systemPrompt = SystemPromptBuilder.build(
       persona: resolvedPersona,
-      guidelines:
-          hasAssistant ? null : (guidelines ?? apiConfig.agentGuidelines),
+      guidelines: hasAssistant
+          ? null
+          : (guidelines ?? apiConfig.agentGuidelines),
       userProfileBlock: userProfile.toMarkdownBlock(),
       vaultName: vaultName,
       tools: tools,

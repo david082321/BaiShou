@@ -33,10 +33,16 @@ void main() {
       AiClientFactory.setTestClient(mockAiClient);
 
       // 默认基础配置
-      when(() => mockApiConfig.globalEmbeddingProviderId).thenReturn('mock_provider');
-      when(() => mockApiConfig.globalEmbeddingModelId).thenReturn('mock_model_v2');
-      when(() => mockApiConfig.getProvider('mock_provider')).thenReturn(dummyProvider);
-      
+      when(
+        () => mockApiConfig.globalEmbeddingProviderId,
+      ).thenReturn('mock_provider');
+      when(
+        () => mockApiConfig.globalEmbeddingModelId,
+      ).thenReturn('mock_model_v2');
+      when(
+        () => mockApiConfig.getProvider('mock_provider'),
+      ).thenReturn(dummyProvider);
+
       embeddingService = EmbeddingService(mockApiConfig, db);
     });
 
@@ -49,22 +55,28 @@ void main() {
       // Arrange（准备）
       // 1. 初始化旧数据 (old_model, dim=2)
       await seedEmbeddingData(db, count: 5, modelId: 'old_model', dimension: 2);
-      
+
       // 2. 切换到新模型并配置 Mock 维度
-      when(() => mockApiConfig.globalEmbeddingModelId).thenReturn('new_model_dim3');
+      when(
+        () => mockApiConfig.globalEmbeddingModelId,
+      ).thenReturn('new_model_dim3');
       // Mock 返回新维度的假向量
-      when(() => mockAiClient.generateEmbedding(
-            input: any(named: 'input'),
-            modelId: any(named: 'modelId'),
-          )).thenAnswer((_) async => [0.1, 0.2, 0.3]); // 返回 3 维假数据
-      when(() => mockApiConfig.setGlobalEmbeddingDimension(3)).thenAnswer((_) async {});
+      when(
+        () => mockAiClient.generateEmbedding(
+          input: any(named: 'input'),
+          modelId: any(named: 'modelId'),
+        ),
+      ).thenAnswer((_) async => [0.1, 0.2, 0.3]); // 返回 3 维假数据
+      when(
+        () => mockApiConfig.setGlobalEmbeddingDimension(3),
+      ).thenAnswer((_) async {});
 
       // Act（执行）
       final events = await embeddingService.migrateEmbeddings().toList();
 
       // Assert（断言）
       expect(events.last.status, contains('迁移完成 ✅'));
-      
+
       // 验证数据量未丢失
       final count = await db.getEmbeddingCount();
       expect(count, 5);
@@ -87,13 +99,17 @@ void main() {
       await seedEmbeddingData(db, count: 5, modelId: 'old_model', dimension: 2);
       await db.createMigrationBackup();
       await db.clearAndReinitEmbeddings(3);
-      
+
       // 设定模型和 Mock 响应
-      when(() => mockApiConfig.globalEmbeddingModelId).thenReturn('new_model_dim3');
-      when(() => mockAiClient.generateEmbedding(
-            input: any(named: 'input'),
-            modelId: any(named: 'modelId'),
-          )).thenAnswer((_) async => [0.1, 0.2, 0.3]);
+      when(
+        () => mockApiConfig.globalEmbeddingModelId,
+      ).thenReturn('new_model_dim3');
+      when(
+        () => mockAiClient.generateEmbedding(
+          input: any(named: 'input'),
+          modelId: any(named: 'modelId'),
+        ),
+      ).thenAnswer((_) async => [0.1, 0.2, 0.3]);
 
       // 模拟只重嵌了前面 2 条 chunk
       final backupChunks = await db.getUnmigratedBackupChunks();
@@ -123,7 +139,7 @@ void main() {
       // 验证数据完整性
       final count = await db.getEmbeddingCount();
       expect(count, 5); // 之前的 2 条 + 刚跑的 3 条
-      
+
       final hasPending = await db.hasPendingMigration();
       expect(hasPending, isFalse);
     });
@@ -145,11 +161,15 @@ void main() {
       // Arrange（准备）
       // 空数据库
       when(() => mockApiConfig.globalEmbeddingModelId).thenReturn('new_model');
-      when(() => mockApiConfig.getProvider('mock_provider')).thenReturn(dummyProvider);
-      when(() => mockAiClient.generateEmbedding(
-            input: any(named: 'input'),
-            modelId: any(named: 'modelId'),
-          )).thenAnswer((_) async => [0.1]);
+      when(
+        () => mockApiConfig.getProvider('mock_provider'),
+      ).thenReturn(dummyProvider);
+      when(
+        () => mockAiClient.generateEmbedding(
+          input: any(named: 'input'),
+          modelId: any(named: 'modelId'),
+        ),
+      ).thenAnswer((_) async => [0.1]);
 
       // Act（执行）
       final events = await embeddingService.migrateEmbeddings().toList();

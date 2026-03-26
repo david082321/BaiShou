@@ -108,10 +108,7 @@ class _DesktopPicker extends ConsumerStatefulWidget {
   final String? currentAssistantId;
   final ValueChanged<AgentAssistant?> onSelect;
 
-  const _DesktopPicker({
-    this.currentAssistantId,
-    required this.onSelect,
-  });
+  const _DesktopPicker({this.currentAssistantId, required this.onSelect});
 
   @override
   ConsumerState<_DesktopPicker> createState() => _DesktopPickerState();
@@ -165,8 +162,11 @@ class _DesktopPickerState extends ConsumerState<_DesktopPicker>
                 padding: const EdgeInsets.fromLTRB(16, 20, 16, 12),
                 child: Row(
                   children: [
-                    Icon(Icons.auto_awesome_rounded,
-                        size: 18, color: colorScheme.primary),
+                    Icon(
+                      Icons.auto_awesome_rounded,
+                      size: 18,
+                      color: colorScheme.primary,
+                    ),
                     const SizedBox(width: 8),
                     Text(
                       t.agent.assistant.select_title,
@@ -186,11 +186,15 @@ class _DesktopPickerState extends ConsumerState<_DesktopPicker>
                       setState(() => _searchQuery = v.toLowerCase()),
                   decoration: InputDecoration(
                     hintText: '搜索...',
-                    prefixIcon: Icon(Icons.search_rounded,
-                        size: 18, color: colorScheme.outline),
+                    prefixIcon: Icon(
+                      Icons.search_rounded,
+                      size: 18,
+                      color: colorScheme.outline,
+                    ),
                     filled: true,
-                    fillColor: colorScheme.surfaceContainerHighest
-                        .withValues(alpha: 0.4),
+                    fillColor: colorScheme.surfaceContainerHighest.withValues(
+                      alpha: 0.4,
+                    ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
                       borderSide: BorderSide.none,
@@ -214,14 +218,16 @@ class _DesktopPickerState extends ConsumerState<_DesktopPicker>
                     final filtered = _searchQuery.isEmpty
                         ? assistants
                         : assistants
-                            .where((a) =>
-                                a.name
-                                    .toLowerCase()
-                                    .contains(_searchQuery) ||
-                                a.description
-                                    .toLowerCase()
-                                    .contains(_searchQuery))
-                            .toList();
+                              .where(
+                                (a) =>
+                                    a.name.toLowerCase().contains(
+                                      _searchQuery,
+                                    ) ||
+                                    a.description.toLowerCase().contains(
+                                      _searchQuery,
+                                    ),
+                              )
+                              .toList();
 
                     // 自动选中当前伙伴
                     if (_selectedAssistant == null && filtered.isNotEmpty) {
@@ -230,8 +236,7 @@ class _DesktopPickerState extends ConsumerState<_DesktopPicker>
                           setState(() {
                             _selectedAssistant = filtered.firstWhere(
                               (a) =>
-                                  a.id.toString() ==
-                                  widget.currentAssistantId,
+                                  a.id.toString() == widget.currentAssistantId,
                               orElse: () => filtered.first,
                             );
                           });
@@ -241,14 +246,16 @@ class _DesktopPickerState extends ConsumerState<_DesktopPicker>
 
                     // 选中项被数据刷新后同步
                     if (_selectedAssistant != null) {
-                      final refreshed = filtered.where(
-                        (a) => a.id == _selectedAssistant!.id).toList();
+                      final refreshed = filtered
+                          .where((a) => a.id == _selectedAssistant!.id)
+                          .toList();
                       if (refreshed.isNotEmpty &&
                           refreshed.first != _selectedAssistant) {
                         WidgetsBinding.instance.addPostFrameCallback((_) {
                           if (mounted) {
                             setState(
-                                () => _selectedAssistant = refreshed.first);
+                              () => _selectedAssistant = refreshed.first,
+                            );
                           }
                         });
                       }
@@ -273,7 +280,9 @@ class _DesktopPickerState extends ConsumerState<_DesktopPicker>
                     if (_searchQuery.isNotEmpty) {
                       return ListView.builder(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 4),
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         itemCount: filtered.length,
                         itemBuilder: (context, index) {
                           final a = filtered[index];
@@ -281,10 +290,9 @@ class _DesktopPickerState extends ConsumerState<_DesktopPicker>
                             key: ValueKey(a.id),
                             assistant: a,
                             isSelected: _selectedAssistant?.id == a.id,
-                            isCurrent: a.id.toString() ==
-                                widget.currentAssistantId,
-                            onTap: () =>
-                                setState(() => _selectedAssistant = a),
+                            isCurrent:
+                                a.id.toString() == widget.currentAssistantId,
+                            onTap: () => setState(() => _selectedAssistant = a),
                           );
                         },
                       );
@@ -292,7 +300,9 @@ class _DesktopPickerState extends ConsumerState<_DesktopPicker>
 
                     return ReorderableListView.builder(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 4),
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       itemCount: filtered.length,
                       buildDefaultDragHandles: false,
                       proxyDecorator: (child, _, __) => Material(
@@ -303,8 +313,7 @@ class _DesktopPickerState extends ConsumerState<_DesktopPicker>
                       ),
                       onReorder: (oldIndex, newIndex) {
                         if (oldIndex < newIndex) newIndex -= 1;
-                        final reordered =
-                            List<AgentAssistant>.from(filtered);
+                        final reordered = List<AgentAssistant>.from(filtered);
                         final item = reordered.removeAt(oldIndex);
                         reordered.insert(newIndex, item);
 
@@ -326,8 +335,7 @@ class _DesktopPickerState extends ConsumerState<_DesktopPicker>
                           isCurrent:
                               a.id.toString() == widget.currentAssistantId,
                           dragIndex: index,
-                          onTap: () =>
-                              setState(() => _selectedAssistant = a),
+                          onTap: () => setState(() => _selectedAssistant = a),
                         );
                       },
                     );
@@ -370,33 +378,37 @@ class _DesktopPickerState extends ConsumerState<_DesktopPicker>
           child: Container(
             color: colorScheme.surface,
             child: _selectedAssistant == null
-              ? Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.auto_awesome_outlined,
+                ? Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.auto_awesome_outlined,
                           size: 48,
-                          color: colorScheme.onSurfaceVariant
-                              .withValues(alpha: 0.2)),
-                      const SizedBox(height: 12),
-                      Text(
-                        '选择一个伙伴查看详情',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: colorScheme.onSurfaceVariant,
+                          color: colorScheme.onSurfaceVariant.withValues(
+                            alpha: 0.2,
+                          ),
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 12),
+                        Text(
+                          '选择一个伙伴查看详情',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                : PickerDetailPanel(
+                    key: ValueKey(_selectedAssistant!.id),
+                    assistant: _selectedAssistant!,
+                    isCurrent:
+                        _selectedAssistant!.id.toString() ==
+                        widget.currentAssistantId,
+                    tabController: _tabController,
+                    onSelect: () => widget.onSelect(_selectedAssistant),
+                    onAssistantUpdated: _onAssistantUpdated,
                   ),
-                )
-              : PickerDetailPanel(
-                  key: ValueKey(_selectedAssistant!.id),
-                  assistant: _selectedAssistant!,
-                  isCurrent: _selectedAssistant!.id.toString() ==
-                      widget.currentAssistantId,
-                  tabController: _tabController,
-                  onSelect: () => widget.onSelect(_selectedAssistant),
-                  onAssistantUpdated: _onAssistantUpdated,
-                ),
           ),
         ),
       ],

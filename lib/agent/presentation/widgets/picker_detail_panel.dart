@@ -72,8 +72,9 @@ class _PickerDetailPanelState extends ConsumerState<PickerDetailPanel> {
       providerId: _selectedProviderId,
       modelId: _selectedModelId,
       clearModel: _selectedProviderId == null,
-      compressTokenThreshold:
-          _isCompressEnabled ? _compressThreshold.round() : 0,
+      compressTokenThreshold: _isCompressEnabled
+          ? _compressThreshold.round()
+          : 0,
       compressKeepTurns: _compressKeepTurns.round(),
     );
     ref.invalidate(assistantListProvider);
@@ -109,8 +110,11 @@ class _PickerDetailPanelState extends ConsumerState<PickerDetailPanel> {
                 padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
                 child: Row(
                   children: [
-                    buildAssistantAvatar(widget.assistant, colorScheme,
-                        size: 38),
+                    buildAssistantAvatar(
+                      widget.assistant,
+                      colorScheme,
+                      size: 38,
+                    ),
                     const SizedBox(width: 14),
                     Expanded(
                       child: Column(
@@ -121,8 +125,7 @@ class _PickerDetailPanelState extends ConsumerState<PickerDetailPanel> {
                               Flexible(
                                 child: Text(
                                   widget.assistant.name,
-                                  style:
-                                      theme.textTheme.titleMedium?.copyWith(
+                                  style: theme.textTheme.titleMedium?.copyWith(
                                     fontWeight: FontWeight.bold,
                                   ),
                                   maxLines: 1,
@@ -134,8 +137,7 @@ class _PickerDetailPanelState extends ConsumerState<PickerDetailPanel> {
                                 PickerTag(
                                   text: t.agent.assistant.default_tag,
                                   color: colorScheme.tertiaryContainer,
-                                  textColor:
-                                      colorScheme.onTertiaryContainer,
+                                  textColor: colorScheme.onTertiaryContainer,
                                 ),
                               ],
                               if (widget.isCurrent) ...[
@@ -175,8 +177,7 @@ class _PickerDetailPanelState extends ConsumerState<PickerDetailPanel> {
                 labelStyle: theme.textTheme.bodySmall?.copyWith(
                   fontWeight: FontWeight.w600,
                 ),
-                labelPadding:
-                    const EdgeInsets.symmetric(horizontal: 16),
+                labelPadding: const EdgeInsets.symmetric(horizontal: 16),
                 tabs: const [
                   Tab(text: '提示词', height: 36),
                   Tab(text: '记忆', height: 36),
@@ -221,8 +222,7 @@ class _PickerDetailPanelState extends ConsumerState<PickerDetailPanel> {
                   _save();
                 },
                 onUnlimitedToggled: (v) {
-                  setState(
-                      () => _contextWindow = v ? -1 : 20);
+                  setState(() => _contextWindow = v ? -1 : 20);
                   _save();
                 },
                 onCompressToggled: (v) {

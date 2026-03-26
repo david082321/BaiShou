@@ -32,15 +32,14 @@ void main() {
     /// 向数据库填充一组完整的 Agent 测试数据（伙伴、会话、消息、Part）
     Future<void> seedAgentData() async {
       // 1. 插入 Assistant
-      await db.into(db.agentAssistants).insert(
-            AgentAssistantsCompanion.insert(
-              id: 'ast_1',
-              name: '测试伙伴',
-            ),
-          );
+      await db
+          .into(db.agentAssistants)
+          .insert(AgentAssistantsCompanion.insert(id: 'ast_1', name: '测试伙伴'));
 
       // 2. 插入 Session
-      await db.into(db.agentSessions).insert(
+      await db
+          .into(db.agentSessions)
+          .insert(
             AgentSessionsCompanion.insert(
               id: 'ses_1',
               vaultName: 'Personal',
@@ -52,7 +51,9 @@ void main() {
           );
 
       // 3. 插入 Messages
-      await db.into(db.agentMessages).insert(
+      await db
+          .into(db.agentMessages)
+          .insert(
             AgentMessagesCompanion.insert(
               id: 'msg_user_1',
               sessionId: 'ses_1',
@@ -60,7 +61,9 @@ void main() {
               orderIndex: 1,
             ),
           );
-      await db.into(db.agentMessages).insert(
+      await db
+          .into(db.agentMessages)
+          .insert(
             AgentMessagesCompanion.insert(
               id: 'msg_ast_1',
               sessionId: 'ses_1',
@@ -70,7 +73,9 @@ void main() {
           );
 
       // 4. 插入 Parts (text 类型)
-      await db.into(db.agentParts).insert(
+      await db
+          .into(db.agentParts)
+          .insert(
             AgentPartsCompanion.insert(
               id: 'msg_user_1_p0',
               messageId: 'msg_user_1',
@@ -79,7 +84,9 @@ void main() {
               data: '{"text":"Hello this is a test message for export"}',
             ),
           );
-      await db.into(db.agentParts).insert(
+      await db
+          .into(db.agentParts)
+          .insert(
             AgentPartsCompanion.insert(
               id: 'msg_ast_1_p0',
               messageId: 'msg_ast_1',
@@ -97,8 +104,7 @@ void main() {
       await seedEmbeddingData(db, count: 3, modelId: 'test', dimension: 2);
 
       // 确保数据存在
-      final sessionsBefore =
-          await db.select(db.agentSessions).get();
+      final sessionsBefore = await db.select(db.agentSessions).get();
       expect(sessionsBefore.length, 1);
       final embCountBefore = await db.getEmbeddingCount();
       expect(embCountBefore, 3);
@@ -182,10 +188,8 @@ void main() {
       for (int i = 0; i < 2; i++) {
         final origBytes = exported[i]['embedding'] as Uint8List;
         final newBytes = final_[i]['embedding'] as Uint8List;
-        expect(newBytes.length, origBytes.length,
-            reason: 'BLOB 长度应相同');
-        expect(newBytes, orderedEquals(origBytes),
-            reason: 'BLOB 内容应完全一致');
+        expect(newBytes.length, origBytes.length, reason: 'BLOB 长度应相同');
+        expect(newBytes, orderedEquals(origBytes), reason: 'BLOB 内容应完全一致');
       }
     });
 
@@ -224,14 +228,10 @@ void main() {
       await seedEmbeddingData(db, count: 5, modelId: 'e2e_model', dimension: 2);
 
       // 2. 导出所有表
-      final expAssistants =
-          await db.select(db.agentAssistants).get();
-      final expSessions =
-          await db.select(db.agentSessions).get();
-      final expMessages =
-          await db.select(db.agentMessages).get();
-      final expParts =
-          await db.select(db.agentParts).get();
+      final expAssistants = await db.select(db.agentAssistants).get();
+      final expSessions = await db.select(db.agentSessions).get();
+      final expMessages = await db.select(db.agentMessages).get();
+      final expParts = await db.select(db.agentParts).get();
       final expEmbeddings = await db.getAllEmbeddingsForExport();
 
       // 3. 清空

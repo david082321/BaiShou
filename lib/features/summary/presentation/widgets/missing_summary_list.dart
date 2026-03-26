@@ -65,9 +65,8 @@ class _MissingSummaryListState extends ConsumerState<MissingSummaryList> {
                         const SizedBox(width: 8),
                         Text(
                           t.summary.ai_suggestions,
-                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style: Theme.of(context).textTheme.titleSmall
+                              ?.copyWith(fontWeight: FontWeight.bold),
                         ),
                       ],
                     ),
@@ -103,8 +102,8 @@ class _MissingSummaryListState extends ConsumerState<MissingSummaryList> {
                           Text(
                             _isBatchProcessing
                                 ? (_cancelRequested
-                                    ? t.summary.stopping
-                                    : t.summary.stop_generating)
+                                      ? t.summary.stopping
+                                      : t.summary.stop_generating)
                                 : t.summary.generate_all,
                             style: const TextStyle(
                               fontWeight: FontWeight.w600,
@@ -121,25 +120,42 @@ class _MissingSummaryListState extends ConsumerState<MissingSummaryList> {
                       onSelected: (val) {
                         setState(() => _concurrencyLimit = val);
                       },
-                      itemBuilder: (context) => [1, 2, 3, 4, 5].map((e) => PopupMenuItem(
-                        value: e,
-                        child: Text(t.summary.concurrency_count(count: e)),
-                      )).toList(),
+                      itemBuilder: (context) => [1, 2, 3, 4, 5]
+                          .map(
+                            (e) => PopupMenuItem(
+                              value: e,
+                              child: Text(
+                                t.summary.concurrency_count(count: e),
+                              ),
+                            ),
+                          )
+                          .toList(),
                       position: PopupMenuPosition.under,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: AppTheme.primary.withValues(alpha: 0.05),
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: AppTheme.primary.withValues(alpha: 0.2)),
+                          border: Border.all(
+                            color: AppTheme.primary.withValues(alpha: 0.2),
+                          ),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.speed_rounded, size: 14, color: AppTheme.primary),
+                            Icon(
+                              Icons.speed_rounded,
+                              size: 14,
+                              color: AppTheme.primary,
+                            ),
                             const SizedBox(width: 4),
                             Text(
-                              t.summary.concurrency_count(count: _concurrencyLimit),
+                              t.summary.concurrency_count(
+                                count: _concurrencyLimit,
+                              ),
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.bold,
@@ -184,24 +200,24 @@ class _MissingSummaryListState extends ConsumerState<MissingSummaryList> {
                         crossAxisSpacing: 16,
                         mainAxisSpacing: 12,
                       ),
-                  itemCount: missing.length,
-                  itemBuilder: (context, index) {
-                    final item = missing[index];
-                    final key = item.label;
-                    final status = generationStatus[key];
-                    return MissingSummaryCard(
-                      item: item,
-                      status: status,
-                      onGenerate: () => _generate(item),
+                      itemCount: missing.length,
+                      itemBuilder: (context, index) {
+                        final item = missing[index];
+                        final key = item.label;
+                        final status = generationStatus[key];
+                        return MissingSummaryCard(
+                          item: item,
+                          status: status,
+                          onGenerate: () => _generate(item),
+                        );
+                      },
                     );
                   },
-                );
-              },
-            ),
-          ],
+                ),
+              ],
+            );
+          },
         );
-      },
-    );
       },
     );
   }
@@ -269,30 +285,34 @@ class _MissingSummaryListState extends ConsumerState<MissingSummaryList> {
   Future<void> _batchGenerate(List<MissingSummary> items) async {
     if (_isBatchProcessing) return;
     if (!_checkModelConfigured()) return;
-    
+
     if (mounted) {
       setState(() {
         _isBatchProcessing = true;
         _cancelRequested = false;
       });
     }
-    
+
     final queue = List<MissingSummary>.from(items);
     final List<Future<void>> workers = [];
-    
+
     Future<void> worker() async {
       while (queue.isNotEmpty && !_cancelRequested) {
         final item = queue.removeAt(0);
-        await _generate(item, cancelCheck: () => _cancelRequested, isBatch: true);
+        await _generate(
+          item,
+          cancelCheck: () => _cancelRequested,
+          isBatch: true,
+        );
       }
     }
-    
+
     for (int i = 0; i < _concurrencyLimit; i++) {
-       workers.add(worker());
+      workers.add(worker());
     }
-    
+
     await Future.wait(workers);
-    
+
     // 批量全部完成后，统一刷新一次
     if (mounted) {
       ref.read(dataRefreshProvider.notifier).refresh();
@@ -314,7 +334,11 @@ class _MissingSummaryListState extends ConsumerState<MissingSummaryList> {
     }
   }
 
-  Future<void> _generate(MissingSummary item, {bool Function()? cancelCheck, bool isBatch = false}) async {
+  Future<void> _generate(
+    MissingSummary item, {
+    bool Function()? cancelCheck,
+    bool isBatch = false,
+  }) async {
     if (!_checkModelConfigured()) return;
     final key = item.label;
     final service = GenerationStateService();

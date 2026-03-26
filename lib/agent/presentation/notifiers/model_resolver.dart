@@ -46,8 +46,10 @@ class ModelResolver {
     }
 
     // 2. 会话级快速切换（最高优先级）
-    if (sessionProviderId != null && sessionProviderId.isNotEmpty &&
-        sessionModelId != null && sessionModelId.isNotEmpty) {
+    if (sessionProviderId != null &&
+        sessionProviderId.isNotEmpty &&
+        sessionModelId != null &&
+        sessionModelId.isNotEmpty) {
       providerId = sessionProviderId;
       modelId = sessionModelId;
     }
@@ -55,4 +57,3 @@ class ModelResolver {
     return ResolvedModel(providerId: providerId, modelId: modelId);
   }
 }
-

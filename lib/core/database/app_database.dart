@@ -35,7 +35,10 @@ class AppDatabase extends _$AppDatabase {
 
 /// 使用 NativeDatabase + LazyDatabase 打开数据库连接
 /// 替代原来的 drift_flutter driftDatabase()
-QueryExecutor _openConnection(StoragePathService pathService, String workspace) {
+QueryExecutor _openConnection(
+  StoragePathService pathService,
+  String workspace,
+) {
   return LazyDatabase(() async {
     final sysDir = await pathService.getVaultSystemDirectory(workspace);
     final dbFile = File(p.join(sysDir.path, 'baishou.sqlite'));
@@ -63,13 +66,13 @@ AppDatabase appDatabase(Ref ref) {
 
   final db = AppDatabase(_openConnection(pathService, vaultName));
   _previousAppDb = db;
-  
+
   ref.onDispose(() {
     db.close();
     if (_previousAppDb == db) {
       _previousAppDb = null;
     }
   });
-  
+
   return db;
 }

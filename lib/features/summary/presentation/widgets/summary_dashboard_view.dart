@@ -142,8 +142,9 @@ class _SummaryDashboardViewState extends ConsumerState<SummaryDashboardView>
   Future<void> _copyContext() async {
     if (_result == null) return;
     final prefix = ref.read(summaryFilterProvider).copyContextPrefix;
-    final textToCopy =
-        prefix.isEmpty ? _result!.text : "$prefix\n\n${_result!.text}";
+    final textToCopy = prefix.isEmpty
+        ? _result!.text
+        : "$prefix\n\n${_result!.text}";
     await Clipboard.setData(ClipboardData(text: textToCopy));
     if (mounted) {
       AppToast.showSuccess(context, t.summary.toast_copied);
@@ -306,14 +307,9 @@ class _SummaryDashboardViewState extends ConsumerState<SummaryDashboardView>
           );
         }
         return Column(
-          children: [
-            sharedMemoryCard,
-            const SizedBox(height: 16),
-            statsCard,
-          ],
+          children: [sharedMemoryCard, const SizedBox(height: 16), statsCard],
         );
       },
     );
   }
 }
-

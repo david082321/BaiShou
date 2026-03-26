@@ -56,27 +56,27 @@ class _AgentMainPageState extends ConsumerState<AgentMainPage> {
       _sessionsSubscription = manager
           .watchSessionsByAssistant(_currentAssistant!.id)
           .listen((sessions) {
-        if (!mounted) return;
+            if (!mounted) return;
 
-        final previousSelectedId = _selectedSessionId;
-        setState(() {
-          _sessions = sessions;
-          if ((_selectedSessionId == null ||
-                  !sessions.any((s) => s.id == _selectedSessionId)) &&
-              sessions.isNotEmpty) {
-            _selectedSessionId = sessions.first.id;
-          }
-          _isLoading = false;
-        });
+            final previousSelectedId = _selectedSessionId;
+            setState(() {
+              _sessions = sessions;
+              if ((_selectedSessionId == null ||
+                      !sessions.any((s) => s.id == _selectedSessionId)) &&
+                  sessions.isNotEmpty) {
+                _selectedSessionId = sessions.first.id;
+              }
+              _isLoading = false;
+            });
 
-        if (_selectedSessionId != previousSelectedId &&
-            _selectedSessionId != null) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            final notifier = ref.read(agentChatProvider.notifier);
-            notifier.loadSession(_selectedSessionId!);
+            if (_selectedSessionId != previousSelectedId &&
+                _selectedSessionId != null) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                final notifier = ref.read(agentChatProvider.notifier);
+                notifier.loadSession(_selectedSessionId!);
+              });
+            }
           });
-        }
-      });
     } catch (e) {
       setState(() => _isLoading = false);
     }

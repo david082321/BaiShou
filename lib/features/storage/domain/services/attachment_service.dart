@@ -36,22 +36,24 @@ class AttachmentService {
   Future<List<AttachmentFolderInfo>> scanAttachments() async {
     final vaultDir = await _pathService.getVaultDirectory(_vaultName);
     final attBaseDir = Directory(p.join(vaultDir.path, 'attachments'));
-    
+
     if (!(await attBaseDir.exists())) {
       return [];
     }
 
     final result = <AttachmentFolderInfo>[];
-    
+
     // 异步遍历所有的 sessionId 文件夹
     final entities = await attBaseDir.list().toList();
     for (final entity in entities) {
       if (entity is Directory) {
         final sessionId = p.basename(entity.path);
-        
+
         // 查询数据库看会话是否存在
-        final session = await (_db.select(_db.agentSessions)..where((t) => t.id.equals(sessionId))).getSingleOrNull();
-        
+        final session = await (_db.select(
+          _db.agentSessions,
+        )..where((t) => t.id.equals(sessionId))).getSingleOrNull();
+
         // 统计文件夹内文件
         int totalBytes = 0;
         final files = <File>[];
@@ -73,13 +75,15 @@ class AttachmentService {
           continue;
         }
 
-        result.add(AttachmentFolderInfo(
-          sessionId: sessionId,
-          sessionTitle: session?.title,
-          fileCount: files.length,
-          totalBytes: totalBytes,
-          files: files,
-        ));
+        result.add(
+          AttachmentFolderInfo(
+            sessionId: sessionId,
+            sessionTitle: session?.title,
+            fileCount: files.length,
+            totalBytes: totalBytes,
+            files: files,
+          ),
+        );
       }
     }
 
@@ -124,7 +128,8 @@ class AttachmentList extends _$AttachmentList {
 
   Future<void> refresh() async {
     state = const AsyncLoading();
-    state = await AsyncValue.guard(() => ref.read(attachmentServiceProvider).scanAttachments());
+    state = await AsyncValue.guard(
+      () => ref.read(attachmentServiceProvider).scanAttachments(),
+    );
   }
 }
-

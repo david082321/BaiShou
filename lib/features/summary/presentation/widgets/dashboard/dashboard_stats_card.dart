@@ -35,8 +35,11 @@ class DashboardStatsCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(Icons.analytics_rounded,
-                  size: 20, color: Colors.green.shade600),
+              Icon(
+                Icons.analytics_rounded,
+                size: 20,
+                color: Colors.green.shade600,
+              ),
               const SizedBox(width: 8),
               Text(
                 '${t.common.app_title} · ${t.summary.stats_panel}',

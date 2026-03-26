@@ -31,17 +31,17 @@ class UrlReadTool extends AgentTool {
 
   @override
   List<ToolConfigParam> get configurableParams => [
-        ToolConfigParam(
-          key: 'max_length',
-          label: t.agent.tools.param_max_length,
-          description: t.agent.tools.param_max_length_desc,
-          type: ParamType.integer,
-          defaultValue: _defaultMaxLength,
-          min: 2000,
-          max: 20000,
-          icon: Icons.short_text,
-        ),
-      ];
+    ToolConfigParam(
+      key: 'max_length',
+      label: t.agent.tools.param_max_length,
+      description: t.agent.tools.param_max_length_desc,
+      type: ParamType.integer,
+      defaultValue: _defaultMaxLength,
+      min: 2000,
+      max: 20000,
+      icon: Icons.short_text,
+    ),
+  ];
 
   @override
   String get description =>
@@ -51,16 +51,16 @@ class UrlReadTool extends AgentTool {
 
   @override
   Map<String, dynamic> get parameterSchema => {
-        'type': 'object',
-        'properties': {
-          'url': {
-            'type': 'string',
-            'description':
-                'The full URL to read (must start with http:// or https://).',
-          },
-        },
-        'required': ['url'],
-      };
+    'type': 'object',
+    'properties': {
+      'url': {
+        'type': 'string',
+        'description':
+            'The full URL to read (must start with http:// or https://).',
+      },
+    },
+    'required': ['url'],
+  };
 
   @override
   Future<ToolResult> execute(
@@ -77,19 +77,24 @@ class UrlReadTool extends AgentTool {
     if (!trimmedUrl.startsWith('http://') &&
         !trimmedUrl.startsWith('https://')) {
       return ToolResult.error(
-          'Invalid URL format. Must start with http:// or https://');
+        'Invalid URL format. Must start with http:// or https://',
+      );
     }
 
     final maxLength =
-        (context.userConfig['max_length'] as num?)?.toInt() ?? _defaultMaxLength;
+        (context.userConfig['max_length'] as num?)?.toInt() ??
+        _defaultMaxLength;
 
     try {
       final uri = Uri.parse(trimmedUrl);
-      final response = await http.get(uri, headers: _browserHeaders).timeout(_timeout);
+      final response = await http
+          .get(uri, headers: _browserHeaders)
+          .timeout(_timeout);
 
       if (response.statusCode != 200) {
         return ToolResult.error(
-            'Failed to fetch URL: HTTP ${response.statusCode}');
+          'Failed to fetch URL: HTTP ${response.statusCode}',
+        );
       }
 
       final contentType = response.headers['content-type'] ?? '';
@@ -98,7 +103,8 @@ class UrlReadTool extends AgentTool {
       // 如果不是 HTML，直接返回原始文本（截断）
       if (!contentType.contains('html') && !contentType.contains('text')) {
         return ToolResult(
-          output: 'Non-HTML content (${contentType.split(';').first}). '
+          output:
+              'Non-HTML content (${contentType.split(';').first}). '
               'Cannot extract readable content from this URL.',
           success: true,
           metadata: {'url': trimmedUrl, 'content_type': contentType},
@@ -175,7 +181,7 @@ class UrlReadTool extends AgentTool {
   static const _browserHeaders = {
     'User-Agent':
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
-            '(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        '(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
     'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
   };

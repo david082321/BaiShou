@@ -30,7 +30,7 @@ class ParsedImportData {
   final List<dynamic>? diaries;
   final List<dynamic>? summaries;
   final Map<String, dynamic>? config;
-  
+
   // 新增 Agent 解析数据
   final List<dynamic>? aiAssistants;
   final List<dynamic>? agentSessions;

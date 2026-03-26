@@ -85,8 +85,9 @@ class AgentChatAppBar extends StatelessWidget implements PreferredSizeWidget {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.surfaceContainerHighest
-                        .withValues(alpha: 0.5),
+                    color: theme.colorScheme.surfaceContainerHighest.withValues(
+                      alpha: 0.5,
+                    ),
                     borderRadius: BorderRadius.circular(6),
                     border: Border.all(
                       color: theme.colorScheme.outlineVariant.withValues(
