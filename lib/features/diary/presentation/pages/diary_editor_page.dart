@@ -389,9 +389,14 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
           setState(() {
             _isDirty = false;
           });
-          debugPrint('Exit dialog confirmed, popping now with GoRouter');
-          // 由于拦截条件已解除，现在可以安全使用 context.pop 退出页面
-          context.pop();
+          
+          // 使用原生的 Navigator.pop 代替 GoRouter 的 pop，因为 GoRouter 
+          // 在被 PopScope 拦截过的异步上下文中可能有栈状态不同步导致 Nothing to pop 的问题。
+          if (Navigator.of(context).canPop()) {
+            Navigator.of(context).pop();
+          } else {
+            context.go('/diary');
+          }
         }
       },
       child: Stack(
