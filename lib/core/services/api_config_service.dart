@@ -49,141 +49,165 @@ class ApiConfigService extends ChangeNotifier {
   static const String _keyWebSearchRagEnabled = 'web_search_rag_enabled';
   static const String _keyTavilyApiKey = 'tavily_api_key';
   static const String _keyWebSearchRagMaxChunks = 'web_search_rag_max_chunks';
-  static const String _keyWebSearchRagChunksPerSource = 'web_search_rag_chunks_per_source';
-  static const String _keyWebSearchPlainSnippetLength = 'web_search_plain_snippet_length';
+  static const String _keyWebSearchRagChunksPerSource =
+      'web_search_rag_chunks_per_source';
+  static const String _keyWebSearchPlainSnippetLength =
+      'web_search_plain_snippet_length';
 
   final SharedPreferences _prefs;
 
   ApiConfigService(this._prefs) {
     _initializeDefaultProvidersIfEmpty();
+    _migrateBuiltInProviders(); // 为老用户自动补充新增的内置供应商
   }
 
-  /// 如果配置为空，初始化默认的 AI 供应商列表（OpenAI, Gemini, Claude, DeepSeek, Kimi, GLM）
+  /// 所有系统内置的默认供应商列表
+  List<AiProviderModel> get _defaultProviders => [
+    AiProviderModel(
+      id: 'openai',
+      name: 'OpenAI',
+      type: ProviderType.openai,
+      baseUrl: 'https://api.openai.com/v1',
+      models: [],
+      defaultDialogueModel: '',
+      defaultNamingModel: '',
+    ),
+    AiProviderModel(
+      id: 'gemini',
+      name: 'Google Gemini',
+      type: ProviderType.gemini,
+      baseUrl: 'https://generativelanguage.googleapis.com/v1beta',
+      models: [],
+      defaultDialogueModel: '',
+      defaultNamingModel: '',
+    ),
+    AiProviderModel(
+      id: 'anthropic',
+      name: 'Anthropic Claude',
+      type: ProviderType.anthropic,
+      baseUrl: 'https://api.anthropic.com',
+      models: [],
+      defaultDialogueModel: '',
+      defaultNamingModel: '',
+    ),
+    AiProviderModel(
+      id: 'deepseek',
+      name: 'DeepSeek',
+      type: ProviderType.deepseek,
+      baseUrl: 'https://api.deepseek.com',
+      models: [],
+      defaultDialogueModel: '',
+      defaultNamingModel: '',
+    ),
+    AiProviderModel(
+      id: 'kimi',
+      name: 'Kimi (Moonshot)',
+      type: ProviderType.kimi,
+      baseUrl: 'https://api.moonshot.cn/v1',
+      models: [],
+      defaultDialogueModel: '',
+      defaultNamingModel: '',
+    ),
+    AiProviderModel(
+      id: 'ollama',
+      name: 'Ollama',
+      type: ProviderType.ollama,
+      baseUrl: 'http://localhost:11434/v1',
+      models: [],
+      defaultDialogueModel: '',
+      defaultNamingModel: '',
+    ),
+    AiProviderModel(
+      id: 'siliconflow',
+      name: '硅基流动 (SiliconFlow)',
+      type: ProviderType.siliconflow,
+      baseUrl: 'https://api.siliconflow.cn/v1',
+      models: [],
+      defaultDialogueModel: '',
+      defaultNamingModel: '',
+    ),
+    AiProviderModel(
+      id: 'openrouter',
+      name: 'OpenRouter',
+      type: ProviderType.openrouter,
+      baseUrl: 'https://openrouter.ai/api/v1',
+      models: [],
+      defaultDialogueModel: '',
+      defaultNamingModel: '',
+    ),
+    AiProviderModel(
+      id: 'dashscope',
+      name: '通义千问 (百炼)',
+      type: ProviderType.dashscope,
+      baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+      models: [],
+      defaultDialogueModel: '',
+      defaultNamingModel: '',
+    ),
+    AiProviderModel(
+      id: 'doubao',
+      name: '豆包 (火山引擎)',
+      type: ProviderType.doubao,
+      baseUrl: 'https://ark.cn-beijing.volces.com/api/v3',
+      models: [],
+      defaultDialogueModel: '',
+      defaultNamingModel: '',
+    ),
+    AiProviderModel(
+      id: 'grok',
+      name: 'Grok (xAI)',
+      type: ProviderType.grok,
+      baseUrl: 'https://api.x.ai/v1',
+      models: [],
+      defaultDialogueModel: '',
+      defaultNamingModel: '',
+    ),
+    AiProviderModel(
+      id: 'mistral',
+      name: 'Mistral',
+      type: ProviderType.mistral,
+      baseUrl: 'https://api.mistral.ai/v1',
+      models: [],
+      defaultDialogueModel: '',
+      defaultNamingModel: '',
+    ),
+    AiProviderModel(
+      id: 'lmstudio',
+      name: 'LM Studio',
+      type: ProviderType.lmstudio,
+      baseUrl: 'http://localhost:1234/v1',
+      models: [],
+      defaultDialogueModel: '',
+      defaultNamingModel: '',
+    ),
+  ];
+
+  /// 如果配置为空，初始化默认的 AI 供应商列表
   void _initializeDefaultProvidersIfEmpty() {
     final providersStr = _prefs.getString(_keyProviders);
     if (providersStr == null || providersStr.isEmpty) {
-      final defaultProviders = [
-        AiProviderModel(
-          id: 'openai',
-          name: 'OpenAI',
-          type: ProviderType.openai,
-          baseUrl: 'https://api.openai.com/v1',
-          models: [],
-          defaultDialogueModel: '',
-          defaultNamingModel: '',
-        ),
-        AiProviderModel(
-          id: 'gemini',
-          name: 'Google Gemini',
-          type: ProviderType.gemini,
-          baseUrl: 'https://generativelanguage.googleapis.com/v1beta',
-          models: [],
-          defaultDialogueModel: '',
-          defaultNamingModel: '',
-        ),
-        AiProviderModel(
-          id: 'anthropic',
-          name: 'Anthropic Claude',
-          type: ProviderType.anthropic,
-          baseUrl: 'https://api.anthropic.com',
-          models: [],
-          defaultDialogueModel: '',
-          defaultNamingModel: '',
-        ),
-        AiProviderModel(
-          id: 'deepseek',
-          name: 'DeepSeek',
-          type: ProviderType.deepseek,
-          baseUrl: 'https://api.deepseek.com',
-          models: [],
-          defaultDialogueModel: '',
-          defaultNamingModel: '',
-        ),
-        AiProviderModel(
-          id: 'kimi',
-          name: 'Kimi (Moonshot)',
-          type: ProviderType.kimi,
-          baseUrl: 'https://api.moonshot.cn/v1',
-          models: [],
-          defaultDialogueModel: '',
-          defaultNamingModel: '',
-        ),
-        AiProviderModel(
-          id: 'ollama',
-          name: 'Ollama',
-          type: ProviderType.ollama,
-          baseUrl: 'http://localhost:11434/v1',
-          models: [],
-          defaultDialogueModel: '',
-          defaultNamingModel: '',
-        ),
-        AiProviderModel(
-          id: 'siliconflow',
-          name: '硅基流动 (SiliconFlow)',
-          type: ProviderType.siliconflow,
-          baseUrl: 'https://api.siliconflow.cn/v1',
-          models: [],
-          defaultDialogueModel: '',
-          defaultNamingModel: '',
-        ),
-        AiProviderModel(
-          id: 'openrouter',
-          name: 'OpenRouter',
-          type: ProviderType.openrouter,
-          baseUrl: 'https://openrouter.ai/api/v1',
-          models: [],
-          defaultDialogueModel: '',
-          defaultNamingModel: '',
-        ),
-        AiProviderModel(
-          id: 'dashscope',
-          name: '通义千问 (百炼)',
-          type: ProviderType.dashscope,
-          baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
-          models: [],
-          defaultDialogueModel: '',
-          defaultNamingModel: '',
-        ),
-        AiProviderModel(
-          id: 'doubao',
-          name: '豆包 (火山引擎)',
-          type: ProviderType.doubao,
-          baseUrl: 'https://ark.cn-beijing.volces.com/api/v3',
-          models: [],
-          defaultDialogueModel: '',
-          defaultNamingModel: '',
-        ),
-        AiProviderModel(
-          id: 'grok',
-          name: 'Grok (xAI)',
-          type: ProviderType.grok,
-          baseUrl: 'https://api.x.ai/v1',
-          models: [],
-          defaultDialogueModel: '',
-          defaultNamingModel: '',
-        ),
-        AiProviderModel(
-          id: 'mistral',
-          name: 'Mistral',
-          type: ProviderType.mistral,
-          baseUrl: 'https://api.mistral.ai/v1',
-          models: [],
-          defaultDialogueModel: '',
-          defaultNamingModel: '',
-        ),
-        AiProviderModel(
-          id: 'lmstudio',
-          name: 'LM Studio',
-          type: ProviderType.lmstudio,
-          baseUrl: 'http://localhost:1234/v1',
-          models: [],
-          defaultDialogueModel: '',
-          defaultNamingModel: '',
-        ),
-      ];
-
-      _saveProviders(defaultProviders);
+      _saveProviders(_defaultProviders);
       _prefs.setString(_keyActiveProviderId, 'gemini');
+    }
+  }
+
+  /// 迁移内置供应商：检查老用户是否缺少新加的内置供应商，若是则补充
+  void _migrateBuiltInProviders() {
+    final currentProviders = getProviders();
+    if (currentProviders.isEmpty) return;
+
+    bool needsSave = false;
+    final existingIds = currentProviders.map((e) => e.id).toSet();
+
+    for (final defaultProvider in _defaultProviders) {
+      if (!existingIds.contains(defaultProvider.id)) {
+        currentProviders.add(defaultProvider);
+        needsSave = true;
+      }
+    }
+
+    if (needsSave) {
+      _saveProviders(currentProviders);
     }
   }
 
@@ -317,7 +341,9 @@ class ApiConfigService extends ChangeNotifier {
 
   /// 设置全局默认对话模型
   Future<void> setGlobalDialogueModel(String providerId, String modelId) async {
-    if (globalDialogueProviderId == providerId && globalDialogueModelId == modelId) return;
+    if (globalDialogueProviderId == providerId &&
+        globalDialogueModelId == modelId)
+      return;
     await _prefs.setString(_keyGlobalDialogueProviderId, providerId);
     await _prefs.setString(_keyGlobalDialogueModelId, modelId);
     notifyListeners();
@@ -337,7 +363,8 @@ class ApiConfigService extends ChangeNotifier {
 
   /// 设置全局默认命名模型
   Future<void> setGlobalNamingModel(String providerId, String modelId) async {
-    if (globalNamingProviderId == providerId && globalNamingModelId == modelId) return;
+    if (globalNamingProviderId == providerId && globalNamingModelId == modelId)
+      return;
     await _prefs.setString(_keyGlobalNamingProviderId, providerId);
     await _prefs.setString(_keyGlobalNamingModelId, modelId);
     notifyListeners();
@@ -355,7 +382,9 @@ class ApiConfigService extends ChangeNotifier {
 
   /// 设置全局记忆总结模型
   Future<void> setGlobalSummaryModel(String providerId, String modelId) async {
-    if (globalSummaryProviderId == providerId && globalSummaryModelId == modelId) return;
+    if (globalSummaryProviderId == providerId &&
+        globalSummaryModelId == modelId)
+      return;
     await _prefs.setString(_keyGlobalSummaryProviderId, providerId);
     await _prefs.setString(_keyGlobalSummaryModelId, modelId);
     notifyListeners();
@@ -729,7 +758,6 @@ class ApiConfigService extends ChangeNotifier {
     await _prefs.setBool(_keyShowChatToolbar, show);
     notifyListeners();
   }
-
 
   // --- 兼容性占位符 (Legacy Support) ---
   // 用于在不破坏现有代码的情况下映射旧的 API 调用
