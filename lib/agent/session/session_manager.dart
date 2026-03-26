@@ -9,6 +9,7 @@ import 'package:baishou/i18n/strings.g.dart';
 import 'package:baishou/agent/models/chat_message.dart';
 import 'package:baishou/agent/models/message_attachment.dart';
 import 'package:baishou/agent/models/message_part.dart';
+import 'package:baishou/core/storage/storage_path_provider.dart';
 import 'package:drift/drift.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:uuid/uuid.dart';
@@ -17,9 +18,10 @@ part 'session_manager.g.dart';
 
 class SessionManager {
   final AgentDatabase _db;
+  final StoragePathService _pathService;
   static const _uuid = Uuid();
 
-  SessionManager(this._db);
+  SessionManager(this._db, this._pathService);
 
   // ─── 会话 CRUD ──────────────────────────────────────────
 
@@ -65,6 +67,17 @@ class SessionManager {
             (t) => OrderingTerm.desc(t.updatedAt),
           ]))
         .get();
+  }
+
+  /// 监听指定伙伴的会话列表变化
+  Stream<List<AgentSession>> watchSessionsByAssistant(String assistantId) {
+    return (_db.select(_db.agentSessions)
+          ..where((t) => t.assistantId.equals(assistantId))
+          ..orderBy([
+            (t) => OrderingTerm.desc(t.isPinned),
+            (t) => OrderingTerm.desc(t.updatedAt),
+          ]))
+        .watch();
   }
 
   /// 获取指定伙伴的会话数量
@@ -152,17 +165,18 @@ class SessionManager {
   }
 
   /// 删除会话（级联删除 Parts → Messages → 附件目录）
-  ///
-  /// [vaultPath] 可选，提供时会一并清理 {vaultPath}/attachments/{sessionId}/
-  Future<void> deleteSession(String id, {String? vaultPath}) async {
-    // 清理附件目录
-    if (vaultPath != null) {
-      final attDir = Directory(p.join(vaultPath, 'attachments', id));
-      if (attDir.existsSync()) {
-        try {
-          await attDir.delete(recursive: true);
-        } catch (_) {}
-      }
+  Future<void> deleteSession(String id) async {
+    // 查询获取所属 Vault
+    final session = await (_db.select(_db.agentSessions)..where((t) => t.id.equals(id))).getSingleOrNull();
+    if (session == null) return;
+
+    // 清理物理附件目录
+    final vaultDir = await _pathService.getVaultDirectory(session.vaultName);
+    final attDir = Directory(p.join(vaultDir.path, 'attachments', id));
+    if (attDir.existsSync()) {
+      try {
+        await attDir.delete(recursive: true);
+      } catch (_) {}
     }
 
     // 必须首先清理 FTS 索引
@@ -180,9 +194,9 @@ class SessionManager {
   }
 
   /// 批量删除会话
-  Future<void> deleteSessions(List<String> ids, {String? vaultPath}) async {
+  Future<void> deleteSessions(List<String> ids) async {
     for (final id in ids) {
-      await deleteSession(id, vaultPath: vaultPath);
+      await deleteSession(id);
     }
   }
 
@@ -711,5 +725,6 @@ class SessionManager {
 @Riverpod(keepAlive: true)
 SessionManager sessionManager(Ref ref) {
   final db = ref.watch(agentDatabaseProvider);
-  return SessionManager(db);
+  final pathService = ref.watch(storagePathServiceProvider);
+  return SessionManager(db, pathService);
 }

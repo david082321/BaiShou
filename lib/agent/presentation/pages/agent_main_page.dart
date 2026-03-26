@@ -2,6 +2,7 @@
 ///
 /// 侧边栏两区布局：功能选项区 + 对话历史区
 
+import 'dart:async';
 import 'dart:io';
 
 import 'package:baishou/agent/database/agent_database.dart';
@@ -43,47 +44,46 @@ class _AgentMainPageState extends ConsumerState<AgentMainPage> {
     }
   }
 
+  StreamSubscription<List<AgentSession>>? _sessionsSubscription;
+
   Future<void> _loadSessions() async {
     if (_currentAssistant == null) return;
     setState(() => _isLoading = true);
     try {
       final manager = ref.read(sessionManagerProvider);
-      final sessions = await manager.getSessionsByAssistant(
-        _currentAssistant!.id,
-      );
 
-      setState(() {
-        _sessions = sessions;
-        if ((_selectedSessionId == null ||
-                !sessions.any((s) => s.id == _selectedSessionId)) &&
-            sessions.isNotEmpty) {
-          _selectedSessionId = sessions.first.id;
-        }
-        _isLoading = false;
-      });
+      await _sessionsSubscription?.cancel();
+      _sessionsSubscription = manager
+          .watchSessionsByAssistant(_currentAssistant!.id)
+          .listen((sessions) {
+        if (!mounted) return;
 
-      if (_selectedSessionId != null && _selectedSessionId!.isNotEmpty) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          final notifier = ref.read(agentChatProvider.notifier);
-          notifier.loadSession(_selectedSessionId!);
+        final previousSelectedId = _selectedSessionId;
+        setState(() {
+          _sessions = sessions;
+          if ((_selectedSessionId == null ||
+                  !sessions.any((s) => s.id == _selectedSessionId)) &&
+              sessions.isNotEmpty) {
+            _selectedSessionId = sessions.first.id;
+          }
+          _isLoading = false;
         });
-      }
+
+        if (_selectedSessionId != previousSelectedId &&
+            _selectedSessionId != null) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            final notifier = ref.read(agentChatProvider.notifier);
+            notifier.loadSession(_selectedSessionId!);
+          });
+        }
+      });
     } catch (e) {
       setState(() => _isLoading = false);
     }
   }
 
   Future<void> _refreshSessionList() async {
-    if (_currentAssistant == null) return;
-    try {
-      final manager = ref.read(sessionManagerProvider);
-      final sessions = await manager.getSessionsByAssistant(
-        _currentAssistant!.id,
-      );
-      if (mounted) {
-        setState(() => _sessions = sessions);
-      }
-    } catch (_) {}
+    // 采用 Stream 后无需手动刷新
   }
 
   void _createNewSession() {
@@ -159,8 +159,8 @@ class _AgentMainPageState extends ConsumerState<AgentMainPage> {
         drawer: Drawer(child: sidebar),
         onDrawerChanged: (isOpened) {
           if (!isOpened) {
-            // 侧边栏关闭时取消焦点，防止自动聚焦输入框
-            FocusManager.instance.primaryFocus?.unfocus();
+            // 侧边栏关闭时彻底取消焦点树，防止传递给文本框
+            FocusScope.of(context).unfocus();
           }
         },
       );
