@@ -385,9 +385,13 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
 
         final shouldPop = await showDiaryExitConfirmationDialog(context);
         if (shouldPop && context.mounted) {
-          // 直接使用 Navigator.maybePop 替代 context.pop()（GoRouter）
-          // 避免在处理复杂物理返回时遇到 "There is nothing to pop" 异常
-          Navigator.maybePop(context);
+          // 关键修复：确认退出时，必须先清除拦截条件 (_isDirty = false)，避免重复拦截或卡死
+          setState(() {
+            _isDirty = false;
+          });
+          debugPrint('Exit dialog confirmed, popping now with GoRouter');
+          // 由于拦截条件已解除，现在可以安全使用 context.pop 退出页面
+          context.pop();
         }
       },
       child: Stack(
@@ -399,7 +403,13 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
               backgroundColor: Theme.of(context).scaffoldBackgroundColor,
               leading: IconButton(
                 icon: const Icon(Icons.arrow_back_ios_new),
-                onPressed: () => Navigator.maybePop(context),
+                onPressed: () async {
+                  // 手动触发 pop，利用底层的 PopScope 机制来判断是否需要弹窗
+                  final nav = Navigator.of(context);
+                  bool canPop = nav.canPop();
+                  debugPrint('AppBar back pressed, canPop: $canPop');
+                  await nav.maybePop();
+                },
               ),
               title: DiaryEditorAppBarTitle(
                 isSummaryMode: _isSummaryMode,
