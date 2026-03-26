@@ -318,10 +318,10 @@ class _AgentSidebarState extends ConsumerState<AgentSidebar> {
                   CircleAvatar(
                     radius: 18,
                     backgroundColor: theme.colorScheme.primaryContainer,
-                    backgroundImage: userProfile.avatarPath != null
+                    backgroundImage: userProfile.avatarPath != null && File(userProfile.avatarPath!).existsSync()
                         ? FileImage(File(userProfile.avatarPath!))
                         : null,
-                    child: userProfile.avatarPath == null
+                    child: userProfile.avatarPath == null || !File(userProfile.avatarPath!).existsSync()
                         ? Text(
                             userProfile.nickname.isNotEmpty
                                 ? userProfile.nickname[0].toUpperCase()

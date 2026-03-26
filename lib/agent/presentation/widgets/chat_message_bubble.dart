@@ -150,7 +150,7 @@ class ChatMessageBubble extends ConsumerWidget {
   }
 
   Widget _buildUserAvatar(ThemeData theme, UserProfile userProfile) {
-    if (userProfile.avatarPath != null) {
+    if (userProfile.avatarPath != null && File(userProfile.avatarPath!).existsSync()) {
       return CircleAvatar(
         radius: 18,
         backgroundColor: theme.colorScheme.primaryContainer,
