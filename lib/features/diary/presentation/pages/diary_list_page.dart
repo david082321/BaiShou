@@ -237,10 +237,6 @@ class _DiaryListPageState extends ConsumerState<DiaryListPage> {
     final service = ref.read(vaultServiceProvider.notifier);
     final vaults = service.getAllVaults();
 
-    if (vaults.length <= 1) {
-      return const SizedBox.shrink();
-    }
-
     return PopupMenuButton<String>(
       icon: Row(
         mainAxisSize: MainAxisSize.min,
