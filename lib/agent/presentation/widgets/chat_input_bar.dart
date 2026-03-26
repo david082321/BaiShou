@@ -655,13 +655,15 @@ class _AttachmentPreviewChip extends StatelessWidget {
                         color: colorScheme.primary,
                       ),
                       const SizedBox(height: 4),
-                      Text(
-                        attachment.fileName,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 10,
-                          color: colorScheme.onSurface,
+                      Expanded(
+                        child: Text(
+                          attachment.fileName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: colorScheme.onSurface,
+                          ),
                         ),
                       ),
                       Text(
