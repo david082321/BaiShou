@@ -270,8 +270,8 @@ class CustomModelSelector extends StatelessWidget {
 
                       return InkWell(
                         onTap: () {
-                          onModelSelected(uniqueId);
                           Navigator.pop(context);
+                          onModelSelected(uniqueId);
                         },
                         child: Container(
                           padding: const EdgeInsets.symmetric(

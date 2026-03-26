@@ -509,8 +509,9 @@ class ApiConfigService extends ChangeNotifier {
   }
 
   /// 设置 RAG topK
-  Future<void> setRagTopK(int topK) async {
-    await _prefs.setInt(_keyRagTopK, topK.clamp(1, 100));
+  void setRagTopK(int topK) {
+    _prefs.setInt(_keyRagTopK, topK.clamp(1, 100));
+    notifyListeners();
   }
 
   /// RAG 相似度阈值（低于此值的结果会被过滤，默认 0.0 不过滤）
@@ -519,11 +520,12 @@ class ApiConfigService extends ChangeNotifier {
   }
 
   /// 设置 RAG 相似度阈值
-  Future<void> setRagSimilarityThreshold(double threshold) async {
-    await _prefs.setDouble(
+  void setRagSimilarityThreshold(double threshold) {
+    _prefs.setDouble(
       _keyRagSimilarityThreshold,
       threshold.clamp(0.0, 1.0),
     );
+    notifyListeners();
   }
 
   // --- 总结提示词自定义（按类型独立配置） ---

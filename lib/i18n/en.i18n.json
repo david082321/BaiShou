@@ -860,7 +860,9 @@
       "migration_model_changed_title": "Embedding Model Changed",
       "migration_model_changed_content": "Embedding model change detected.\n\nOld vector data is incompatible with the new model dimensions, all data needs to be re-embedded.\n\nThis will:\n• Backup existing text metadata\n• Clear old vectors and re-embed with new model\n• Auto-verify data integrity after completion\n\nProcess runs asynchronously in the background.",
       "migration_start_now": "Re-embed Now",
-      "migration_preparing": "Preparing to re-embed..."
+      "migration_preparing": "Preparing to re-embed...",
+      "migration_switch_warning_title": "Confirm Model Change?",
+      "migration_switch_warning_content": "You are attempting to change the global embedding model. The new model's dimensions and algorithms may be incompatible with the current memory vector database. Continuing will require all diary data to be fully re-embedded in the background.\n\nAre you sure you want to proceed with this change?"
     },
     "assistant": {
       "management_title": "Companion Management",

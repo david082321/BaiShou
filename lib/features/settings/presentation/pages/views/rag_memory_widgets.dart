@@ -1,8 +1,8 @@
-/// RAG 记忆管理页面的可复用组件
-///
-/// StatChip — 统计指标标签
-/// ActionChip — 操作按钮标签
-/// MemoryEntryCard — 记忆条目卡片
+// RAG 记忆管理页面的可复用组件
+//
+// StatChip — 统计指标标签
+// ActionChip — 操作按钮标签
+// MemoryEntryCard — 记忆条目卡片
 
 import 'package:baishou/core/services/api_config_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -184,11 +184,29 @@ class MemoryEntryCard extends StatelessWidget {
 // ─── 新增的提取组件 ──────────────────────────────────────────
 
 /// 检索参数滑块调节区
-class RagMemoryRetrievalConfig extends ConsumerWidget {
+class RagMemoryRetrievalConfig extends ConsumerStatefulWidget {
   const RagMemoryRetrievalConfig({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<RagMemoryRetrievalConfig> createState() =>
+      _RagMemoryRetrievalConfigState();
+}
+
+class _RagMemoryRetrievalConfigState
+    extends ConsumerState<RagMemoryRetrievalConfig> {
+  late double _topK;
+  late double _threshold;
+
+  @override
+  void initState() {
+    super.initState();
+    final config = ref.read(apiConfigServiceProvider);
+    _topK = config.ragTopK.toDouble().clamp(10, 100);
+    _threshold = config.ragSimilarityThreshold;
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
@@ -231,31 +249,25 @@ class RagMemoryRetrievalConfig extends ConsumerWidget {
               ),
               Expanded(
                 child: Slider(
-                  value: ref
-                      .read(apiConfigServiceProvider)
-                      .ragTopK
-                      .toDouble()
-                      .clamp(10, 100),
+                  value: _topK,
                   min: 10,
                   max: 100,
                   divisions: 9,
-                  label: ref.read(apiConfigServiceProvider).ragTopK.toString(),
-                  onChanged: (v) {
-                    ref.read(apiConfigServiceProvider).setRagTopK(v.round());
-                  },
+                  label: _topK.round().toString(),
+                  onChanged: (v) => setState(() => _topK = v),
+                  onChangeEnd: (v) =>
+                      ref.read(apiConfigServiceProvider).setRagTopK(v.round()),
                 ),
               ),
               SizedBox(
                 width: 32,
-                child: Consumer(
-                  builder: (context, ref, child) => Text(
-                    ref.watch(apiConfigServiceProvider).ragTopK.toString(),
-                    style: textTheme.labelLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: colorScheme.primary,
-                    ),
-                    textAlign: TextAlign.center,
+                child: Text(
+                  _topK.round().toString(),
+                  style: textTheme.labelLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: colorScheme.primary,
                   ),
+                  textAlign: TextAlign.center,
                 ),
               ),
             ],
@@ -274,37 +286,26 @@ class RagMemoryRetrievalConfig extends ConsumerWidget {
               ),
               Expanded(
                 child: Slider(
-                  value: ref
-                      .read(apiConfigServiceProvider)
-                      .ragSimilarityThreshold,
+                  value: _threshold,
                   min: 0.0,
                   max: 1.0,
                   divisions: 20,
-                  label: ref
+                  label: _threshold.toStringAsFixed(2),
+                  onChanged: (v) => setState(() => _threshold = v),
+                  onChangeEnd: (v) => ref
                       .read(apiConfigServiceProvider)
-                      .ragSimilarityThreshold
-                      .toStringAsFixed(2),
-                  onChanged: (v) {
-                    ref
-                        .read(apiConfigServiceProvider)
-                        .setRagSimilarityThreshold(v);
-                  },
+                      .setRagSimilarityThreshold(v),
                 ),
               ),
               SizedBox(
                 width: 32,
-                child: Consumer(
-                  builder: (context, ref, child) => Text(
-                    ref
-                        .watch(apiConfigServiceProvider)
-                        .ragSimilarityThreshold
-                        .toStringAsFixed(2),
-                    style: textTheme.labelLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: colorScheme.primary,
-                    ),
-                    textAlign: TextAlign.center,
+                child: Text(
+                  _threshold.toStringAsFixed(2),
+                  style: textTheme.labelLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: colorScheme.primary,
                   ),
+                  textAlign: TextAlign.center,
                 ),
               ),
             ],
@@ -397,33 +398,57 @@ class RagMemoryStatsBoard extends ConsumerWidget {
     final hasModel = apiConfig.hasEmbeddingModel;
 
     if (configDimension > 0) {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-        decoration: BoxDecoration(
-          color: Colors.green.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.check_circle_outline,
-              size: 14,
-              color: Colors.green.shade700,
+      return GestureDetector(
+        onTap: isDetectingDimension ? null : onDetectDimension,
+        child: MouseRegion(
+          cursor: SystemMouseCursors.click,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.green.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
             ),
-            const SizedBox(width: 4),
-            Text(
-              t.agent.rag.dimension_detected(
-                dimension: configDimension.toString(),
-              ),
-              style: TextStyle(
-                fontSize: 11,
-                color: Colors.green.shade700,
-                fontWeight: FontWeight.w500,
-              ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (isDetectingDimension)
+                  SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.green.shade700,
+                    ),
+                  )
+                else
+                  Icon(
+                    Icons.check_circle_outline,
+                    size: 14,
+                    color: Colors.green.shade700,
+                  ),
+                const SizedBox(width: 4),
+                Text(
+                  t.agent.rag.dimension_detected(
+                    dimension: configDimension.toString(),
+                  ),
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Colors.green.shade700,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                if (!isDetectingDimension) ...[
+                  const SizedBox(width: 4),
+                  Icon(
+                    Icons.refresh,
+                    size: 12,
+                    color: Colors.green.shade700,
+                  ),
+                ],
+              ],
             ),
-          ],
+          ),
         ),
       );
     } else if (hasModel) {

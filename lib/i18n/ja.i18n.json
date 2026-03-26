@@ -860,7 +860,9 @@
       "migration_model_changed_title": "埋め込みモデルが変更されました",
       "migration_model_changed_content": "埋め込みモデルの変更を検出しました。\n\n古いベクトルは新モデルの次元と互換性がないため、全データの再埋め込みが必要です。\n\n以下を実行します：\n• 既存テキストメタデータのバックアップ\n• 古いベクトルを消去し新モデルで再埋め込み\n• 完了後にデータ整合性を自動検証\n\nバックグラウンドで非同期実行されます。",
       "migration_start_now": "今すぐ再埋め込み",
-      "migration_preparing": "再埋め込みの準備中..."
+      "migration_preparing": "再埋め込みの準備中...",
+      "migration_switch_warning_title": "モデル変更の確認",
+      "migration_switch_warning_content": "グローバル埋め込みモデルを変更しようとしています。新しいモデルの次元やアルゴリズムは、現在の記憶ベクトルデータベースと互換性がない可能性があります。続行すると、すべての日記データがバックグラウンドでフル再計算・注入される必要があります。\n\nこの変更を続行してもよろしいですか？"
     },
     "assistant": {
       "management_title": "パートナー管理",

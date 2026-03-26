@@ -6,8 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:baishou/i18n/strings.g.dart';
 
-/// 全局默认模型配置视图
-/// 允许用户为对话、命名和总结任务指定默认使用的供应商和模型。
+// 全局默认模型配置视图
+// 允许用户为对话、命名和总结任务指定默认使用的供应商和模型。
 class AiGlobalModelsView extends ConsumerStatefulWidget {
   const AiGlobalModelsView({super.key});
 
@@ -372,8 +372,42 @@ class _AiGlobalModelsViewState extends ConsumerState<AiGlobalModelsView> {
               description: t.ai_config.embedding_model_desc,
               value: _globalEmbeddingModel,
               items: embeddingModels,
-              onChanged: (val) {
-                setState(() => _globalEmbeddingModel = val);
+              onChanged: (val) async {
+                if (val == null || val == _globalEmbeddingModel) return;
+                
+                final confirmed = await showDialog<bool>(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    title: Text(t.agent.rag.migration_switch_warning_title),
+                    content: Text(t.agent.rag.migration_switch_warning_content),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.of(ctx).pop(false),
+                        child: Text(t.common.cancel),
+                      ),
+                      FilledButton(
+                        onPressed: () => Navigator.of(ctx).pop(true),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: Theme.of(context).colorScheme.error,
+                        ),
+                        child: Text(t.common.confirm),
+                      ),
+                    ],
+                  ),
+                );
+                
+                if (confirmed == true && mounted) {
+                  setState(() => _globalEmbeddingModel = val);
+                  
+                  final parts = val.split(':');
+                  if (parts.length >= 2) {
+                    final newProviderId = parts[0];
+                    final newModelId = parts.sublist(1).join(':');
+                    await ref.read(apiConfigServiceProvider).setGlobalEmbeddingModel(newProviderId, newModelId);
+                    
+                    _startMigration();
+                  }
+                }
               },
             ),
           ],

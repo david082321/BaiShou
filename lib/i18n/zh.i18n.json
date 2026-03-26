@@ -860,7 +860,9 @@
       "migration_model_changed_title": "嵌入模型已更换",
       "migration_model_changed_content": "检测到您更换了嵌入模型。\n\n旧的向量数据与新模型维度不兼容，需要重新嵌入所有数据。\n\n此操作会：\n• 备份现有文本元数据\n• 清空旧向量并用新模型重新嵌入\n• 完成后自动校验数据完整性\n\n过程在后台异步执行，不影响正常使用。",
       "migration_start_now": "立即重新嵌入",
-      "migration_preparing": "正在准备重新嵌入..."
+      "migration_preparing": "正在准备重新嵌入...",
+      "migration_switch_warning_title": "确认更换模型？",
+      "migration_switch_warning_content": "您正试图更换全局注入模型。新的模型维度和算法可能与当前的记忆向量库不兼容。继续操作将需要重新对所有日记本数据进行后台全量重新计算注入。\n\n您确定要继续这一变更吗？"
     },
     "assistant": {
       "management_title": "伙伴管理",
