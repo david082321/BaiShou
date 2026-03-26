@@ -351,9 +351,21 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
       }
 
       if (mounted) {
-        setState(() => _isDirty = false);
+        setState(() {
+          _isDirty = false;
+          _isSaving = false;
+        });
         AppToast.showSuccess(context, t.diary.saved_toast);
-        context.pop(savedDiary);
+        
+        // 延迟一帧等待 PopScope 更新 canPop 为 true，否则会触发旧状态的退出确认拦截
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          if (Navigator.of(context).canPop()) {
+            Navigator.of(context).pop(savedDiary);
+          } else {
+            context.go('/');
+          }
+        });
       }
     } catch (e) {
       debugPrint('Error saving: $e');
@@ -395,7 +407,7 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
           if (Navigator.of(context).canPop()) {
             Navigator.of(context).pop();
           } else {
-            context.go('/diary');
+            context.go('/');
           }
         }
       },
@@ -413,7 +425,10 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
                   final nav = Navigator.of(context);
                   bool canPop = nav.canPop();
                   debugPrint('AppBar back pressed, canPop: $canPop');
-                  await nav.maybePop();
+                  final popped = await nav.maybePop();
+                  if (!popped && context.mounted) {
+                    context.go('/');
+                  }
                 },
               ),
               title: DiaryEditorAppBarTitle(
