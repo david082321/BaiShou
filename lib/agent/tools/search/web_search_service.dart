@@ -142,7 +142,8 @@ class WebSearchService {
     int maxResults,
     String apiKey,
   ) async {
-    if (apiKey.isEmpty) {
+    final cleanKey = apiKey.trim();
+    if (cleanKey.isEmpty) {
       throw Exception('Tavily API key is required');
     }
 
@@ -152,7 +153,7 @@ class WebSearchService {
       uri,
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer $apiKey',
+        'Authorization': 'Bearer $cleanKey',
       },
       body: jsonEncode({
         'query': query,

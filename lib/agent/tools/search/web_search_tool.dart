@@ -24,7 +24,14 @@ class WebSearchTool extends AgentTool {
   String get id => 'web_search';
 
   @override
-  String get displayName => t.agent.tools.web_search;
+  String get displayName {
+    final engine = apiConfig.webSearchEngine;
+    if (engine == 'tavily') {
+      return '${t.agent.tools.web_search} (Tavily)';
+    } else {
+      return '${t.agent.tools.web_search} (DuckDuckGo)';
+    }
+  }
 
   @override
   String get category => 'search';
