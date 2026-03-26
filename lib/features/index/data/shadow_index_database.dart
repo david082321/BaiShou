@@ -19,10 +19,10 @@ class ShadowIndexDatabase extends _$ShadowIndexDatabase {
 
   @override
   FutureOr<void> build() async {
-    final vaultState = ref.watch(vaultServiceProvider);
+    final vaultName = ref.watch(activeVaultNameProvider);
 
-    if (vaultState.value != null) {
-      await _initDatabase(vaultState.value!.name);
+    if (vaultName != null) {
+      await _initDatabase(vaultName);
     }
 
     ref.onDispose(() async {

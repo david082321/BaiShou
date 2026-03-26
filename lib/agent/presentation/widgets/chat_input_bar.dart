@@ -1,6 +1,8 @@
 /// 聊天输入框组件
 import 'dart:io';
 
+import 'package:baishou/agent/models/ai_provider_model.dart';
+
 import 'package:baishou/agent/models/message_attachment.dart';
 import 'package:baishou/features/settings/presentation/pages/views/agent_tools_view.dart';
 import 'package:baishou/i18n/strings.g.dart';
@@ -131,6 +133,36 @@ class _ChatInputBarState extends ConsumerState<ChatInputBar> {
     }
   }
 
+  /// 搜索模式切换 Chip
+  Widget _buildSearchModeChip() {
+    final apiConfig = ref.watch(apiConfigServiceProvider);
+    final provider = apiConfig.getActiveProvider();
+    final mode = provider?.webSearchMode ?? WebSearchMode.off;
+
+    final (icon, label) = switch (mode) {
+      WebSearchMode.off => (Icons.block_rounded, t.settings.web_search_mode_off),
+      WebSearchMode.builtin => (Icons.language_rounded, t.settings.web_search_mode_builtin),
+      WebSearchMode.tool => (Icons.travel_explore_rounded, t.settings.web_search_mode_tool),
+    };
+
+    return _QuickActionChip(
+      icon: icon,
+      label: label,
+      isActive: mode != WebSearchMode.off,
+      onTap: () async {
+        // 循环切换: off -> builtin -> tool -> off
+        final nextMode = switch (mode) {
+          WebSearchMode.off => WebSearchMode.builtin,
+          WebSearchMode.builtin => WebSearchMode.tool,
+          WebSearchMode.tool => WebSearchMode.off,
+        };
+        if (provider == null) return;
+        final updated = provider.copyWith(webSearchMode: nextMode);
+        await apiConfig.updateProvider(updated);
+      },
+    );
+  }
+
   @override
   void dispose() {
     _controller.dispose();
@@ -206,6 +238,8 @@ class _ChatInputBarState extends ConsumerState<ChatInputBar> {
                               label: t.agent.tools.tool_call,
                               onTap: _openToolManager,
                             ),
+                            const SizedBox(width: 8),
+                            _buildSearchModeChip(),
                             if (widget.onRecall != null) ...[
                               const SizedBox(width: 8),
                               _QuickActionChip(

@@ -198,3 +198,11 @@ class VaultService extends _$VaultService {
     state = AsyncData(_getActiveVault());
   }
 }
+
+/// 专门提供当前活跃 Vault 名称的轻量级 Provider
+/// 避免依赖 vaultServiceProvider 的数据库（如 AgentDatabase）
+/// 因为 lastAccessedAt 变化而触发毫无意义的昂贵重建（进而导致双开报错）。
+@Riverpod(keepAlive: true)
+String? activeVaultName(Ref ref) {
+  return ref.watch(vaultServiceProvider).value?.name;
+}

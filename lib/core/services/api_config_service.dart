@@ -153,6 +153,7 @@ class ApiConfigService extends ChangeNotifier {
     }
 
     await _saveProviders(providers);
+    notifyListeners();
   }
 
   /// 添加用户自定义的供应商

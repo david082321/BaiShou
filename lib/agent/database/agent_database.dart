@@ -655,9 +655,7 @@ QueryExecutor _openAgentConnection(StoragePathService pathService, String worksp
 @Riverpod(keepAlive: true)
 AgentDatabase agentDatabase(Ref ref) {
   final pathService = ref.watch(storagePathServiceProvider);
-  final vaultState = ref.watch(vaultServiceProvider);
-  
-  final vaultName = vaultState.value?.name ?? 'Personal';
+  final vaultName = ref.watch(activeVaultNameProvider) ?? 'Personal';
   final db = AgentDatabase(_openAgentConnection(pathService, vaultName));
   
   ref.onDispose(() {

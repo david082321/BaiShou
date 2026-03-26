@@ -140,12 +140,6 @@ class GlobalHotkeyService with WindowListener {
   }
 
 
-  @override
-  void onWindowFocus() {
-    if (_isEnabled && _currentHotKey != null) {
-      _unregister().then((_) => _register());
-    }
-  }
 
   void dispose() {
     windowManager.removeListener(this);

@@ -47,9 +47,7 @@ QueryExecutor _openConnection(StoragePathService pathService, String workspace) 
 @Riverpod(keepAlive: true)
 AppDatabase appDatabase(Ref ref) {
   final pathService = ref.watch(storagePathServiceProvider);
-  final vaultState = ref.watch(vaultServiceProvider);
-  
-  final vaultName = vaultState.value?.name ?? 'Personal';
+  final vaultName = ref.watch(activeVaultNameProvider) ?? 'Personal';
   final db = AppDatabase(_openConnection(pathService, vaultName));
   
   ref.onDispose(() {

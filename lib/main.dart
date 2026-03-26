@@ -1,6 +1,7 @@
 import 'package:baishou/app.dart';
 import 'package:baishou/core/providers/shared_preferences_provider.dart';
 import 'package:baishou/core/services/global_hotkey_service.dart';
+import 'package:hotkey_manager/hotkey_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -43,7 +44,8 @@ void main() async {
       await windowManager.focus();
     });
 
-    // 初始化全局快捷键服务
+    // 初始化全局快捷键服务，先清空僵尸热键
+    await hotKeyManager.unregisterAll();
     await GlobalHotkeyService.instance.init(prefs);
   }
 
