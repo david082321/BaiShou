@@ -45,14 +45,16 @@ class ToolRepository extends _$ToolRepository {
     // 根据活跃 Provider 的 webSearchMode 决定是否启用外部搜索工具
     final activeProvider = apiConfig.getActiveProvider();
     final searchMode = activeProvider?.webSearchMode ?? WebSearchMode.off;
-    // 外部搜索工具 ID（仅在 tavily 模式下启用）
+    // 外部搜索工具 ID（仅在 web_search tool 模式下启用）
     const externalSearchToolIds = {'web_search', 'url_read'};
 
     return state.where((t) {
       if (disabledIds.contains(t.id)) return false;
       if (!ragEnabled && ragToolIds.contains(t.id)) return false;
-      // 非 tavily 模式时，自动排除外部搜索工具
-      if (searchMode != WebSearchMode.tool && externalSearchToolIds.contains(t.id)) return false;
+      // 非 web_search tool 模式时，自动排除外部搜索工具
+      if (searchMode != WebSearchMode.tool &&
+          externalSearchToolIds.contains(t.id))
+        return false;
       return true;
     }).toList();
   }

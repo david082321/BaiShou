@@ -94,6 +94,8 @@ class WebSearchTool extends AgentTool {
     final ragEnabled = apiConfig.webSearchRagEnabled;
     final tavilyApiKey = apiConfig.tavilyApiKey;
 
+    debugPrint('WebSearch: engine=$engineStr, tavilyKey=${tavilyApiKey.isEmpty ? "(EMPTY)" : "tvly-***${tavilyApiKey.length}chars"}');
+
     final engine = _parseEngine(engineStr);
 
     try {

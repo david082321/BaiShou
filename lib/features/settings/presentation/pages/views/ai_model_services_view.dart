@@ -631,7 +631,7 @@ class _AiModelServicesViewState extends ConsumerState<AiModelServicesView> {
                 t.settings.web_search_mode_off_desc,
               ),
               WebSearchMode.builtin => (
-                Icons.smart_toy_rounded,
+                Icons.language_rounded,
                 t.settings.web_search_mode_builtin,
                 t.settings.web_search_mode_builtin_desc,
               ),

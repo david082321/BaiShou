@@ -152,9 +152,9 @@ class WebSearchService {
       uri,
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': 'Bearer $apiKey',
       },
       body: jsonEncode({
-        'api_key': apiKey,
         'query': query,
         'max_results': maxResults,
         'search_depth': 'basic',
