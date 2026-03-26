@@ -163,42 +163,57 @@ class _RecallBottomSheetState extends ConsumerState<RecallBottomSheet> {
           ),
 
           // 统计预览
-          if (_isLoading)
-            const Center(
-              child: Padding(
-                padding: EdgeInsets.symmetric(vertical: 16),
-                child: SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-              ),
-            )
-          else if (_preview != null)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 16),
-              child: Wrap(
-                spacing: 8,
-                runSpacing: 8,
+          AnimatedSize(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeInOut,
+            child: Container(
+              constraints: const BoxConstraints(minHeight: 60),
+              alignment: Alignment.center,
+              child: Stack(
+                alignment: Alignment.center,
                 children: [
-                  if (_preview!.diaryCount > 0)
-                    _StatBadge(Icons.book_rounded, _preview!.diaryCount,
-                        t.summary.stats_daily, Colors.green),
-                  if (_preview!.weekCount > 0)
-                    _StatBadge(Icons.view_week_rounded, _preview!.weekCount,
-                        t.summary.stats_weekly, Colors.indigo),
-                  if (_preview!.monthCount > 0)
-                    _StatBadge(Icons.grid_view_rounded, _preview!.monthCount,
-                        t.summary.stats_monthly, Colors.blue),
-                  if (_preview!.quarterCount > 0)
-                    _StatBadge(Icons.date_range_rounded, _preview!.quarterCount,
-                        t.summary.stats_quarterly, Colors.amber.shade700),
-                  if (_preview!.yearCount > 0)
-                    _StatBadge(Icons.calendar_today_rounded, _preview!.yearCount,
-                        t.summary.stats_yearly, Colors.orange),
+                  if (_preview != null)
+                    AnimatedOpacity(
+                      opacity: _isLoading ? 0.3 : 1.0,
+                      duration: const Duration(milliseconds: 200),
+                      child: Padding(
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            if (_preview!.diaryCount > 0)
+                              _StatBadge(Icons.book_rounded, _preview!.diaryCount,
+                                  t.summary.stats_daily, Colors.green),
+                            if (_preview!.weekCount > 0)
+                              _StatBadge(Icons.view_week_rounded, _preview!.weekCount,
+                                  t.summary.stats_weekly, Colors.indigo),
+                            if (_preview!.monthCount > 0)
+                              _StatBadge(Icons.grid_view_rounded, _preview!.monthCount,
+                                  t.summary.stats_monthly, Colors.blue),
+                            if (_preview!.quarterCount > 0)
+                              _StatBadge(Icons.date_range_rounded, _preview!.quarterCount,
+                                  t.summary.stats_quarterly, Colors.amber.shade700),
+                            if (_preview!.yearCount > 0)
+                              _StatBadge(Icons.calendar_today_rounded, _preview!.yearCount,
+                                  t.summary.stats_yearly, Colors.orange),
+                          ],
+                        ),
+                      ),
+                    ),
+                  if (_isLoading)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 16),
+                      child: SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    ),
                 ],
               ),
             ),
+          ),
 
           // 发送按钮
           SizedBox(
