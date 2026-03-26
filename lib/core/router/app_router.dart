@@ -66,6 +66,9 @@ GoRouter goRouter(Ref ref) {
     initialLocation: initialLoc,
     debugLogDiagnostics: true,
     redirect: (context, state) {
+      debugPrint(
+        '[ROUTER_TRACE] redirect triggered | uri: ${state.uri.path} | matched: ${state.matchedLocation} | hasStarted: ${AppLaunchGuard.hasStarted}',
+      );
       final isGoingToOnboarding = state.matchedLocation == '/onboarding';
 
       if (!onboardingCompleted && !isGoingToOnboarding) {
@@ -78,8 +81,11 @@ GoRouter goRouter(Ref ref) {
 
       // 如果是 '/'，且 App 刚启动，则放行到 initialLoc，并标记已启动。
       // 如果已启动，说明是 Android MIUI 到底层的假路由指令，直接弹回当前路由。
-      if (state.matchedLocation == '/') {
+      if (state.uri.path == '/') {
         if (!AppLaunchGuard.hasStarted) {
+          debugPrint(
+            '[ROUTER_TRACE] Cold start detect: allowing / to initialLoc ($initialLoc)',
+          );
           AppLaunchGuard.hasStarted = true;
           return initialLoc;
         } else {

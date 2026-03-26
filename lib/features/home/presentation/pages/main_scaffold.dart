@@ -1,14 +1,11 @@
 import 'dart:io';
 
-import 'package:baishou/core/router/app_router.dart';
-import 'package:baishou/core/widgets/app_toast.dart';
-import 'package:baishou/features/home/presentation/widgets/desktop_sidebar.dart';
 import 'package:baishou/i18n/strings.g.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:baishou/features/home/presentation/widgets/desktop_sidebar.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:baishou/core/providers/shared_preferences_provider.dart';
 import 'package:baishou/agent/rag/embedding_service.dart';
 import 'package:baishou/features/settings/presentation/pages/views/rag_memory_dialogs.dart';
 
@@ -30,6 +27,9 @@ class _MainScaffoldState extends ConsumerState<MainScaffold>
   late final AnimationController _overlayController;
 
   void _goBranch(int index) {
+    debugPrint(
+      '[SCAFFOLD_TRACE] _goBranch called with index: $index | previous is: ${widget.navigationShell.currentIndex}',
+    );
     widget.navigationShell.goBranch(index, initialLocation: false);
   }
 
@@ -37,21 +37,6 @@ class _MainScaffoldState extends ConsumerState<MainScaffold>
     final currentIndex = widget.navigationShell.currentIndex;
     return currentIndex < 4 ? currentIndex : 0;
   }
-
-  /// 缓存的默认 branch 索引（同步读取，避免异步延时导致 pop 先完成）
-  int _defaultBranch = 0;
-
-  void _computeDefaultBranch() {
-    try {
-      final prefs = ref.read(sharedPreferencesProvider);
-      final saved = prefs.getStringList('desktop_sidebar_nav_order');
-      if (saved != null && saved.isNotEmpty) {
-        _defaultBranch = int.tryParse(saved.first) ?? 0;
-      }
-    } catch (_) {}
-  }
-
-  DateTime? _lastBackPress;
 
   Future<void> _checkHeterogeneousEmbeddings() async {
     // 延迟检查，避免与初始导航动画冲突
@@ -94,13 +79,17 @@ class _MainScaffoldState extends ConsumerState<MainScaffold>
   @override
   void initState() {
     super.initState();
-    _computeDefaultBranch();
+    debugPrint(
+      '[SCAFFOLD_TRACE] MainScaffold initState called! This means the entire root UI was rebuilt!',
+    );
     _overlayController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 300),
       value: 0.0, // 初始透明（不遮挡）
     );
-    _checkHeterogeneousEmbeddings();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkHeterogeneousEmbeddings();
+    });
   }
 
   @override
@@ -126,10 +115,13 @@ class _MainScaffoldState extends ConsumerState<MainScaffold>
 
   @override
   Widget build(BuildContext context) {
+    debugPrint(
+      '[SCAFFOLD_TRACE] build called | shell index: ${widget.navigationShell.currentIndex}',
+    );
+    final bool isDesktopOS =
+        Platform.isWindows || Platform.isLinux || Platform.isMacOS;
     return LayoutBuilder(
       builder: (context, constraints) {
-        final bool isDesktopOS =
-            Platform.isWindows || Platform.isLinux || Platform.isMacOS;
         final bool isLargeScreen = constraints.maxWidth >= 700;
         final bool isDesktop = isDesktopOS || isLargeScreen;
 
@@ -192,56 +184,7 @@ class _MainScaffoldState extends ConsumerState<MainScaffold>
   // ─── 移动端布局 ──────────────────────────────────────────────
 
   Widget _buildMobileLayout(BuildContext context) {
-    final currentIndex = widget.navigationShell.currentIndex;
-
-    final GlobalKey<NavigatorState>? activeKey = switch (currentIndex) {
-      0 => diaryNavKey,
-      1 => agentNavKey,
-      2 => summaryNavKey,
-      3 => settingsNavKey,
-      4 => syncNavKey,
-      _ => null,
-    };
-
-    final navState = activeKey?.currentState;
-    final bool canPopNested = navState?.canPop() ?? false;
-
-    // ⚠️ canPop 必须恒为 false！
-    // MIUI 的 WindowOnBackDispatcher 在 canPop 从 true→false 变化时
-    // 会向 Flutter Router 发送虚假的路由重置通知（'/'），导致 GoRouter
-    // 的 StatefulShellRoute 回到初始分支。固定为 false 可避免此问题。
-    Widget content = PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, result) {
-        if (didPop) return;
-
-        // 1. 如果当前分支有嵌套页面可以 pop，优先 pop 嵌套页面
-        if (canPopNested) {
-          navState?.pop();
-          return;
-        }
-
-        // 2. 如果不在默认分支，返回默认分支
-        if (currentIndex != _defaultBranch) {
-          _goBranch(_defaultBranch);
-          return;
-        }
-
-        // 3. 在默认分支按两次退出
-        final now = DateTime.now();
-        if (_lastBackPress == null ||
-            now.difference(_lastBackPress!) > const Duration(seconds: 2)) {
-          setState(() {
-            _lastBackPress = now;
-          });
-          AppToast.show(context, t.common.exit_hint);
-          return;
-        }
-
-        SystemNavigator.pop();
-      },
-      child: widget.navigationShell,
-    );
+    final Widget content = widget.navigationShell;
 
     return Scaffold(
       body: Container(

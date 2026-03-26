@@ -46,6 +46,10 @@ class _DesktopTitleBarState extends ConsumerState<DesktopTitleBar>
   }
 
   void _onTabChanged() async {
+    final isDesktop =
+        Platform.isWindows || Platform.isLinux || Platform.isMacOS;
+    if (!isDesktop) return;
+
     if (!_tabController.indexIsChanging) return;
     if (_tabController.index == 0) {
       // 根据侧边栏排序首位决定默认路由
