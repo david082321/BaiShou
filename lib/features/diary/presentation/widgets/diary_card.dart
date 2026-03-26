@@ -180,13 +180,16 @@ class _DiaryCardState extends State<DiaryCard> {
                           ).createShader(rect);
                         },
                         blendMode: BlendMode.dstIn,
-                        child: SingleChildScrollView(
-                          physics: const NeverScrollableScrollPhysics(), // 禁止滚动，只做展示
-                          child: MarkdownBody(
-                            data: widget.diary.content.length > 1000 
-                                ? '${widget.diary.content.substring(0, 1000)}...' 
-                                : widget.diary.content,
-                            selectable: false,
+                        child: ScrollConfiguration(
+                          behavior: ScrollConfiguration.of(context)
+                              .copyWith(scrollbars: false),
+                          child: SingleChildScrollView(
+                            physics: const NeverScrollableScrollPhysics(), // 禁止滚动，只做展示
+                            child: MarkdownBody(
+                              data: widget.diary.content.length > 1000 
+                                  ? '${widget.diary.content.substring(0, 1000)}...' 
+                                  : widget.diary.content,
+                              selectable: false,
                             styleSheet: MarkdownStyleSheet(
                               p: TextStyle(
                                 fontSize: 15,
@@ -256,6 +259,7 @@ class _DiaryCardState extends State<DiaryCard> {
                           ),
                         ),
                       ),
+                    ),
                     ),
 
                     // ===== Tags =====

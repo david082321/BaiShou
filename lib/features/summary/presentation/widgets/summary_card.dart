@@ -121,12 +121,15 @@ class SummaryCard extends StatelessWidget {
                     ).createShader(rect);
                   },
                   blendMode: BlendMode.dstIn,
-                  child: SingleChildScrollView(
-                    physics: const NeverScrollableScrollPhysics(), // 禁止滚动
-                    child: MarkdownBody(
-                      data: summary.content.length > 1000
-                          ? '${summary.content.substring(0, 1000)}...'
-                          : summary.content, // 截断过长内容以优化性能
+                  child: ScrollConfiguration(
+                    behavior: ScrollConfiguration.of(context)
+                        .copyWith(scrollbars: false),
+                    child: SingleChildScrollView(
+                      physics: const NeverScrollableScrollPhysics(), // 禁止滚动
+                      child: MarkdownBody(
+                        data: summary.content.length > 1000
+                            ? '${summary.content.substring(0, 1000)}...'
+                            : summary.content, // 截断过长内容以优化性能
                       styleSheet: MarkdownStyleSheet(
                         p: TextStyle(
                           fontSize: 14,
@@ -140,6 +143,7 @@ class SummaryCard extends StatelessWidget {
                   ),
                 ),
               ),
+            ),
 
               const SizedBox(height: 16),
 
