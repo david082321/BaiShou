@@ -8,6 +8,7 @@ import 'package:baishou/features/settings/presentation/pages/lan_transfer_page.d
 import 'package:baishou/features/settings/presentation/pages/views/general_settings_view.dart';
 import 'package:baishou/features/settings/presentation/pages/views/summary_settings_view.dart';
 import 'package:baishou/features/settings/presentation/pages/views/web_search_settings_view.dart';
+import 'package:baishou/features/settings/presentation/pages/views/attachment_management_view.dart';
 import 'package:baishou/agent/presentation/pages/assistant_management_page.dart';
 import 'package:baishou/i18n/strings.g.dart';
 import 'package:flutter/material.dart';
@@ -94,6 +95,8 @@ class _SettingsPageState extends State<SettingsPage> {
         return const LanTransferPage(key: ValueKey('tab_lan'));
       case 9:
         return const DataSyncPage(key: ValueKey('tab_sync'));
+      case 10:
+        return const AttachmentManagementView(key: ValueKey('tab_attachments'));
       default:
         return const SizedBox();
     }
@@ -172,6 +175,12 @@ class _SettingsPageState extends State<SettingsPage> {
             title: Text(t.data_sync.title),
             trailing: const Icon(Icons.chevron_right),
             onTap: () => context.push('/settings/data-sync'),
+          ),
+          ListTile(
+            leading: const Icon(Icons.folder_delete_outlined),
+            title: Text(t.settings.attachment_management),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => context.push('/settings/attachments'),
           ),
         ],
       ),
@@ -280,6 +289,11 @@ class _SettingsPageState extends State<SettingsPage> {
                           t.data_sync.title,
                           Icons.sync_rounded,
                           9,
+                        ),
+                        _buildSidebarTab(
+                          t.settings.attachment_management,
+                          Icons.folder_delete_outlined,
+                          10,
                         ),
                       ],
                     ),
