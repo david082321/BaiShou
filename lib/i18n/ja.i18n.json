@@ -850,6 +850,8 @@
       "add_memory_hint": "覚えておきたい内容を入力...",
       "add_memory_save": "保存",
       "add_memory_success": "記憶を保存・埋め込みました",
+      "edit_memory_title": "記憶を編集",
+      "edit_memory_success": "記憶を更新・再埋め込みました",
       "retrieval_params": "検索パラメータ調整",
       "similarity_threshold": "類似度のしきい値",
       "migration_pending_title": "未完了の移行を検出",

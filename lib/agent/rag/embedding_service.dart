@@ -148,6 +148,40 @@ class EmbeddingService {
 
   // ── Phase 3: 单条记忆管理 ─────────────────────────────────
 
+  /// 编辑一条指定的记忆记录（重新生成嵌入并覆盖保存）
+  Future<void> updateMemoryChunk({
+    required Map<String, dynamic> entry,
+    required String newText,
+  }) async {
+    if (!isConfigured || newText.trim().isEmpty) return;
+
+    final embeddingModelId = _apiConfig.globalEmbeddingModelId;
+    final embeddingProviderId = _apiConfig.globalEmbeddingProviderId;
+    final provider = _apiConfig.getProvider(embeddingProviderId);
+    if (provider == null) return;
+
+    final client = AiClientFactory.createClient(provider);
+
+    await _retryEmbed(() async {
+      final embedding = await client.generateEmbedding(
+        input: newText,
+        modelId: embeddingModelId,
+      );
+
+      await _db.insertEmbedding(
+        id: entry['embedding_id'] as String,
+        sourceType: entry['source_type'] as String,
+        sourceId: entry['source_id'] as String,
+        groupId: entry['group_id'] as String,
+        chunkIndex: entry['chunk_index'] as int,
+        chunkText: newText,
+        metadataJson: entry['metadata_json'] as String? ?? '{}',
+        embedding: _normalize(embedding),
+        modelId: embeddingModelId,
+      );
+    }, label: 'updateMemoryChunk ${entry['embedding_id']}');
+  }
+
   /// 嵌入一段独立文本并存入数据库
   ///
   /// 用于 Agent 主动存储记忆（memory_store_tool），

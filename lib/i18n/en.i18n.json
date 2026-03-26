@@ -850,6 +850,8 @@
       "add_memory_hint": "Enter content to remember...",
       "add_memory_save": "Save",
       "add_memory_success": "Memory saved and embedded",
+      "edit_memory_title": "Edit Memory",
+      "edit_memory_success": "Memory updated and re-embedded",
       "retrieval_params": "Retrieval Parameters",
       "similarity_threshold": "Similarity Threshold",
       "migration_pending_title": "Incomplete Migration Detected",

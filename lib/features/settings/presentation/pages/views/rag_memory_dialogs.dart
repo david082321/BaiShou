@@ -349,4 +349,69 @@ class RagMemoryDialogs {
     }
     return false;
   }
+
+  /// 编辑指定记忆
+  static Future<bool> editMemory(
+    BuildContext context,
+    WidgetRef ref,
+    Map<String, dynamic> entry,
+  ) async {
+    final oldText = entry['chunk_text'] as String? ?? '';
+    final controller = TextEditingController(text: oldText);
+
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(t.agent.rag.edit_memory_title),
+        content: SizedBox(
+          width: 500,
+          child: TextField(
+            controller: controller,
+            maxLines: 8,
+            decoration: InputDecoration(
+              hintText: t.agent.rag.add_memory_hint,
+              border: const OutlineInputBorder(),
+            ),
+            autofocus: true,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(t.common.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, controller.text),
+            child: Text(t.common.save),
+          ),
+        ],
+      ),
+    );
+
+    if (result != null &&
+        result.trim() != oldText.trim() &&
+        result.trim().isNotEmpty) {
+      final embeddingService = EmbeddingService(
+        ref.read(apiConfigServiceProvider),
+        ref.read(agentDatabaseProvider),
+      );
+      if (!embeddingService.isConfigured) {
+        if (context.mounted) {
+          AppToast.showError(context, t.agent.rag.embedding_not_configured);
+        }
+        return false;
+      }
+
+      await embeddingService.updateMemoryChunk(
+        entry: entry,
+        newText: result.trim(),
+      );
+
+      if (context.mounted) {
+        AppToast.showSuccess(context, t.agent.rag.edit_memory_success);
+      }
+      return true;
+    }
+    return false;
+  }
 }

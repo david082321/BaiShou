@@ -126,12 +126,14 @@ class RagActionChip extends StatelessWidget {
 class MemoryEntryCard extends StatelessWidget {
   final Map<String, dynamic> entry;
   final VoidCallback onDelete;
+  final VoidCallback onEdit;
   final VoidCallback onTap;
 
   const MemoryEntryCard({
     super.key,
     required this.entry,
     required this.onDelete,
+    required this.onEdit,
     required this.onTap,
   });
 
@@ -174,6 +176,45 @@ class MemoryEntryCard extends StatelessWidget {
         subtitle: Text(
           '$model · $timeStr',
           style: textTheme.labelSmall?.copyWith(color: colorScheme.outline),
+        ),
+        trailing: PopupMenuButton<String>(
+          icon: Icon(Icons.more_vert, size: 20, color: colorScheme.outline),
+          onSelected: (val) {
+            if (val == 'edit') {
+              onEdit();
+            } else if (val == 'delete') {
+              onDelete();
+            }
+          },
+          itemBuilder: (context) => [
+            PopupMenuItem(
+              value: 'edit',
+              child: Row(
+                children: [
+                  const Icon(Icons.edit_outlined, size: 18),
+                  const SizedBox(width: 8),
+                  Text(t.common.edit),
+                ],
+              ),
+            ),
+            PopupMenuItem(
+              value: 'delete',
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.delete_outline,
+                    size: 18,
+                    color: colorScheme.error,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    t.common.delete,
+                    style: TextStyle(color: colorScheme.error),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
         onTap: onTap,
       ),

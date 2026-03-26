@@ -62,6 +62,11 @@ class _RagMemoryViewState extends ConsumerState<RagMemoryView> {
     await _loadData();
   }
 
+  Future<void> _editEntry(Map<String, dynamic> entry) async {
+    final success = await RagMemoryDialogs.editMemory(context, ref, entry);
+    if (success && mounted) await _loadData();
+  }
+
   void _showFullContent(String text, String model, String timeStr) {
     RagMemoryDialogs.showFullContent(context, text, model, timeStr);
   }
@@ -406,6 +411,7 @@ class _RagMemoryViewState extends ConsumerState<RagMemoryView> {
         return MemoryEntryCard(
           entry: entry,
           onDelete: () => _deleteEntry(embeddingId),
+          onEdit: () => _editEntry(entry),
           onTap: () => _showFullContent(text, model, timeStr),
         );
       },

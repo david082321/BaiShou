@@ -850,6 +850,8 @@
       "add_memory_hint": "输入要记住的内容...",
       "add_memory_save": "保存",
       "add_memory_success": "记忆已保存并嵌入",
+      "edit_memory_title": "编辑记忆",
+      "edit_memory_success": "记忆已更新并重新嵌入",
       "retrieval_params": "检索参数调节",
       "similarity_threshold": "相似度阈值",
       "migration_pending_title": "检测到未完成的迁移",
