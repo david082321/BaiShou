@@ -112,7 +112,6 @@ class VectorSearchTool extends AgentTool {
                     : (r['source_id'] as String),
                 sessionId: r['group_id'] as String,
                 chunkText: r['chunk_text'] as String,
-                sessionTitle: r['session_title'] as String,
                 score: 1.0 - (r['distance'] as double),
                 source: 'vector',
                 createdAt: DateTime.fromMillisecondsSinceEpoch(
@@ -136,7 +135,6 @@ class VectorSearchTool extends AgentTool {
                 messageId: r['message_id'] as String,
                 sessionId: r['session_id'] as String,
                 chunkText: r['snippet'] as String,
-                sessionTitle: r['session_title'] as String,
                 score: 0,
                 source: 'fts',
               ),
@@ -166,7 +164,6 @@ class VectorSearchTool extends AgentTool {
                     : (r['source_id'] as String),
                 sessionId: r['group_id'] as String,
                 chunkText: r['chunk_text'] as String,
-                sessionTitle: r['session_title'] as String,
                 score: 1.0 - (r['distance'] as double),
                 source: 'vector',
                 createdAt: DateTime.fromMillisecondsSinceEpoch(
@@ -190,7 +187,7 @@ class VectorSearchTool extends AgentTool {
       );
 
       if (results.isEmpty) {
-        return ToolResult(output: '${pipeline}没有找到语义相关的历史消息（阈值=$minScore）。');
+        return ToolResult(output: '$pipeline没有找到语义相关的历史消息（阈值=$minScore）。');
       }
 
       // 格式化输出：流水线摘要 + 结果
@@ -210,7 +207,6 @@ class VectorSearchTool extends AgentTool {
           _ => r.source,
         };
         buffer.writeln('--- 结果 ${i + 1} [$sourceLabel] ---');
-        buffer.writeln('会话: ${r.sessionTitle}');
         if (r.createdAt != null) {
           final t = r.createdAt!;
           buffer.writeln(

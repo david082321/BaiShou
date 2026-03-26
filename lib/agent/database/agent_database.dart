@@ -286,11 +286,9 @@ class AgentDatabase extends _$AgentDatabase {
           e.dimension,
           e.model_id,
           v.distance,
-          e.created_at,
-          s.title AS session_title
+          e.created_at
         FROM vector_full_scan('memory_embeddings', 'embedding', vector_as_f32(?), ?) AS v
         JOIN memory_embeddings AS e ON e.id = v.rowid
-        LEFT JOIN agent_sessions AS s ON e.group_id = s.id AND e.source_type = 'chat'
         WHERE e.dimension = ?
         ''',
         variables: [
@@ -315,9 +313,6 @@ class AgentDatabase extends _$AgentDatabase {
           'model_id': row.read<String>('model_id'),
           'distance': row.read<double>('distance'),
           'created_at': row.read<int>('created_at'),
-          'session_title':
-              row.readNullable<String>('session_title') ??
-              t.agent.sessions.unnamed_session,
         };
       }).toList();
     } catch (e) {

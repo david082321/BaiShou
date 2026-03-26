@@ -10,7 +10,6 @@ class SearchResult {
   final String messageId;
   final String sessionId;
   final String chunkText;
-  final String sessionTitle;
   final double score;
   final String source; // 'fts' | 'vector' | 'hybrid'
   final DateTime? createdAt;
@@ -19,7 +18,6 @@ class SearchResult {
     required this.messageId,
     required this.sessionId,
     required this.chunkText,
-    required this.sessionTitle,
     required this.score,
     required this.source,
     this.createdAt,
@@ -76,7 +74,6 @@ class HybridSearch {
             messageId: m.result.messageId,
             sessionId: m.result.sessionId,
             chunkText: m.result.chunkText,
-            sessionTitle: m.result.sessionTitle,
             // 混合结果用blended分数，纯向量结果用原始余弦分数
             score: m.rawVectorScore > 0 ? m.rawVectorScore : m.totalScore,
             source: m.source,
@@ -115,7 +112,6 @@ class HybridSearch {
             messageId: s.row['message_id'] as String,
             sessionId: s.row['session_id'] as String,
             chunkText: s.row['chunk_text'] as String,
-            sessionTitle: s.row['session_title'] as String,
             score: s.score,
             source: 'vector',
           ),
