@@ -385,7 +385,13 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
 
         final shouldPop = await showDiaryExitConfirmationDialog(context);
         if (shouldPop && mounted) {
-          context.pop();
+          // GoRouter 的 pop 在有些手势返回场景可能状态未同步，为了安全，判断 canPop
+          if (context.canPop()) {
+            context.pop();
+          } else {
+            // 退回上一级的保底方案
+            GoRouter.of(context).go('/diary');
+          }
         }
       },
       child: Stack(
