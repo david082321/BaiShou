@@ -201,44 +201,17 @@ class _WebSearchSettingsViewState extends ConsumerState<WebSearchSettingsView> {
               ),
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Row(
-              children: [
-                const Icon(Icons.format_list_numbered),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(t.agent.tools.param_max_results),
-                      Text(
-                        t.agent.tools.param_max_results_desc,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Text(
-                  config.webSearchMaxResults.toString(),
-                  style: theme.textTheme.titleMedium,
-                ),
-                Expanded(
-                  child: Slider(
-                    value: config.webSearchMaxResults.toDouble(),
-                    min: 1,
-                    max: 10,
-                    divisions: 9,
-                    label: config.webSearchMaxResults.toString(),
-                    onChanged: (val) {
-                      config.setWebSearchMaxResults(val.toInt());
-                    },
-                  ),
-                ),
-              ],
-            ),
+          _buildSliderRow(
+            context,
+            theme,
+            icon: Icons.format_list_numbered,
+            title: t.agent.tools.param_max_results,
+            desc: t.agent.tools.param_max_results_desc,
+            value: config.webSearchMaxResults.toDouble(),
+            min: 1,
+            max: 10,
+            divisions: 9,
+            onChanged: (val) => config.setWebSearchMaxResults(val.toInt()),
           ),
           const Divider(height: 1),
           SwitchListTile(
@@ -249,6 +222,112 @@ class _WebSearchSettingsViewState extends ConsumerState<WebSearchSettingsView> {
             onChanged: (val) {
               config.setWebSearchRagEnabled(val);
             },
+          ),
+          if (config.webSearchRagEnabled) ...[
+            const Divider(height: 1),
+            _buildSliderRow(
+              context,
+              theme,
+              icon: Icons.compress,
+              title: t.agent.tools.param_rag_max_chunks,
+              desc: t.agent.tools.param_rag_max_chunks_desc,
+              value: config.webSearchRagMaxChunks.toDouble(),
+              min: 1,
+              max: 50,
+              divisions: 49,
+              onChanged: (val) => config.setWebSearchRagMaxChunks(val.toInt()),
+            ),
+            const Divider(height: 1),
+            _buildSliderRow(
+              context,
+              theme,
+              icon: Icons.library_books,
+              title: t.agent.tools.param_rag_chunks_per_source,
+              desc: t.agent.tools.param_rag_chunks_per_source_desc,
+              value: config.webSearchRagChunksPerSource.toDouble(),
+              min: 1,
+              max: 20,
+              divisions: 19,
+              onChanged: (val) => config.setWebSearchRagChunksPerSource(val.toInt()),
+            ),
+          ] else ...[
+            const Divider(height: 1),
+            _buildSliderRow(
+              context,
+              theme,
+              icon: Icons.short_text,
+              title: t.agent.tools.param_plain_snippet_length,
+              desc: t.agent.tools.param_plain_snippet_length_desc,
+              value: config.webSearchPlainSnippetLength.toDouble(),
+              min: 500,
+              max: 8000,
+              divisions: 75,
+              onChanged: (val) => config.setWebSearchPlainSnippetLength(val.toInt()),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSliderRow(
+    BuildContext context,
+    ThemeData theme, {
+    required IconData icon,
+    required String title,
+    required String desc,
+    required double value,
+    required double min,
+    required double max,
+    required int divisions,
+    required ValueChanged<double> onChanged,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        children: [
+          Icon(icon),
+          const SizedBox(width: 16),
+          Expanded(
+            flex: 3,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title),
+                Text(
+                  desc,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            flex: 2,
+            child: Row(
+              children: [
+                Expanded(
+                  child: Slider(
+                    value: value,
+                    min: min,
+                    max: max,
+                    divisions: divisions,
+                    label: value.toInt().toString(),
+                    onChanged: onChanged,
+                  ),
+                ),
+                SizedBox(
+                  width: 40,
+                  child: Text(
+                    value.toInt().toString(),
+                    style: theme.textTheme.titleMedium,
+                    textAlign: TextAlign.end,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),

@@ -48,6 +48,9 @@ class ApiConfigService extends ChangeNotifier {
   static const String _keyWebSearchMaxResults = 'web_search_max_results';
   static const String _keyWebSearchRagEnabled = 'web_search_rag_enabled';
   static const String _keyTavilyApiKey = 'tavily_api_key';
+  static const String _keyWebSearchRagMaxChunks = 'web_search_rag_max_chunks';
+  static const String _keyWebSearchRagChunksPerSource = 'web_search_rag_chunks_per_source';
+  static const String _keyWebSearchPlainSnippetLength = 'web_search_plain_snippet_length';
 
   final SharedPreferences _prefs;
 
@@ -603,6 +606,42 @@ class ApiConfigService extends ChangeNotifier {
     final sanitized = key.trim();
     if (tavilyApiKey == sanitized) return;
     await _prefs.setString(_keyTavilyApiKey, sanitized);
+    notifyListeners();
+  }
+
+  /// 引用片段总数上限 (默认 12)
+  int get webSearchRagMaxChunks {
+    return _prefs.getInt(_keyWebSearchRagMaxChunks) ?? 12;
+  }
+
+  Future<void> setWebSearchRagMaxChunks(int chunks) async {
+    final clamped = chunks.clamp(1, 50);
+    if (webSearchRagMaxChunks == clamped) return;
+    await _prefs.setInt(_keyWebSearchRagMaxChunks, clamped);
+    notifyListeners();
+  }
+
+  /// 单来源最大片段数 (默认 4)
+  int get webSearchRagChunksPerSource {
+    return _prefs.getInt(_keyWebSearchRagChunksPerSource) ?? 4;
+  }
+
+  Future<void> setWebSearchRagChunksPerSource(int chunks) async {
+    final clamped = chunks.clamp(1, 20);
+    if (webSearchRagChunksPerSource == clamped) return;
+    await _prefs.setInt(_keyWebSearchRagChunksPerSource, clamped);
+    notifyListeners();
+  }
+
+  /// 未配置 Embedding 时的直接纯文本截取上限 (默认 1500)
+  int get webSearchPlainSnippetLength {
+    return _prefs.getInt(_keyWebSearchPlainSnippetLength) ?? 1500;
+  }
+
+  Future<void> setWebSearchPlainSnippetLength(int length) async {
+    final clamped = length.clamp(100, 10000);
+    if (webSearchPlainSnippetLength == clamped) return;
+    await _prefs.setInt(_keyWebSearchPlainSnippetLength, clamped);
     notifyListeners();
   }
 

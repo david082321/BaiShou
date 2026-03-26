@@ -698,6 +698,12 @@
       "param_max_length_desc": "网页读取时返回的最大字符数",
       "param_rag_enabled": "RAG 向量压缩",
       "param_rag_enabled_desc": "启用后搜索结果将通过向量检索筛选最相关内容（需配置嵌入模型）",
+      "param_rag_max_chunks": "引用片段总数上限",
+      "param_rag_max_chunks_desc": "最大提取并交付给 AI 供参考的片段总数，决定了 Token 消耗的上限",
+      "param_rag_chunks_per_source": "来源片段上限",
+      "param_rag_chunks_per_source_desc": "单一网站最多能够提取的片段数量，防止被某个长文网站刷屏",
+      "param_plain_snippet_length": "无向量模型时的截取长度",
+      "param_plain_snippet_length_desc": "当并未配置 Embedding 模型时，系统退化为直接拼接待查文本。为了避免消耗过多 Token，将在此字数后对单网站截断",
       "param_tavily_api_key": "Tavily API Key",
       "param_tavily_api_key_desc": "Tavily 搜索 API 密钥（https://app.tavily.com 免费获取）",
       "shortcuts": {

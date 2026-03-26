@@ -187,11 +187,12 @@ class WebSearchTool extends AgentTool {
           results: results,
           context: context,
           engineStr: actualEngine,
+          apiConfig: apiConfig,
         );
       }
 
       // ── 普通模式：直接返回格式化摘要 ──
-      return _formatPlainResults(queries, results, actualEngine);
+      return _formatPlainResults(queries, results, actualEngine, apiConfig);
     } catch (e) {
       return ToolResult.error('Web search failed: $e');
     }
@@ -217,6 +218,7 @@ class WebSearchTool extends AgentTool {
     required List<SearchResult> results,
     required ToolContext context,
     required String engineStr,
+    required ApiConfigService apiConfig,
   }) async {
     debugPrint('WebSearch: RAG mode enabled, using snippets');
 
@@ -231,13 +233,13 @@ class WebSearchTool extends AgentTool {
         query: queries.first,
         results: ragInputs,
         embeddingService: context.embeddingService!,
-        totalMaxChunks: 12,
-        maxChunksPerSource: 4,
+        totalMaxChunks: apiConfig.webSearchRagMaxChunks,
+        maxChunksPerSource: apiConfig.webSearchRagChunksPerSource,
       );
 
       if (compressed.isEmpty) {
         debugPrint('WebSearch: RAG returned empty, falling back to plain');
-        return _formatPlainResults(queries, results, engineStr);
+        return _formatPlainResults(queries, results, engineStr, apiConfig);
       }
 
       // 格式化 RAG 压缩结果
@@ -277,7 +279,7 @@ class WebSearchTool extends AgentTool {
       );
     } catch (e) {
       debugPrint('WebSearch: RAG compression failed: $e, falling back');
-      return _formatPlainResults(queries, results, engineStr);
+      return _formatPlainResults(queries, results, engineStr, apiConfig);
     }
   }
 
@@ -287,6 +289,7 @@ class WebSearchTool extends AgentTool {
     List<String> queries,
     List<SearchResult> results,
     String engineStr,
+    ApiConfigService apiConfig,
   ) {
     final engineName = switch (engineStr) {
       'tavily' => 'Tavily API',
@@ -298,10 +301,18 @@ class WebSearchTool extends AgentTool {
       ..writeln('Found ${results.length} results (via $engineName):')
       ..writeln();
 
+    final maxLen = apiConfig.webSearchPlainSnippetLength;
+
     for (var i = 0; i < results.length; i++) {
       final r = results[i];
       buffer.writeln('[${i + 1}] [${r.title}](${r.url})');
-      buffer.writeln(r.snippet);
+      
+      String snippet = r.snippet;
+      if (snippet.length > maxLen) {
+        snippet = '${snippet.substring(0, maxLen)}... (truncated, use url_read for full text)';
+      }
+      
+      buffer.writeln(snippet);
       buffer.writeln();
     }
 
