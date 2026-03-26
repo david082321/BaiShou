@@ -13,6 +13,7 @@ import 'package:baishou/agent/presentation/pages/assistant_management_page.dart'
 import 'package:baishou/i18n/strings.g.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:baishou/core/router/app_router.dart';
 
 /// 系统设置页面
 /// 采用双栏布局（桌面端）或列表导航（移动端）展示各项设置。
@@ -106,7 +107,21 @@ class _SettingsPageState extends State<SettingsPage> {
     final colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
       backgroundColor: colorScheme.surface,
-      appBar: AppBar(title: Text(t.settings.title), centerTitle: true),
+      appBar: AppBar(
+        title: Text(t.settings.title), 
+        centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            NavigationGuard.markUserNavigation();
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/');
+            }
+          },
+        ),
+      ),
       body: ListView(
         children: [
           // ─── 通用 ───
@@ -215,6 +230,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       IconButton(
                         icon: const Icon(Icons.arrow_back),
                         onPressed: () {
+                          NavigationGuard.markUserNavigation();
                           if (context.canPop()) {
                             context.pop();
                           } else {

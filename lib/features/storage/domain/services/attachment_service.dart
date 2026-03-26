@@ -37,14 +37,14 @@ class AttachmentService {
     final vaultDir = await _pathService.getVaultDirectory(_vaultName);
     final attBaseDir = Directory(p.join(vaultDir.path, 'attachments'));
     
-    if (!attBaseDir.existsSync()) {
+    if (!(await attBaseDir.exists())) {
       return [];
     }
 
     final result = <AttachmentFolderInfo>[];
     
-    // 遍历所有的 sessionId 文件夹
-    final entities = attBaseDir.listSync();
+    // 异步遍历所有的 sessionId 文件夹
+    final entities = await attBaseDir.list().toList();
     for (final entity in entities) {
       if (entity is Directory) {
         final sessionId = p.basename(entity.path);
@@ -56,11 +56,11 @@ class AttachmentService {
         int totalBytes = 0;
         final files = <File>[];
         try {
-          final subEntities = entity.listSync(recursive: true);
+          final subEntities = await entity.list(recursive: true).toList();
           for (final sub in subEntities) {
             if (sub is File) {
               files.add(sub);
-              totalBytes += sub.lengthSync();
+              totalBytes += await sub.length();
             }
           }
         } catch (_) {}
@@ -68,7 +68,7 @@ class AttachmentService {
         if (files.isEmpty) {
           // 如果是个空文件夹，直接顺手删了
           try {
-            entity.deleteSync(recursive: true);
+            await entity.delete(recursive: true);
           } catch (_) {}
           continue;
         }

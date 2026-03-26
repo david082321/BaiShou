@@ -134,7 +134,7 @@ class _AttachmentManagementViewState
                           vertical: 4,
                         ),
                         itemCount: displayList.length,
-                        separatorBuilder: (_, _a) =>
+                        separatorBuilder: (context, index) =>
                             const SizedBox(height: 4),
                         itemBuilder: (context, index) {
                           final folder = displayList[index];
@@ -549,17 +549,17 @@ class _AttachmentManagementViewState
         await service.deleteAttachmentFolder(id);
       }
 
+      if (!mounted) return;
+
       _selectedIds.clear();
       ref.invalidate(attachmentListProvider);
 
-      if (mounted) {
-        AppToast.showSuccess(
-          context,
-          t.settings.attachment_clear_completed(
-            size: _formatBytes(freedBytes),
-          ),
-        );
-      }
+      AppToast.showSuccess(
+        context,
+        t.settings.attachment_clear_completed(
+          size: _formatBytes(freedBytes),
+        ),
+      );
     }
   }
 }
