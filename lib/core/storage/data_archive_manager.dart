@@ -94,8 +94,13 @@ class DataArchiveManager extends _$DataArchiveManager {
       } else if (entity is File) {
         try {
           debugPrint('DataArchiveManager: ADDING FILE: $relativePath');
-          final stream = InputFileStream(entity.path);
-          archive.addFile(ArchiveFile.stream(relativePath, stream));
+          // 核心修复：坚决禁用 InputFileStream ！！！
+          // InputFileStream 会把文件句柄（File Descriptor）一直以挂起的状态保持在内存中，直到最后的 ZipEncoder 消费时才释放。
+          // 在物理迁移场景下若有超过 500 个以上的文件（包括日记、总结等），Windows 系统会极其容易撞到单进程 512 句柄锁上限。
+          // 一旦触达，这里会静默 throw 并跳过后续文件（如包含 Archives），导致总结丢失。
+          // 现在直接阻塞式一次性将所有字节捞入 Heap 再交给 Archive，瞬间斩断文件锁，对于日常百兆内数据轻而易举。
+          final bytes = entity.readAsBytesSync();
+          archive.addFile(ArchiveFile(relativePath, bytes.length, bytes));
         } catch (e) {
           debugPrint(
             'DataArchiveManager: Skipped locked file $relativePath: $e',
@@ -135,9 +140,9 @@ class DataArchiveManager extends _$DataArchiveManager {
       if (userProfile.avatarPath != null) {
         final avatarFile = File(userProfile.avatarPath!);
         if (avatarFile.existsSync()) {
-          final stream = InputFileStream(userProfile.avatarPath!);
+          final bytes = avatarFile.readAsBytesSync();
           final ext = p.extension(userProfile.avatarPath!).replaceAll('.', '');
-          archive.addFile(ArchiveFile.stream('config/avatar.$ext', stream));
+          archive.addFile(ArchiveFile('config/avatar.$ext', bytes.length, bytes));
           debugPrint('DataArchiveManager: ADDING AVATAR');
         }
       }
@@ -354,6 +359,45 @@ class DataArchiveManager extends _$DataArchiveManager {
         filteredArchive.addFile(file);
       }
       extractArchiveToDisk(filteredArchive, rootDir.path);
+
+      // 4.5 【关键修复】跨端路径重映射
+      // vault_registry.json 中的 path 字段存储的是源设备的绝对路径（如 Windows 的 C:\Users\...）。
+      // 当 ZIP 被解压到另一台设备（如 Android）时，这些路径在目标设备上根本不存在。
+      // 如果不修正，后续的 fullScanArchives / fullScanVault 会因路径无效而扫描为空，
+      // 导致总结等数据在数据库中被清零。
+      try {
+        final registryDir = Directory(
+          p.join(rootDir.path, StoragePathService.systemFolderName),
+        );
+        final registryFile = File(
+          p.join(registryDir.path, 'vault_registry.json'),
+        );
+        if (registryFile.existsSync()) {
+          final content = await registryFile.readAsString();
+          final List<dynamic> vaults = jsonDecode(content);
+          bool modified = false;
+          for (int i = 0; i < vaults.length; i++) {
+            final vault = vaults[i] as Map<String, dynamic>;
+            final vaultName = vault['name'] as String;
+            // 用当前设备的实际根目录重新拼接路径
+            final correctPath = p.join(rootDir.path, vaultName);
+            if (vault['path'] != correctPath) {
+              vault['path'] = correctPath;
+              modified = true;
+            }
+          }
+          if (modified) {
+            await registryFile.writeAsString(jsonEncode(vaults));
+            debugPrint(
+              'DataArchiveManager: Remapped ${vaults.length} vault paths in registry to local device.',
+            );
+          }
+        }
+      } catch (e) {
+        debugPrint(
+          'DataArchiveManager: Failed to remap vault registry paths: $e',
+        );
+      }
 
       // 5. 让 Riverpod 的持久化 Provider 失效，从而强制挂载新物理文件
       ref.invalidate(appDatabaseProvider);
