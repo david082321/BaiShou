@@ -22,8 +22,6 @@ class MissingSummaryList extends ConsumerStatefulWidget {
 
 class _MissingSummaryListState extends ConsumerState<MissingSummaryList> {
   int _concurrencyLimit = 3;
-  bool _isBatchProcessing = false;
-  bool _cancelRequested = false;
 
   @override
   Widget build(BuildContext context) {
@@ -42,179 +40,186 @@ class _MissingSummaryListState extends ConsumerState<MissingSummaryList> {
         final missing = snapshot.data!;
         if (missing.isEmpty) return const SizedBox.shrink();
 
-        // ValueListenableBuilder 只负责渲染生成进度，不触发重查
-        return ValueListenableBuilder<Map<String, String>>(
-          valueListenable: GenerationStateService().statusNotifier,
-          builder: (context, generationStatus, _) {
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  crossAxisAlignment: WrapCrossAlignment.center,
+        final service = GenerationStateService();
+
+        // 双层 ValueListenableBuilder：生成进度 + 批处理状态
+        return ValueListenableBuilder<bool>(
+          valueListenable: service.isBatchProcessing,
+          builder: (context, isBatchProcessing, _) {
+            return ValueListenableBuilder<Map<String, String>>(
+              valueListenable: service.statusNotifier,
+              builder: (context, generationStatus, _) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
-                        Icon(
-                          Icons.auto_fix_high_rounded,
-                          size: 20,
-                          color: Colors.amber.shade700,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          t.summary.ai_suggestions,
-                          style: Theme.of(context).textTheme.titleSmall
-                              ?.copyWith(fontWeight: FontWeight.bold),
-                        ),
-                      ],
-                    ),
-                    // 批量生成按钮
-                    FilledButton.tonal(
-                      onPressed: _isBatchProcessing
-                          ? () => setState(() => _cancelRequested = true)
-                          : () => _batchGenerate(missing),
-                      style: FilledButton.styleFrom(
-                        visualDensity: VisualDensity.compact,
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        backgroundColor: _isBatchProcessing
-                            ? Colors.red.withValues(alpha: 0.1)
-                            : AppTheme.primary.withValues(alpha: 0.1),
-                        foregroundColor: _isBatchProcessing
-                            ? Colors.red
-                            : AppTheme.primary,
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (_isBatchProcessing) ...[
-                            const SizedBox(
-                              width: 12,
-                              height: 12,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.red,
-                              ),
-                            ),
-                            const SizedBox(width: 6),
-                          ],
-                          Text(
-                            _isBatchProcessing
-                                ? (_cancelRequested
-                                      ? t.summary.stopping
-                                      : t.summary.stop_generating)
-                                : t.summary.generate_all,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 13,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    // 并发设置
-                    PopupMenuButton<int>(
-                      initialValue: _concurrencyLimit,
-                      tooltip: t.summary.concurrency_limit,
-                      onSelected: (val) {
-                        setState(() => _concurrencyLimit = val);
-                      },
-                      itemBuilder: (context) => [1, 2, 3, 4, 5]
-                          .map(
-                            (e) => PopupMenuItem(
-                              value: e,
-                              child: Text(
-                                t.summary.concurrency_count(count: e),
-                              ),
-                            ),
-                          )
-                          .toList(),
-                      position: PopupMenuPosition.under,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppTheme.primary.withValues(alpha: 0.05),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: AppTheme.primary.withValues(alpha: 0.2),
-                          ),
-                        ),
-                        child: Row(
+                        Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(
-                              Icons.speed_rounded,
-                              size: 14,
-                              color: AppTheme.primary,
+                              Icons.auto_fix_high_rounded,
+                              size: 20,
+                              color: Colors.amber.shade700,
                             ),
-                            const SizedBox(width: 4),
+                            const SizedBox(width: 8),
                             Text(
-                              t.summary.concurrency_count(
-                                count: _concurrencyLimit,
-                              ),
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                color: AppTheme.primary,
-                              ),
+                              t.summary.ai_suggestions,
+                              style: Theme.of(context).textTheme.titleSmall
+                                  ?.copyWith(fontWeight: FontWeight.bold),
                             ),
                           ],
                         ),
-                      ),
-                    ),
-                    // 数量标签
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppTheme.primary.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        t.common.count_items(count: missing.length),
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: AppTheme.primary,
+                        // 批量生成按钮
+                        FilledButton.tonal(
+                          onPressed: isBatchProcessing
+                              ? () => service.requestCancel()
+                              : () => _batchGenerate(missing),
+                          style: FilledButton.styleFrom(
+                            visualDensity: VisualDensity.compact,
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            backgroundColor: isBatchProcessing
+                                ? Colors.red.withValues(alpha: 0.1)
+                                : AppTheme.primary.withValues(alpha: 0.1),
+                            foregroundColor: isBatchProcessing
+                                ? Colors.red
+                                : AppTheme.primary,
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (isBatchProcessing) ...[
+                                const SizedBox(
+                                  width: 12,
+                                  height: 12,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.red,
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                              ],
+                              Text(
+                                isBatchProcessing
+                                    ? (service.cancelRequested
+                                          ? t.summary.stopping
+                                          : t.summary.stop_generating)
+                                    : t.summary.generate_all,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
+                        // 并发设置
+                        PopupMenuButton<int>(
+                          initialValue: _concurrencyLimit,
+                          tooltip: t.summary.concurrency_limit,
+                          onSelected: (val) {
+                            setState(() => _concurrencyLimit = val);
+                          },
+                          itemBuilder: (context) => [1, 2, 3, 4, 5]
+                              .map(
+                                (e) => PopupMenuItem(
+                                  value: e,
+                                  child: Text(
+                                    t.summary.concurrency_count(count: e),
+                                  ),
+                                ),
+                              )
+                              .toList(),
+                          position: PopupMenuPosition.under,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppTheme.primary.withValues(alpha: 0.05),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: AppTheme.primary.withValues(alpha: 0.2),
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.speed_rounded,
+                                  size: 14,
+                                  color: AppTheme.primary,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  t.summary.concurrency_count(
+                                    count: _concurrencyLimit,
+                                  ),
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppTheme.primary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        // 数量标签
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppTheme.primary.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            t.common.count_items(count: missing.length),
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: AppTheme.primary,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                LayoutBuilder(
-                  builder: (context, constraints) {
-                    final isWide = constraints.maxWidth > 600;
-                    return GridView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: isWide ? 2 : 1,
-                        mainAxisExtent: 96,
-                        crossAxisSpacing: 16,
-                        mainAxisSpacing: 12,
-                      ),
-                      itemCount: missing.length,
-                      itemBuilder: (context, index) {
-                        final item = missing[index];
-                        final key = item.label;
-                        final status = generationStatus[key];
-                        return MissingSummaryCard(
-                          item: item,
-                          status: status,
-                          onGenerate: () => _generate(item),
+                    const SizedBox(height: 16),
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final isWide = constraints.maxWidth > 600;
+                        return GridView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: isWide ? 2 : 1,
+                            mainAxisExtent: 96,
+                            crossAxisSpacing: 16,
+                            mainAxisSpacing: 12,
+                          ),
+                          itemCount: missing.length,
+                          itemBuilder: (context, index) {
+                            final item = missing[index];
+                            final key = item.label;
+                            final status = generationStatus[key];
+                            return MissingSummaryCard(
+                              item: item,
+                              status: status,
+                              onGenerate: () => _generate(item),
+                            );
+                          },
                         );
                       },
-                    );
-                  },
-                ),
-              ],
+                    ),
+                  ],
+                );
+              },
             );
           },
         );
@@ -265,9 +270,6 @@ class _MissingSummaryListState extends ConsumerState<MissingSummaryList> {
           FilledButton(
             onPressed: () {
               Navigator.pop(ctx);
-              // 根据设备类型选择正确的跳转方式：
-              // 移动端：go 到 Shell 内的 /settings-mobile 路由，保留底边栏
-              // 桌面端：push 到独立的 /settings 全屏页
               final isMobile = MediaQuery.of(context).size.width < 600;
               if (isMobile) {
                 context.go('/settings-mobile');
@@ -282,45 +284,43 @@ class _MissingSummaryListState extends ConsumerState<MissingSummaryList> {
     );
   }
 
-  Future<void> _batchGenerate(List<MissingSummary> items) async {
-    if (_isBatchProcessing) return;
+  void _batchGenerate(List<MissingSummary> missing) {
     if (!_checkModelConfigured()) return;
 
-    if (mounted) {
-      setState(() {
-        _isBatchProcessing = true;
-        _cancelRequested = false;
-      });
-    }
+    // 提前解析服务，传入单例，脱离 widget 生命周期
+    final generator = ref.read(summaryGeneratorServiceProvider);
+    final repository = ref.read(summaryRepositoryProvider);
+    final refreshNotifier = ref.read(dataRefreshProvider.notifier);
 
-    final queue = List<MissingSummary>.from(items);
-    final List<Future<void>> workers = [];
+    GenerationStateService().batchGenerate(
+      items: missing,
+      concurrencyLimit: _concurrencyLimit,
+      generator: generator,
+      repository: repository,
+      refreshNotifier: refreshNotifier,
+    );
+  }
 
-    Future<void> worker() async {
-      while (queue.isNotEmpty && !_cancelRequested) {
-        final item = queue.removeAt(0);
-        await _generate(
-          item,
-          cancelCheck: () => _cancelRequested,
-          isBatch: true,
+  void _generate(MissingSummary item) {
+    if (!_checkModelConfigured()) return;
+
+    final generator = ref.read(summaryGeneratorServiceProvider);
+    final repository = ref.read(summaryRepositoryProvider);
+    final refreshNotifier = ref.read(dataRefreshProvider.notifier);
+
+    GenerationStateService().generateSingle(
+      item: item,
+      generator: generator,
+      repository: repository,
+      refreshNotifier: refreshNotifier,
+    ).catchError((e) {
+      if (mounted) {
+        AppToast.showError(
+          context,
+          t.summary.generation_failed_error(label: item.label, e: e.toString()),
         );
       }
-    }
-
-    for (int i = 0; i < _concurrencyLimit; i++) {
-      workers.add(worker());
-    }
-
-    await Future.wait(workers);
-
-    // 批量全部完成后，统一刷新一次
-    if (mounted) {
-      ref.read(dataRefreshProvider.notifier).refresh();
-      setState(() {
-        _isBatchProcessing = false;
-        _cancelRequested = false;
-      });
-    }
+    });
   }
 
   /// 安全查询缺失列表，数据库未就绪时返回空列表而不崩溃
@@ -331,91 +331,6 @@ class _MissingSummaryListState extends ConsumerState<MissingSummaryList> {
           .getAllMissing(LocaleSettings.currentLocale);
     } catch (_) {
       return [];
-    }
-  }
-
-  Future<void> _generate(
-    MissingSummary item, {
-    bool Function()? cancelCheck,
-    bool isBatch = false,
-  }) async {
-    if (!_checkModelConfigured()) return;
-    final key = item.label;
-    final service = GenerationStateService();
-    // 提前获取必要服务，避免跨 async gap 使用 ref
-    final generator = ref.read(summaryGeneratorServiceProvider);
-    final repository = ref.read(summaryRepositoryProvider);
-
-    // 可以重新生成的"终态"状态集合（失败 / 空内容 / 等待重试）
-    final retryableStatuses = {t.summary.tap_to_retry};
-    final retryablePrefix = [
-      t.summary.generation_failed,
-      t.summary.content_empty,
-    ];
-
-    // 检查是否正在生成（允许在失败状态时重试）
-    final currentStatus = service.getStatus(key);
-    final isRetryable =
-        currentStatus == null ||
-        retryableStatuses.contains(currentStatus) ||
-        retryablePrefix.any((p) => currentStatus.startsWith(p));
-    if (!isRetryable) return;
-
-    service.setStatus(key, t.summary.preparing);
-
-    try {
-      final stream = generator.generate(item);
-      String finalContent = '';
-
-      await for (final status in stream) {
-        if (cancelCheck?.call() == true) {
-          service.setStatus(key, t.summary.tap_to_retry);
-          break;
-        }
-        // 使用明确的前缀判断
-        if (status.startsWith('STATUS:')) {
-          service.setStatus(key, status.substring(7)); // 移除 'STATUS:'
-        } else {
-          // 没有前缀的被视为最终内容
-          finalContent = status;
-        }
-      }
-
-      if (cancelCheck?.call() == true) {
-        return; // 被手动取消，终止入库
-      }
-
-      if (finalContent.isNotEmpty) {
-        // 保存到数据库
-        await repository.addSummary(
-          type: item.type,
-          startDate: item.startDate,
-          endDate: item.endDate,
-          content: finalContent,
-        );
-
-        service.removeStatus(key);
-        // 单条生成时立即刷新；批量生成时由 _batchGenerate 统一刷新
-        if (!isBatch && mounted) {
-          ref.read(dataRefreshProvider.notifier).refresh();
-        }
-      } else {
-        service.setStatus(key, t.summary.tap_to_retry);
-        if (mounted) {
-          AppToast.showError(
-            context,
-            t.summary.empty_content_error(label: item.label),
-          );
-        }
-      }
-    } catch (e) {
-      service.setStatus(key, t.summary.tap_to_retry);
-      if (mounted) {
-        AppToast.showError(
-          context,
-          t.summary.generation_failed_error(label: item.label, e: e.toString()),
-        );
-      }
     }
   }
 }
