@@ -138,6 +138,9 @@ jobs:
           AppPublisherURL=https://github.com/Anson-Trio/BaiShou
           DefaultDirName={autopf}\BaiShou
           DefaultGroupName=白守
+          DisableDirPage=no
+          CloseApplications=force
+          CloseApplicationsFilter=*.*
           OutputDir=installer
           OutputBaseFilename=BaiShou-${{ github.ref_name }}-Windows-Setup
           Compression=lzma
