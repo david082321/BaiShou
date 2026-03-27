@@ -221,34 +221,8 @@ class AgentDatabase extends _$AgentDatabase {
         'sqlite-vector: vector index initialized (dim=$dimension, distance=COSINE)',
       );
     } catch (e) {
-      final err = e.toString();
-      // 如果报错是因为原表维度与现请求配置（新模型）的维度不一致，导致向量引擎崩溃
-      // 此时旧向量对新模型不仅无用甚至会造成库崩盘，这里对其执行清理重置
-      if (err.contains('Inconsistent vector dimension')) {
-        debugPrint(
-          'sqlite-vector: Dimension mismatch detected ($dimension). Recreating memory_embeddings table...',
-        );
-        try {
-          // 摧毁原本的低维/高维不匹配的废弃向量表
-          await customStatement('DROP TABLE IF EXISTS memory_embeddings');
-          // 重新根据 Schema 创建该表
-          await _createEmbeddingTable();
-          // 再次安全地进行对应新维度的向量挂载
-          await customStatement(
-            "SELECT vector_init('memory_embeddings', 'embedding', "
-            "'type=FLOAT32,dimension=$dimension,distance=COSINE')",
-          );
-          debugPrint(
-            'sqlite-vector: vector index RE-initialized successfully (dim=$dimension).',
-          );
-          return;
-        } catch (e2) {
-          debugPrint('sqlite-vector: failed to recreate index: $e2');
-        }
-      }
-
-      // 索引已存在或扩展未加载时抛出通常错误（如 vector_init 不存在等）可忽略
-      debugPrint('sqlite-vector: vector_init skipped: $err');
+      // 索引已被其它维度锁定或已存在时忽略，交由上层读写阶段去捕获异常降级处理
+      debugPrint('sqlite-vector: vector_init skipped: $e');
     }
   }
 
@@ -269,26 +243,30 @@ class AgentDatabase extends _$AgentDatabase {
     final vectorJson = '[${embedding.join(',')}]';
     final now = DateTime.now().millisecondsSinceEpoch;
 
-    await customStatement(
-      '''INSERT OR REPLACE INTO memory_embeddings
-         (embedding_id, source_type, source_id, group_id, chunk_index, chunk_text,
-          metadata_json, embedding, dimension, model_id, created_at, source_created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, vector_as_f32(?), ?, ?, ?, ?)''',
-      [
-        id,
-        sourceType,
-        sourceId,
-        groupId,
-        chunkIndex,
-        chunkText,
-        metadataJson,
-        vectorJson,
-        embedding.length,
-        modelId,
-        now,
-        sourceCreatedAt ?? now,
-      ],
-    );
+    try {
+      await customStatement(
+        '''INSERT OR REPLACE INTO memory_embeddings
+           (embedding_id, source_type, source_id, group_id, chunk_index, chunk_text,
+            metadata_json, embedding, dimension, model_id, created_at, source_created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, vector_as_f32(?), ?, ?, ?, ?)''',
+        [
+          id,
+          sourceType,
+          sourceId,
+          groupId,
+          chunkIndex,
+          chunkText,
+          metadataJson,
+          vectorJson,
+          embedding.length,
+          modelId,
+          now,
+          sourceCreatedAt ?? now,
+        ],
+      );
+    } catch (e) {
+      debugPrint('sqlite-vector: insertEmbedding failed (likely dimension locked): $e');
+    }
   }
 
   /// 原生 KNN 向量搜索 — 使用 sqlite-vector 的 vector_full_scan
@@ -416,7 +394,10 @@ class AgentDatabase extends _$AgentDatabase {
 
   /// 清空向量表 + 用新维度重建索引（原子操作）
   Future<void> clearAndReinitEmbeddings(int newDimension) async {
-    await customStatement('DELETE FROM memory_embeddings');
+    // 强制 DROP 表来彻底切断 sqlite-vec 在旧内存表上对原维度的硬锁定
+    await customStatement('DROP TABLE IF EXISTS memory_embeddings');
+    await _createEmbeddingTable();
+    
     if (newDimension > 0) {
       await initVectorIndex(newDimension);
     }
