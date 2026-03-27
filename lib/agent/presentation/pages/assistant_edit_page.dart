@@ -29,7 +29,7 @@ class _AssistantEditPageState extends ConsumerState<AssistantEditPage> {
   late TextEditingController _nameController;
   late TextEditingController _promptController;
   late TextEditingController _descriptionController;
-  String _emoji = '⭐';
+  String _emoji = '🍵';
   double _contextWindow = -1; // -1 = 无限
   double _compressThreshold = 60000; // 0 = 不触发
   double _compressKeepTurns = 3;
@@ -54,7 +54,7 @@ class _AssistantEditPageState extends ConsumerState<AssistantEditPage> {
     _nameController = TextEditingController(text: a?.name ?? '');
     _promptController = TextEditingController(text: a?.systemPrompt ?? '');
     _descriptionController = TextEditingController(text: a?.description ?? '');
-    _emoji = a?.emoji ?? '⭐';
+    _emoji = a?.emoji ?? '🍵';
     _contextWindow = (a?.contextWindow ?? -1).toDouble();
     _compressThreshold = (a?.compressTokenThreshold ?? 60000).toDouble();
     _compressKeepTurns = (a?.compressKeepTurns ?? 3).toDouble();
