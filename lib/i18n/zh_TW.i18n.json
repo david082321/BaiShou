@@ -431,7 +431,12 @@
     "webdav_url_label": "Server URL 服務地址",
     "webdav_path_label": "Path 子路徑",
     "webdav_user_label": "Username 用戶名",
-    "webdav_password_label": "Password 密碼"
+    "webdav_password_label": "Password 密碼",
+    "max_backup_title": "備份上限設定",
+    "max_backup_desc": "超過上限後，同步時將自動刪除最早的備份檔案",
+    "max_backup_count_label": "最大備份數量",
+    "max_backup_count_value": "$count 個",
+    "max_backup_auto_cleaned": "已自動清理 $count 個舊備份"
   },
   "lan_transfer": {
     "status_idle": "等待發現...",

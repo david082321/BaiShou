@@ -26,6 +26,9 @@ class DataSyncConfigService {
   static const String _keyWebdavPassword = 'webdav_password';
   static const String _keyWebdavPath = 'webdav_path';
 
+  // 备份上限
+  static const String _keyMaxBackupCount = 'max_backup_count';
+
   DataSyncConfigService(this._prefs);
 
   // --- 同步目标管理 ---
@@ -89,6 +92,15 @@ class DataSyncConfigService {
     await _prefs.setString(_keyWebdavUsername, username);
     await _prefs.setString(_keyWebdavPassword, password);
     await _prefs.setString(_keyWebdavPath, path);
+  }
+
+  // --- 备份上限管理 ---
+
+  /// 最大备份文件数量（默认 20）
+  int get maxBackupCount => _prefs.getInt(_keyMaxBackupCount) ?? 20;
+
+  Future<void> setMaxBackupCount(int count) async {
+    await _prefs.setInt(_keyMaxBackupCount, count);
   }
 }
 

@@ -124,6 +124,9 @@ class _DataSyncPageState extends ConsumerState<DataSyncPage> {
         AppToast.showSuccess(context, t.data_sync.sync_success);
       }
       await _fetchRecords();
+
+      // 同步后自动清理超限备份
+      await _autoCleanOldBackups();
     } catch (e) {
       if (mounted) {
         AppToast.showError(context, t.data_sync.sync_failed(e: e.toString()));
@@ -322,7 +325,21 @@ class _DataSyncPageState extends ConsumerState<DataSyncPage> {
                             ),
                           ),
                         ),
-                        const SizedBox(width: 12),
+                        OutlinedButton.icon(
+                          onPressed: () => _showMaxBackupDialog(),
+                          icon: const Icon(Icons.auto_delete_outlined, size: 18),
+                          label: Text(
+                            t.data_sync.max_backup_count_value(
+                              count: config.maxBackupCount,
+                            ),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
+                          ),
+                        ),
                         FilledButton.icon(
                           onPressed: _isSyncing ? null : _syncNow,
                           icon: _isSyncing
@@ -402,6 +419,138 @@ class _DataSyncPageState extends ConsumerState<DataSyncPage> {
         );
       },
     );
+  }
+
+  /// 弹窗：设置最大备份数量
+  void _showMaxBackupDialog() {
+    final config = ref.read(dataSyncConfigServiceProvider);
+    double currentValue = config.maxBackupCount.toDouble();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) {
+          return AlertDialog(
+            title: Row(
+              children: [
+                Icon(
+                  Icons.auto_delete_outlined,
+                  size: 22,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                const SizedBox(width: 8),
+                Text(t.data_sync.max_backup_title),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  t.data_sync.max_backup_desc,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Text(
+                      t.data_sync.max_backup_count_label,
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                    const Spacer(),
+                    Text(
+                      t.data_sync.max_backup_count_value(
+                        count: currentValue.round(),
+                      ),
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                  ],
+                ),
+                Slider(
+                  value: currentValue,
+                  min: 1,
+                  max: 100,
+                  divisions: 10,
+                  onChanged: (v) {
+                    setDialogState(() => currentValue = v);
+                  },
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: Text(t.common.cancel),
+              ),
+              FilledButton(
+                onPressed: () async {
+                  await config.setMaxBackupCount(currentValue.round());
+                  if (mounted) setState(() {});
+                  Navigator.pop(ctx);
+                },
+                child: Text(t.common.confirm),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  /// 同步完成后自动清理超限备份
+  Future<void> _autoCleanOldBackups() async {
+    final config = ref.read(dataSyncConfigServiceProvider);
+    final maxCount = config.maxBackupCount;
+    if (_records.length <= maxCount) return;
+
+    // records 按时间排序（假设文件名带时间戳，列表已按时间排列）
+    // 删除最旧的（列表尾部）
+    final toDelete = _records.sublist(maxCount);
+    int deleted = 0;
+
+    try {
+      if (config.syncTarget == SyncTarget.s3) {
+        final client = S3ClientService(
+          endpoint: config.s3Endpoint,
+          region: config.s3Region,
+          bucket: config.s3Bucket,
+          accessKey: config.s3AccessKey,
+          secretKey: config.s3SecretKey,
+          basePath: config.s3Path,
+        );
+        for (final record in toDelete) {
+          await client.deleteObject(record.filename);
+          deleted++;
+        }
+      } else if (config.syncTarget == SyncTarget.webdav) {
+        final client = WebDavClientService(
+          url: config.webdavUrl,
+          username: config.webdavUsername,
+          password: config.webdavPassword,
+          basePath: config.webdavPath,
+        );
+        for (final record in toDelete) {
+          await client.delete(record.filename);
+          deleted++;
+        }
+      }
+
+      if (deleted > 0) {
+        if (mounted) {
+          AppToast.showSuccess(
+            context,
+            t.data_sync.max_backup_auto_cleaned(count: deleted),
+          );
+        }
+        await _fetchRecords();
+      }
+    } catch (e) {
+      debugPrint('Auto-clean old backups failed: $e');
+    }
   }
 
   Future<void> _deleteRecord(dynamic record) async {
