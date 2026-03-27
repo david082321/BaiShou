@@ -51,10 +51,11 @@ class _AgentMainPageState extends ConsumerState<AgentMainPage> {
     setState(() => _isLoading = true);
     try {
       final manager = ref.read(sessionManagerProvider);
+      final vaultName = ref.read(vaultServiceProvider).value?.name ?? 'Personal';
 
       await _sessionsSubscription?.cancel();
       _sessionsSubscription = manager
-          .watchSessionsByAssistant(_currentAssistant!.id)
+          .watchSessionsByAssistant(_currentAssistant!.id, vaultName)
           .listen((sessions) {
             if (!mounted) return;
 
@@ -160,7 +161,7 @@ class _AgentMainPageState extends ConsumerState<AgentMainPage> {
         onDrawerChanged: (isOpened) {
           if (!isOpened) {
             // 侧边栏关闭时彻底取消焦点树，防止传递给文本框
-            FocusScope.of(context).unfocus();
+            FocusManager.instance.primaryFocus?.unfocus();
           }
         },
       );

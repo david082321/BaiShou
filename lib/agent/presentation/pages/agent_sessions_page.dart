@@ -35,7 +35,8 @@ class _AgentSessionsPageState extends ConsumerState<AgentSessionsPage> {
     setState(() => _isLoading = true);
     try {
       final manager = ref.read(sessionManagerProvider);
-      final sessions = await manager.getSessions();
+      final vaultName = ref.read(vaultServiceProvider).value?.name ?? 'Personal';
+      final sessions = await manager.getSessions(vaultName);
       setState(() {
         _sessions = sessions;
         _isLoading = false;
