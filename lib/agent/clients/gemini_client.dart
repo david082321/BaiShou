@@ -434,6 +434,63 @@ class GeminiClient extends BaseAiClient {
       });
     }
 
+    // --- 强制约束 Gemini 严格的上下文协议 ---
+    // 1. 清洗残缺的 functionCall / functionResponse 对偶
+    for (int i = 0; i < contents.length; i++) {
+      final turn = contents[i];
+      final parts = turn['parts'] as List; // List<dynamic>
+
+      if (turn['role'] == 'model') {
+        bool hasFc = parts.any((p) => p is Map && p.containsKey('functionCall'));
+        if (hasFc) {
+          bool nextHasFr = false;
+          if (i + 1 < contents.length) {
+            final nextTurn = contents[i + 1];
+            nextHasFr = (nextTurn['parts'] as List)
+                .any((p) => p is Map && p.containsKey('functionResponse'));
+          }
+          if (!nextHasFr) {
+            for (int j = 0; j < parts.length; j++) {
+              if (parts[j] is Map && (parts[j] as Map).containsKey('functionCall')) {
+                final fc = parts[j]['functionCall'];
+                parts[j] = {'text': '[工具调用 (${fc['name']}) 被跳过或截断]'};
+              }
+            }
+          }
+        }
+      } else if (turn['role'] == 'user') {
+        bool hasFr = parts.any((p) => p is Map && p.containsKey('functionResponse'));
+        if (hasFr) {
+          bool prevHasFc = false;
+          if (i > 0) {
+            final prevTurn = contents[i - 1];
+            prevHasFc = (prevTurn['parts'] as List)
+                .any((p) => p is Map && p.containsKey('functionCall'));
+          }
+          if (!prevHasFc) {
+            for (int j = 0; j < parts.length; j++) {
+              if (parts[j] is Map && (parts[j] as Map).containsKey('functionResponse')) {
+                final fr = parts[j]['functionResponse'];
+                parts[j] = {
+                  'text': '[工具返回 (${fr['name']}): ${fr['response']}]'
+                };
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // 2. 首个回合必须是 user
+    if (contents.isNotEmpty && contents.first['role'] == 'model') {
+      contents.insert(0, {
+        'role': 'user',
+        'parts': [
+          {'text': '[历史对话已被截断...]'}
+        ]
+      });
+    }
+
     return contents;
   }
 
