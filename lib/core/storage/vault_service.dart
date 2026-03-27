@@ -111,11 +111,40 @@ class VaultService extends _$VaultService {
         try {
           final List<dynamic> jsonList = jsonDecode(content);
           _vaults = jsonList.map((e) => VaultInfo.fromJson(e)).toList();
+
+          // 【跨端路径修正】
+          // 当 ZIP 从 Windows 导入到 Android（或反向）时，registry 中的 path 字段
+          // 可能仍然是源设备的绝对路径（如 C:\Users\...）。
+          // 在这里统一校验并修正为当前设备的实际路径。
+          final rootDir = await _pathProvider.getRootDirectory();
+          bool registryDirty = false;
+          for (int i = 0; i < _vaults.length; i++) {
+            final vault = _vaults[i];
+            final expectedPath = p.join(rootDir.path, vault.name);
+            if (vault.path != expectedPath) {
+              debugPrint(
+                'VaultService: Path mismatch for "${vault.name}": '
+                '"${vault.path}" → "$expectedPath"',
+              );
+              _vaults[i] = VaultInfo(
+                name: vault.name,
+                path: expectedPath,
+                createdAt: vault.createdAt,
+                lastAccessedAt: vault.lastAccessedAt,
+              );
+              registryDirty = true;
+            }
+          }
+          if (registryDirty) {
+            await _saveRegistry();
+            debugPrint(
+              'VaultService: Registry paths corrected to local device.',
+            );
+          }
         } catch (e) {
           debugPrint(
             'VaultService: Corrupted registry file detected, resetting to Personal: $e',
           );
-          // If registry is corrupted, fallback to a clean slate rather than crashing the app
           final defaultVaultDir = await _pathProvider.getVaultDirectory(
             'Personal',
           );
