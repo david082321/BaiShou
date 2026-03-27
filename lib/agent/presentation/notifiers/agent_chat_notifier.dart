@@ -39,7 +39,7 @@ export 'package:baishou/agent/presentation/notifiers/agent_chat_state.dart';
 
 part 'agent_chat_notifier.g.dart';
 
-@riverpod
+@Riverpod(keepAlive: true)
 class AgentChatNotifier extends _$AgentChatNotifier {
   /// 当前运行 ID（用于中止当前会话的生成）
   int _currentRunId = 0;

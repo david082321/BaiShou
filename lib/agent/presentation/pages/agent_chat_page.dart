@@ -42,11 +42,13 @@ class _AgentChatPageState extends ConsumerState<AgentChatPage> {
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
-    if (widget.sessionId != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (widget.sessionId != null && widget.sessionId!.isNotEmpty) {
         ref.read(agentChatProvider.notifier).loadSession(widget.sessionId!);
-      });
-    }
+      } else {
+        ref.read(agentChatProvider.notifier).clearChat();
+      }
+    });
   }
 
   void _onScroll() {
