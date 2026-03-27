@@ -4,6 +4,7 @@ import 'package:baishou/agent/database/agent_database.dart';
 import 'package:baishou/agent/session/session_manager.dart';
 import 'package:baishou/agent/presentation/notifiers/agent_chat_notifier.dart';
 import 'package:baishou/agent/presentation/widgets/assistant_picker_sheet.dart';
+import 'package:baishou/agent/presentation/widgets/picker_shared_widgets.dart';
 import 'package:baishou/agent/presentation/widgets/session_list_tile.dart';
 import 'package:baishou/features/settings/domain/services/user_profile_service.dart';
 import 'package:baishou/i18n/strings.g.dart';
@@ -130,9 +131,10 @@ class _AgentSidebarState extends ConsumerState<AgentSidebar> {
                     ),
                     child: Row(
                       children: [
-                        Text(
-                          widget.currentAssistant!.emoji ?? '🍵',
-                          style: const TextStyle(fontSize: 20),
+                        buildAssistantAvatar(
+                          widget.currentAssistant!,
+                          theme.colorScheme,
+                          size: 36,
                         ),
                         const SizedBox(width: 10),
                         Expanded(
