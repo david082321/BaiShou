@@ -741,6 +741,14 @@ void closeAgentDatabaseCache(String vaultName) {
   db?.close();
 }
 
+/// 强制关闭全量数据库连接，专用于覆盖式的物理数据恢复
+Future<void> closeAllAgentDatabases() async {
+  for (final db in _dbCache.values) {
+    await db.close();
+  }
+  _dbCache.clear();
+}
+
 /// Riverpod Provider
 @Riverpod(keepAlive: true)
 AgentDatabase agentDatabase(Ref ref) {

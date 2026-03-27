@@ -49,6 +49,12 @@ QueryExecutor _openConnection(
 /// 追踪上一个 AppDatabase 实例，确保 vault 切换时在新实例创建前关闭旧实例。
 AppDatabase? _previousAppDb;
 
+/// 强制关闭当前全局主库连接，专用于覆盖式的物理数据恢复
+Future<void> closeAppDatabase() async {
+  await _previousAppDb?.close();
+  _previousAppDb = null;
+}
+
 /// 提供数据库实例
 @Riverpod(keepAlive: true)
 AppDatabase appDatabase(Ref ref) {

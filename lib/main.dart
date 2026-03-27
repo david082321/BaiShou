@@ -1,4 +1,5 @@
 import 'package:baishou/app.dart';
+import 'package:baishou/core/widgets/app_restart_guard.dart';
 import 'package:baishou/core/providers/shared_preferences_provider.dart';
 import 'package:baishou/core/services/global_hotkey_service.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
@@ -50,10 +51,12 @@ void main() async {
   }
 
   runApp(
-    TranslationProvider(
-      child: ProviderScope(
-        overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
-        child: const BaiShouApp(),
+    AppRestartGuard(
+      child: TranslationProvider(
+        child: ProviderScope(
+          overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+          child: const BaiShouApp(),
+        ),
       ),
     ),
   );
