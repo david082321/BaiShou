@@ -38,6 +38,12 @@ class _AgentMainPageState extends ConsumerState<AgentMainPage> {
   Future<void> _initAssistantAndSessions() async {
     final service = ref.read(assistantServiceProvider);
     final assistant = await service.ensureDefaultAssistant();
+    
+    // 强制刷新相关 Provider 以通知整个应用状态已更新（解决首次创建或旧版升级空状态下，即使有了助手但列表由于之前的 Future 数据缓存还是为空的问题）
+    ref.invalidate(assistantListProvider);
+    ref.invalidate(assistantListStreamProvider);
+    ref.invalidate(defaultAssistantProvider);
+
     if (mounted) {
       setState(() => _currentAssistant = assistant);
       ref.read(agentChatProvider.notifier).setCurrentAssistantId(assistant.id);

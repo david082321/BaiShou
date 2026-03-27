@@ -227,7 +227,7 @@ class _WebSearchSettingsViewState extends ConsumerState<WebSearchSettingsView> {
             desc: t.agent.tools.param_max_results_desc,
             value: config.webSearchMaxResults.toDouble(),
             min: 1,
-            max: 10,
+            max: 30,
 
             onChanged: (val) => config.setWebSearchMaxResults(val.toInt()),
           ),
@@ -279,7 +279,7 @@ class _WebSearchSettingsViewState extends ConsumerState<WebSearchSettingsView> {
               desc: t.agent.tools.param_plain_snippet_length_desc,
               value: config.webSearchPlainSnippetLength.toDouble(),
               min: 500,
-              max: 8000,
+              max: 30000,
   
               onChanged: (val) =>
                   config.setWebSearchPlainSnippetLength(val.toInt()),

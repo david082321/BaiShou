@@ -61,7 +61,7 @@ class ApiConfigService extends ChangeNotifier {
     _migrateBuiltInProviders(); // 为老用户自动补充新增的内置供应商
   }
 
-  /// 所有系统内置的默认供应商列表
+  /// 所有系统内置的默认供应商列表（默认关闭，由用户自行启用配置配置）
   List<AiProviderModel> get _defaultProviders => [
     AiProviderModel(
       id: 'openai',
@@ -69,6 +69,7 @@ class ApiConfigService extends ChangeNotifier {
       type: ProviderType.openai,
       baseUrl: 'https://api.openai.com/v1',
       models: [],
+      isEnabled: false,
       defaultDialogueModel: '',
       defaultNamingModel: '',
     ),
@@ -76,6 +77,7 @@ class ApiConfigService extends ChangeNotifier {
       id: 'gemini',
       name: 'Google Gemini',
       type: ProviderType.gemini,
+      isEnabled: false,
       baseUrl: 'https://generativelanguage.googleapis.com/v1beta',
       models: [],
       defaultDialogueModel: '',
@@ -85,6 +87,7 @@ class ApiConfigService extends ChangeNotifier {
       id: 'anthropic',
       name: 'Anthropic Claude',
       type: ProviderType.anthropic,
+      isEnabled: false,
       baseUrl: 'https://api.anthropic.com',
       models: [],
       defaultDialogueModel: '',
@@ -94,6 +97,7 @@ class ApiConfigService extends ChangeNotifier {
       id: 'deepseek',
       name: 'DeepSeek',
       type: ProviderType.deepseek,
+      isEnabled: false,
       baseUrl: 'https://api.deepseek.com',
       models: [],
       defaultDialogueModel: '',
@@ -103,6 +107,7 @@ class ApiConfigService extends ChangeNotifier {
       id: 'kimi',
       name: 'Kimi (Moonshot)',
       type: ProviderType.kimi,
+      isEnabled: false,
       baseUrl: 'https://api.moonshot.cn/v1',
       models: [],
       defaultDialogueModel: '',
@@ -112,6 +117,7 @@ class ApiConfigService extends ChangeNotifier {
       id: 'ollama',
       name: 'Ollama',
       type: ProviderType.ollama,
+      isEnabled: false,
       baseUrl: 'http://localhost:11434/v1',
       models: [],
       defaultDialogueModel: '',
@@ -121,6 +127,7 @@ class ApiConfigService extends ChangeNotifier {
       id: 'siliconflow',
       name: '硅基流动 (SiliconFlow)',
       type: ProviderType.siliconflow,
+      isEnabled: false,
       baseUrl: 'https://api.siliconflow.cn/v1',
       models: [],
       defaultDialogueModel: '',
@@ -130,6 +137,7 @@ class ApiConfigService extends ChangeNotifier {
       id: 'openrouter',
       name: 'OpenRouter',
       type: ProviderType.openrouter,
+      isEnabled: false,
       baseUrl: 'https://openrouter.ai/api/v1',
       models: [],
       defaultDialogueModel: '',
@@ -139,6 +147,7 @@ class ApiConfigService extends ChangeNotifier {
       id: 'dashscope',
       name: '通义千问 (百炼)',
       type: ProviderType.dashscope,
+      isEnabled: false,
       baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
       models: [],
       defaultDialogueModel: '',
@@ -148,6 +157,7 @@ class ApiConfigService extends ChangeNotifier {
       id: 'doubao',
       name: '豆包 (火山引擎)',
       type: ProviderType.doubao,
+      isEnabled: false,
       baseUrl: 'https://ark.cn-beijing.volces.com/api/v3',
       models: [],
       defaultDialogueModel: '',
@@ -157,6 +167,7 @@ class ApiConfigService extends ChangeNotifier {
       id: 'grok',
       name: 'Grok (xAI)',
       type: ProviderType.grok,
+      isEnabled: false,
       baseUrl: 'https://api.x.ai/v1',
       models: [],
       defaultDialogueModel: '',
@@ -166,6 +177,7 @@ class ApiConfigService extends ChangeNotifier {
       id: 'mistral',
       name: 'Mistral',
       type: ProviderType.mistral,
+      isEnabled: false,
       baseUrl: 'https://api.mistral.ai/v1',
       models: [],
       defaultDialogueModel: '',
@@ -175,6 +187,7 @@ class ApiConfigService extends ChangeNotifier {
       id: 'lmstudio',
       name: 'LM Studio',
       type: ProviderType.lmstudio,
+      isEnabled: false,
       baseUrl: 'http://localhost:1234/v1',
       models: [],
       defaultDialogueModel: '',
@@ -192,6 +205,7 @@ class ApiConfigService extends ChangeNotifier {
   }
 
   /// 迁移内置供应商：检查老用户是否缺少新加的内置供应商，若是则补充
+  /// 统一处理 v3 迁移：默认关闭所有系统供应商（需要用户手动开启）
   void _migrateBuiltInProviders() {
     final currentProviders = getProviders();
     if (currentProviders.isEmpty) return;
@@ -204,6 +218,21 @@ class ApiConfigService extends ChangeNotifier {
         currentProviders.add(defaultProvider);
         needsSave = true;
       }
+    }
+
+    // [v3 强制迁移] 老数据默认打开了一堆未配置 APIKey 的供应商，全部打回关闭状态
+    final hasMigratedDisabledProviders =
+        _prefs.getBool('migrated_disable_empty_providers_v3') ?? false;
+
+    if (!hasMigratedDisabledProviders) {
+      for (int i = 0; i < currentProviders.length; i++) {
+        final p = currentProviders[i];
+        if (p.isSystem && p.isEnabled) {
+          currentProviders[i] = p.copyWith(isEnabled: false);
+          needsSave = true;
+        }
+      }
+      _prefs.setBool('migrated_disable_empty_providers_v3', true);
     }
 
     if (needsSave) {
@@ -529,9 +558,9 @@ class ApiConfigService extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// RAG 相似度阈值（低于此值的结果会被过滤，默认 0.0 不过滤）
+  /// RAG 相似度阈值（低于此值的结果会被过滤，默认 0.4 不过滤）
   double get ragSimilarityThreshold {
-    return _prefs.getDouble(_keyRagSimilarityThreshold) ?? 0.6;
+    return _prefs.getDouble(_keyRagSimilarityThreshold) ?? 0.4;
   }
 
   /// 设置 RAG 相似度阈值
@@ -684,7 +713,7 @@ class ApiConfigService extends ChangeNotifier {
     final list = getAllAvailableModels()
         .where((m) => !isEmbeddingModel(m['model_id'] ?? ''))
         .toList();
-    list.insert(0, {'provider_id': 'off', 'provider_name': 'Disabled / 未开启', 'model_id': 'off'});
+    list.insert(0, {'provider_id': 'off', 'provider_name': 'OFF', 'model_id': 'off'});
     return list;
   }
 
@@ -693,7 +722,7 @@ class ApiConfigService extends ChangeNotifier {
     final list = getAllAvailableModels()
         .where((m) => isEmbeddingModel(m['model_id'] ?? ''))
         .toList();
-    list.insert(0, {'provider_id': 'off', 'provider_name': 'Disabled / 未开启', 'model_id': 'off'});
+    list.insert(0, {'provider_id': 'off', 'provider_name': 'OFF', 'model_id': 'off'});
     return list;
   }
 
@@ -741,13 +770,13 @@ class ApiConfigService extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// 搜索返回的最大结果数 (1-10)
+  /// 搜索返回的最大结果数 (1-30)
   int get webSearchMaxResults {
     return _prefs.getInt(_keyWebSearchMaxResults) ?? 5;
   }
 
   Future<void> setWebSearchMaxResults(int results) async {
-    final clamped = results.clamp(1, 10);
+    final clamped = results.clamp(1, 30);
     if (webSearchMaxResults == clamped) return;
     await _prefs.setInt(_keyWebSearchMaxResults, clamped);
     notifyListeners();
@@ -800,13 +829,13 @@ class ApiConfigService extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// 未配置 Embedding 时的直接纯文本截取上限 (默认 1500)
+  /// 未配置 Embedding 时的直接纯文本截取上限 (默认 3000)
   int get webSearchPlainSnippetLength {
-    return _prefs.getInt(_keyWebSearchPlainSnippetLength) ?? 1500;
+    return _prefs.getInt(_keyWebSearchPlainSnippetLength) ?? 3000;
   }
 
   Future<void> setWebSearchPlainSnippetLength(int length) async {
-    final clamped = length.clamp(100, 10000);
+    final clamped = length.clamp(100, 30000);
     if (webSearchPlainSnippetLength == clamped) return;
     await _prefs.setInt(_keyWebSearchPlainSnippetLength, clamped);
     notifyListeners();

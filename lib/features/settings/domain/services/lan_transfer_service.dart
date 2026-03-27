@@ -265,15 +265,42 @@ class LanTransferNotifier extends Notifier<LanTransferState> {
 
   // --- 双向模式 (广播 + 发现) ---
 
+  Future<void>? _pendingModeChange;
+
+  /// 同步锁执行，防止连续进出页面引发的 Bonsoir 底层并发崩溃
+  Future<void> _executeWithLock(Future<void> Function() action) async {
+    while (_pendingModeChange != null) {
+      await _pendingModeChange;
+    }
+    final completer = Completer<void>();
+    _pendingModeChange = completer.future;
+
+    try {
+      await action();
+    } finally {
+      completer.complete();
+      if (_pendingModeChange == completer.future) {
+        _pendingModeChange = null;
+      }
+    }
+  }
+
   /// 同时启动广播和发现服务
   /// 进入局域网传输页面时调用
   Future<void> startDualMode() async {
-    // 并发启动
-    await Future.wait([startBroadcasting(), startDiscovery()]);
+    await _executeWithLock(() async {
+      // 串行启动，避免 Windows mDNS 多线程并发抢注底层 5353 UDP 端口导致的内核崩溃
+      await startBroadcasting();
+      await startDiscovery();
+    });
   }
 
   Future<void> stopDualMode() async {
-    await Future.wait([stopBroadcasting(), stopDiscovery()]);
+    await _executeWithLock(() async {
+      // 同样改为串行停止，保证资源完全释放顺序
+      await stopBroadcasting();
+      await stopDiscovery();
+    });
   }
 
   // --- 接收端逻辑 (发现) ---
