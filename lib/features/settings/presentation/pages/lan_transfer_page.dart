@@ -30,8 +30,10 @@ class _LanTransferPageState extends ConsumerState<LanTransferPage>
     super.initState();
 
     // 进入页面自动开启双向模式 (广播 + 发现)
+    // 必须在此处缓存 notifier，确保 dispose 时一定能调用 stopDualMode
+    _notifier = ref.read(lanTransferServiceProvider.notifier);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(lanTransferServiceProvider.notifier).startDualMode();
+      _notifier?.startDualMode();
     });
 
     _radarController = AnimationController(
@@ -56,7 +58,7 @@ class _LanTransferPageState extends ConsumerState<LanTransferPage>
 
   @override
   Widget build(BuildContext context) {
-    _notifier = ref.read(lanTransferServiceProvider.notifier);
+    // _notifier 已在 initState 缓存
 
     // 监听状态，处理文件接收通知
     ref.listen(lanTransferServiceProvider, (previous, next) {

@@ -228,7 +228,7 @@ class _WebSearchSettingsViewState extends ConsumerState<WebSearchSettingsView> {
             value: config.webSearchMaxResults.toDouble(),
             min: 1,
             max: 10,
-            divisions: 9,
+
             onChanged: (val) => config.setWebSearchMaxResults(val.toInt()),
           ),
           const Divider(height: 1),
@@ -252,7 +252,7 @@ class _WebSearchSettingsViewState extends ConsumerState<WebSearchSettingsView> {
               value: config.webSearchRagMaxChunks.toDouble(),
               min: 1,
               max: 50,
-              divisions: 49,
+  
               onChanged: (val) => config.setWebSearchRagMaxChunks(val.toInt()),
             ),
             const Divider(height: 1),
@@ -265,7 +265,7 @@ class _WebSearchSettingsViewState extends ConsumerState<WebSearchSettingsView> {
               value: config.webSearchRagChunksPerSource.toDouble(),
               min: 1,
               max: 20,
-              divisions: 19,
+  
               onChanged: (val) =>
                   config.setWebSearchRagChunksPerSource(val.toInt()),
             ),
@@ -280,7 +280,7 @@ class _WebSearchSettingsViewState extends ConsumerState<WebSearchSettingsView> {
               value: config.webSearchPlainSnippetLength.toDouble(),
               min: 500,
               max: 8000,
-              divisions: 75,
+  
               onChanged: (val) =>
                   config.setWebSearchPlainSnippetLength(val.toInt()),
             ),
@@ -299,7 +299,6 @@ class _WebSearchSettingsViewState extends ConsumerState<WebSearchSettingsView> {
     required double value,
     required double min,
     required double max,
-    required int divisions,
     required ValueChanged<double> onChanged,
   }) {
     return Padding(
@@ -329,13 +328,22 @@ class _WebSearchSettingsViewState extends ConsumerState<WebSearchSettingsView> {
             child: Row(
               children: [
                 Expanded(
-                  child: Slider(
-                    value: value,
-                    min: min,
-                    max: max,
-                    divisions: divisions,
-                    label: value.toInt().toString(),
-                    onChanged: onChanged,
+                  child: SliderTheme(
+                    data: SliderTheme.of(context).copyWith(
+                      trackHeight: 4,
+                      thumbShape: const RoundSliderThumbShape(
+                        enabledThumbRadius: 8,
+                      ),
+                      overlayShape: const RoundSliderOverlayShape(
+                        overlayRadius: 16,
+                      ),
+                    ),
+                    child: Slider(
+                      value: value,
+                      min: min,
+                      max: max,
+                      onChanged: onChanged,
+                    ),
                   ),
                 ),
                 SizedBox(
