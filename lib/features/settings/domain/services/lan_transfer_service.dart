@@ -229,6 +229,22 @@ class LanTransferNotifier extends Notifier<LanTransferState> {
       );
     });
 
+    // GET /avatar: 返回用户的头像流供雷达展示
+    router.get('/avatar', (Request request) async {
+      final avatarPath = userProfile.avatarPath;
+      if (avatarPath != null) {
+        final file = File(avatarPath);
+        if (file.existsSync()) {
+          final ext = path.extension(avatarPath).replaceAll('.', '');
+          return Response.ok(
+            file.openRead(),
+            headers: {'Content-Type': 'image/$ext'},
+          );
+        }
+      }
+      return Response.notFound('Avatar not found');
+    });
+
     return router.call;
   }
 

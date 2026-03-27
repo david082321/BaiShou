@@ -74,10 +74,18 @@ class SyncFloatingBubble extends StatelessWidget {
                       const SizedBox(height: 8),
                       Text(
                         service.attributes['nickname'] ?? service.name,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: Theme.of(context).textTheme.bodyLarge?.color,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        service.attributes['ip'] ?? 'Unknown',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Theme.of(context).colorScheme.outline,
                         ),
                       ),
                     ],
