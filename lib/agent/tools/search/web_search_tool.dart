@@ -40,6 +40,9 @@ class WebSearchTool extends AgentTool {
   IconData get icon => Icons.travel_explore_rounded;
 
   @override
+  bool get showInSettings => false;
+
+  @override
   List<ToolConfigParam> get configurableParams => [];
 
   @override

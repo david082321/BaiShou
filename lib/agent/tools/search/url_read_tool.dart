@@ -30,6 +30,9 @@ class UrlReadTool extends AgentTool {
   IconData get icon => Icons.article_outlined;
 
   @override
+  bool get showInSettings => false;
+
+  @override
   List<ToolConfigParam> get configurableParams => [
     ToolConfigParam(
       key: 'max_length',
