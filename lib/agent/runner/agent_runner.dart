@@ -18,7 +18,7 @@ class AgentConfig {
   const AgentConfig({
     required this.modelId,
     required this.systemPrompt,
-    this.maxSteps = 10,
+    this.maxSteps = 30,
     this.temperature,
     this.enableWebSearch = false,
   });

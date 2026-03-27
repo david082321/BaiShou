@@ -328,7 +328,11 @@
     "web_search_mode_builtin": "内蔵検索",
     "web_search_mode_builtin_desc": "プロバイダーのネイティブ検索を使用（Google Grounding等）",
     "web_search_mode_tool": "外部ツール検索",
-    "web_search_mode_tool_desc": "Tavily / DuckDuckGo 等の外部検索ツールを使用"
+    "web_search_mode_tool_desc": "Tavily / DuckDuckGo 等の外部検索ツールを使用",
+    "web_search_engine_duckduckgo": "DuckDuckGo",
+    "web_search_engine_duckduckgo_desc": "完全無料の HTML クローラー検索、API キー不要。",
+    "web_search_engine_tavily": "Tavily API",
+    "web_search_engine_tavily_desc": "API キーが必要。LLM向けに開発された、高速で安定した検索エンジン。"
   },
   "data_sync": {
     "title": "データ同期",

@@ -328,7 +328,11 @@
     "web_search_mode_builtin": "Built-in Search",
     "web_search_mode_builtin_desc": "Use provider's native search (e.g. Google Grounding)",
     "web_search_mode_tool": "External Tool Search",
-    "web_search_mode_tool_desc": "Use Tavily / DuckDuckGo external search tools"
+    "web_search_mode_tool_desc": "Use Tavily / DuckDuckGo external search tools",
+    "web_search_engine_duckduckgo": "DuckDuckGo",
+    "web_search_engine_duckduckgo_desc": "Completely free, HTML crawler search. No API key required.",
+    "web_search_engine_tavily": "Tavily API",
+    "web_search_engine_tavily_desc": "Requires API key. Built for LLM workflows, robust and fast."
   },
   "data_sync": {
     "title": "Data Sync",

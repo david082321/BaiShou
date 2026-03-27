@@ -328,7 +328,11 @@
     "web_search_mode_builtin": "内置搜索",
     "web_search_mode_builtin_desc": "使用供应商原生搜索（如 Google Grounding）",
     "web_search_mode_tool": "外部工具搜索",
-    "web_search_mode_tool_desc": "使用 Tavily / DuckDuckGo 等外部搜索工具"
+    "web_search_mode_tool_desc": "使用 Tavily / DuckDuckGo 等外部搜索工具",
+    "web_search_engine_duckduckgo": "DuckDuckGo",
+    "web_search_engine_duckduckgo_desc": "完全免费的 HTML 爬虫搜索，无需 API Key。",
+    "web_search_engine_tavily": "Tavily API",
+    "web_search_engine_tavily_desc": "需要配置 API Key，专为大模型打造的搜索引擎，响应快、稳定性高。"
   },
   "data_sync": {
     "title": "数据同步",

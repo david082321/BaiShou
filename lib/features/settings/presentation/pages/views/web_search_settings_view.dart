@@ -85,9 +85,9 @@ class _WebSearchSettingsViewState extends ConsumerState<WebSearchSettingsView> {
             ),
           ),
           RadioListTile<String>(
-            title: const Text('DuckDuckGo'),
-            subtitle: const Text(
-              'Completely free, HTML crawler search. No API key required.',
+            title: Text(t.settings.web_search_engine_duckduckgo),
+            subtitle: Text(
+              t.settings.web_search_engine_duckduckgo_desc,
             ),
             value: SearchEngine.duckduckgo.name,
             groupValue: config.webSearchEngine,
@@ -96,9 +96,9 @@ class _WebSearchSettingsViewState extends ConsumerState<WebSearchSettingsView> {
             },
           ),
           RadioListTile<String>(
-            title: const Text('Tavily API'),
-            subtitle: const Text(
-              'Requires API key. Built for LLM workflows, robust and fast.',
+            title: Text(t.settings.web_search_engine_tavily),
+            subtitle: Text(
+              t.settings.web_search_engine_tavily_desc,
             ),
             value: SearchEngine.tavily.name,
             groupValue: config.webSearchEngine,
