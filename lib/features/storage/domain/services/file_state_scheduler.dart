@@ -14,6 +14,7 @@ part 'file_state_scheduler.g.dart';
 @Riverpod(keepAlive: true)
 class FileStateScheduler extends _$FileStateScheduler {
   StreamSubscription<FileSystemEvent>? _watchSubscription;
+  bool _isStarting = false; // 防止并发调用 startWatchingVault
 
   // 内部写入红绿灯 (屏蔽名单)：[绝对路径] -> [屏蔽截止时间]
   final Map<String, DateTime> _suppressedPaths = {};
@@ -107,21 +108,21 @@ class FileStateScheduler extends _$FileStateScheduler {
 
   /// 启动底层的神经元触手 (Directory Watcher)
   Future<void> startWatchingVault() async {
-    // 防止重入：cancel 后置空，避免 Android _MultiplexingFileSystemWatcher assertion
-    await _watchSubscription?.cancel();
-    _watchSubscription = null;
-    final activeVault = await ref.read(vaultServiceProvider.future);
-    if (activeVault == null) return;
-
-    // 关键修复：监听 Vault 根目录而非 Journals 子目录
-    // 原因：若监听 Journals 目录，删除 Journals 本身会导致 Watcher 静默失效
-    // 监听父级目录，可以捕获 Journals 目录自身的创建/删除事件
-    final vaultDir = Directory(activeVault.path);
-    if (!vaultDir.existsSync()) return;
+    // 防止并发重入：build() 和 ref.listen 几乎同时触发时，
+    // 第一个 cancel 还没完成第二个就 watch，导致 Android assertion 失败
+    if (_isStarting) return;
+    _isStarting = true;
 
     try {
-      // Android 的 _MultiplexingFileSystemWatcher 在特定条件下会抛 assertion
-      // （如目录已被另一个 watcher 监听或路径不可访问）
+      await _watchSubscription?.cancel();
+      _watchSubscription = null;
+      final activeVault = await ref.read(vaultServiceProvider.future);
+      if (activeVault == null) return;
+
+      // 监听 Vault 根目录而非 Journals 子目录
+      final vaultDir = Directory(activeVault.path);
+      if (!vaultDir.existsSync()) return;
+
       final stream = vaultDir.watch(recursive: true);
       _watchSubscription = stream
           .listen(
@@ -133,12 +134,10 @@ class FileStateScheduler extends _$FileStateScheduler {
               final normalizedSource = sourcePath.replaceAll('\\', '/');
               if (normalizedSource.contains('/.baishou')) return;
 
-              // 日志记录最原生的 Watcher 事件（帮助排错 Windows 回收站行为）
               debugPrint(
                 'FileStateScheduler RawEvent: [${event.type}] $sourcePath',
               );
 
-              // 路径已在上方规范化为 normalizedSource
               final isJournalsScope = normalizedSource.contains('/Journals');
               final isJournalsDirItself = normalizedSource.endsWith(
                 '/Journals',
@@ -148,7 +147,6 @@ class FileStateScheduler extends _$FileStateScheduler {
                 '/Archives',
               );
 
-              // 非 Journals 且非 Archives 范畴内的事件，直接忽略
               if (!isJournalsScope &&
                   !isJournalsDirItself &&
                   !isArchivesScope &&
@@ -159,21 +157,17 @@ class FileStateScheduler extends _$FileStateScheduler {
               if (sourcePath.endsWith('.md') &&
                   (dateFileRegex.hasMatch(p.basename(sourcePath)) ||
                       isArchivesScope)) {
-                // 普通日记文件或归档总结文件变化：塞进防抖流
                 _rawEventSubject.add(sourcePath);
               } else if (!sourcePath.endsWith('.md') &&
                   (event.type == FileSystemEvent.delete ||
                       event.type == FileSystemEvent.create ||
                       event.type == FileSystemEvent.move)) {
-                // 核心修复：目录层面的拓扑架构变动（包括：删除、恢复/创建、重命名/移动 整个月份、Journals 或 Archives 根目录）
-                // 外部强行改变目录结构时，系统底层不会逐个文件发送事件，此时必须直接进行全量扫描！
                 debugPrint(
                   'FileStateScheduler: Directory topology change detected at $sourcePath (type: ${event.type}), requesting full scan.',
                 );
                 _dirDeleteEventController?.add(null);
               }
 
-              // Move 事件：也检查目标路径（处理同 Vault 内的重命名）
               if (event is FileSystemMoveEvent && event.destination != null) {
                 final String destPath = event.destination!;
                 final normalizedDest = destPath.replaceAll('\\', '/');
@@ -199,8 +193,8 @@ class FileStateScheduler extends _$FileStateScheduler {
       debugPrint(
         'FileStateScheduler: Failed to start file watcher (degraded mode): $e',
       );
-      // 降级：Android 文件监听不可用时，不影响应用启动
-      // 用户仍可通过手动刷新或下次启动时触发同步
+    } finally {
+      _isStarting = false;
     }
   }
 }
