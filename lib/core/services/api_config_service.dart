@@ -334,9 +334,13 @@ class ApiConfigService extends ChangeNotifier {
 
   /// 获取全局默认对话模型的 ID
   String get globalDialogueModelId {
-    return _prefs.getString(_keyGlobalDialogueModelId) ??
-        getActiveProvider()?.defaultDialogueModel ??
-        '';
+    final val = _prefs.getString(_keyGlobalDialogueModelId);
+    if (val != null && val.isNotEmpty) return val;
+    final active = getActiveProvider();
+    if (active != null && active.apiKey.isNotEmpty) {
+      return active.defaultDialogueModel;
+    }
+    return 'off';
   }
 
   /// 设置全局默认对话模型
@@ -356,9 +360,13 @@ class ApiConfigService extends ChangeNotifier {
 
   /// 获取全局默认命名模型的 ID
   String get globalNamingModelId {
-    return _prefs.getString(_keyGlobalNamingModelId) ??
-        getActiveProvider()?.defaultNamingModel ??
-        '';
+    final val = _prefs.getString(_keyGlobalNamingModelId);
+    if (val != null && val.isNotEmpty) return val;
+    final active = getActiveProvider();
+    if (active != null && active.apiKey.isNotEmpty) {
+      return active.defaultNamingModel;
+    }
+    return 'off';
   }
 
   /// 设置全局默认命名模型
@@ -377,7 +385,13 @@ class ApiConfigService extends ChangeNotifier {
 
   /// 获取全局记忆总结模型的 ID
   String get globalSummaryModelId {
-    return _prefs.getString(_keyGlobalSummaryModelId) ?? '';
+    final val = _prefs.getString(_keyGlobalSummaryModelId);
+    if (val != null && val.isNotEmpty) return val;
+    final active = getActiveProvider();
+    if (active != null && active.apiKey.isNotEmpty) {
+      return active.defaultNamingModel; // 这里复用 naming 或者是 dialogue，因为原来这里只是空字符串
+    }
+    return 'off';
   }
 
   /// 设置全局记忆总结模型
@@ -667,16 +681,20 @@ class ApiConfigService extends ChangeNotifier {
 
   /// 获取所有非 Embedding 模型（用于对话/总结/命名选择器）
   List<Map<String, String>> getAllNonEmbeddingModels() {
-    return getAllAvailableModels()
+    final list = getAllAvailableModels()
         .where((m) => !isEmbeddingModel(m['model_id'] ?? ''))
         .toList();
+    list.insert(0, {'provider_id': 'off', 'provider_name': 'Disabled / 未开启', 'model_id': 'off'});
+    return list;
   }
 
   /// 获取所有 Embedding 模型（用于 Embedding 选择器）
   List<Map<String, String>> getAllEmbeddingModels() {
-    return getAllAvailableModels()
+    final list = getAllAvailableModels()
         .where((m) => isEmbeddingModel(m['model_id'] ?? ''))
         .toList();
+    list.insert(0, {'provider_id': 'off', 'provider_name': 'Disabled / 未开启', 'model_id': 'off'});
+    return list;
   }
 
   Future<List<String>> fetchAvailableModels(AiProviderModel provider) async {

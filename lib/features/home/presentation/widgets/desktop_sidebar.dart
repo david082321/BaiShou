@@ -63,6 +63,11 @@ class _DesktopSidebarState extends ConsumerState<DesktopSidebar> {
         labelBuilder: () => t.summary.dashboard_title,
       ),
       _NavItem(
+        branchIndex: 5,
+        icon: Icons.wifi_find_rounded,
+        labelBuilder: () => t.settings.lan_transfer,
+      ),
+      _NavItem(
         branchIndex: 4,
         icon: Icons.sync_rounded,
         labelBuilder: () => t.common.data_sync,

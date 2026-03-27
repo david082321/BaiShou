@@ -4,6 +4,9 @@ import 'package:baishou/i18n/strings.g.dart';
 /// 云端数据记录单行组件
 class SyncRecordItem extends StatelessWidget {
   final dynamic record;
+  final bool isManageMode;
+  final bool isSelected;
+  final ValueChanged<bool?>? onSelectChanged;
   final VoidCallback onRestore;
   final VoidCallback onRename;
   final VoidCallback onDelete;
@@ -11,6 +14,9 @@ class SyncRecordItem extends StatelessWidget {
   const SyncRecordItem({
     super.key,
     required this.record,
+    this.isManageMode = false,
+    this.isSelected = false,
+    this.onSelectChanged,
     required this.onRestore,
     required this.onRename,
     required this.onDelete,
@@ -26,22 +32,30 @@ class SyncRecordItem extends StatelessWidget {
 
     final sizeMb = (size / (1024 * 1024)).toStringAsFixed(2);
 
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.green.withValues(alpha: 0.1),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              Icons.check_circle_outline,
-              size: 20,
-              color: Colors.green.shade600,
-            ),
-          ),
+    return InkWell(
+      onTap: isManageMode ? () => onSelectChanged?.call(!isSelected) : null,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+        child: Row(
+          children: [
+            if (isManageMode)
+              Checkbox(
+                value: isSelected,
+                onChanged: onSelectChanged,
+              )
+            else
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.green.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.check_circle_outline,
+                  size: 20,
+                  color: Colors.green.shade600,
+                ),
+              ),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
@@ -62,30 +76,32 @@ class SyncRecordItem extends StatelessWidget {
               ],
             ),
           ),
-          PopupMenuButton<String>(
-            icon: Icon(Icons.more_vert, color: colorScheme.onSurfaceVariant),
-            onSelected: (val) {
-              if (val == 'restore') onRestore();
-              if (val == 'rename') onRename();
-              if (val == 'delete') onDelete();
-            },
-            itemBuilder: (ctx) => [
-              PopupMenuItem(
-                value: 'restore',
-                child: Text(t.data_sync.restore_this),
-              ),
-              PopupMenuItem(value: 'rename', child: Text(t.data_sync.rename)),
-              PopupMenuItem(
-                value: 'delete',
-                child: Text(
-                  t.common.delete,
-                  style: const TextStyle(color: Colors.red),
+          if (!isManageMode)
+            PopupMenuButton<String>(
+              icon: Icon(Icons.more_vert, color: colorScheme.onSurfaceVariant),
+              onSelected: (val) {
+                if (val == 'restore') onRestore();
+                if (val == 'rename') onRename();
+                if (val == 'delete') onDelete();
+              },
+              itemBuilder: (ctx) => [
+                PopupMenuItem(
+                  value: 'restore',
+                  child: Text(t.data_sync.restore_this),
                 ),
-              ),
-            ],
-          ),
+                PopupMenuItem(value: 'rename', child: Text(t.data_sync.rename)),
+                PopupMenuItem(
+                  value: 'delete',
+                  child: Text(
+                    t.common.delete,
+                    style: const TextStyle(color: Colors.red),
+                  ),
+                ),
+              ],
+            ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 }

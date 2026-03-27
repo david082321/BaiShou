@@ -32,6 +32,7 @@ final summaryNavKey = GlobalKey<NavigatorState>(debugLabel: 'summary');
 final syncNavKey = GlobalKey<NavigatorState>(debugLabel: 'sync');
 final settingsNavKey = GlobalKey<NavigatorState>(debugLabel: 'settings');
 final agentNavKey = GlobalKey<NavigatorState>(debugLabel: 'agent');
+final lanTransferNavKey = GlobalKey<NavigatorState>(debugLabel: 'lan_transfer');
 
 /// 全局路由配置
 /// 使用 GoRouter 处理页面导航、重定向（如开启引导页）以及子路由嵌套。
@@ -124,6 +125,15 @@ GoRouter goRouter(Ref ref) {
               GoRoute(
                 path: '/sync',
                 builder: (context, state) => const DataSyncPage(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            navigatorKey: lanTransferNavKey,
+            routes: [
+              GoRoute(
+                path: '/lan-transfer-tab',
+                builder: (context, state) => const LanTransferPage(),
               ),
             ],
           ),

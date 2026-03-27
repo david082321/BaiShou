@@ -24,6 +24,8 @@ class _DataSyncPageState extends ConsumerState<DataSyncPage> {
   bool _isSyncing = false;
   bool _isLoadingRecords = false;
   List<dynamic> _records = [];
+  bool _isManageMode = false;
+  final Set<String> _selectedRecords = {};
 
   @override
   void initState() {
@@ -72,6 +74,8 @@ class _DataSyncPageState extends ConsumerState<DataSyncPage> {
       if (mounted) {
         setState(() {
           _isLoadingRecords = false;
+          _isManageMode = false;
+          _selectedRecords.clear();
         });
       }
     }
@@ -270,6 +274,35 @@ class _DataSyncPageState extends ConsumerState<DataSyncPage> {
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
+                        if (_records.isNotEmpty) ...[
+                          if (_isManageMode) ...[
+                            TextButton(
+                              onPressed: () => setState(() {
+                                _isManageMode = false;
+                                _selectedRecords.clear();
+                              }),
+                              child: Text(t.common.cancel),
+                            ),
+                            const SizedBox(width: 8),
+                            FilledButton.icon(
+                              onPressed: _selectedRecords.isEmpty
+                                  ? null
+                                  : _batchDeleteRecords,
+                              style: FilledButton.styleFrom(
+                                backgroundColor: Colors.red,
+                              ),
+                              icon: const Icon(Icons.delete_outline, size: 18),
+                              label: Text('${t.common.delete} (${_selectedRecords.length})'),
+                            ),
+                          ] else ...[
+                            OutlinedButton.icon(
+                              onPressed: () => setState(() => _isManageMode = true),
+                              icon: const Icon(Icons.checklist, size: 18),
+                              label: const Text('批量管理'),
+                            ),
+                          ],
+                          const SizedBox(width: 12),
+                        ],
                         OutlinedButton.icon(
                           onPressed: () {
                             Navigator.push(
@@ -343,8 +376,20 @@ class _DataSyncPageState extends ConsumerState<DataSyncPage> {
                         const Divider(height: 1),
                     itemBuilder: (context, index) {
                       final record = _records[index];
+                      final isSelected = _selectedRecords.contains(record.filename);
                       return SyncRecordItem(
                         record: record,
+                        isManageMode: _isManageMode,
+                        isSelected: isSelected,
+                        onSelectChanged: (val) {
+                          setState(() {
+                            if (val == true) {
+                              _selectedRecords.add(record.filename);
+                            } else {
+                              _selectedRecords.remove(record.filename);
+                            }
+                          });
+                        },
                         onRestore: () => _restoreRecord(record),
                         onRename: () => _renameRecord(record),
                         onDelete: () => _deleteRecord(record),
@@ -406,6 +451,74 @@ class _DataSyncPageState extends ConsumerState<DataSyncPage> {
       _fetchRecords();
     } catch (e) {
       AppToast.showError(context, '删除失败: $e');
+    }
+  }
+
+  Future<void> _batchDeleteRecords() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(t.data_sync.delete_backup_title),
+        content: Text('确认要批量删除选中的 ${_selectedRecords.length} 项备份记录吗？\n此操作不可逆。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(t.common.cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: Text(t.common.delete),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    setState(() => _isSyncing = true);
+
+    final config = ref.read(dataSyncConfigServiceProvider);
+    try {
+      if (config.syncTarget == SyncTarget.s3) {
+        final client = S3ClientService(
+          endpoint: config.s3Endpoint,
+          region: config.s3Region,
+          bucket: config.s3Bucket,
+          accessKey: config.s3AccessKey,
+          secretKey: config.s3SecretKey,
+          basePath: config.s3Path,
+        );
+        for (final filename in _selectedRecords) {
+          await client.deleteObject(filename);
+        }
+      } else if (config.syncTarget == SyncTarget.webdav) {
+        final client = WebDavClientService(
+          url: config.webdavUrl,
+          username: config.webdavUsername,
+          password: config.webdavPassword,
+          basePath: config.webdavPath,
+        );
+        for (final filename in _selectedRecords) {
+          await client.delete(filename);
+        }
+      }
+      if (mounted) {
+        AppToast.showSuccess(context, '批量删除成功');
+      }
+      _fetchRecords();
+    } catch (e) {
+      if (mounted) {
+        AppToast.showError(context, '批量删除失败或部分完成: $e');
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSyncing = false;
+          _isManageMode = false;
+          _selectedRecords.clear();
+        });
+      }
     }
   }
 
