@@ -224,6 +224,7 @@
     "confirm_restore_desc": "Restoring a snapshot will overwrite all current data.\n\nConfirm to continue?",
     "restoring_data": "Restoring data...",
     "restore_success": "Snapshot restored successfully: $diaries diaries, $summaries summaries",
+    "restore_success_simple": "Data restored successfully. All workspace data and device settings have been recovered",
     "restore_failed_generic": "Restore failed, incomplete data",
     "exit_app": "Exit App",
     "restore_failed": "Restore failed: $error",
