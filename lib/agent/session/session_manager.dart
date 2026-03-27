@@ -50,8 +50,10 @@ class SessionManager {
   }
 
   /// 获取所有会话（按 isPinned 降序，再按最后活跃时间降序）
-  Future<List<AgentSession>> getSessions() async {
-    return (_db.select(_db.agentSessions)..orderBy([
+  Future<List<AgentSession>> getSessions(String vaultName) async {
+    return (_db.select(_db.agentSessions)
+          ..where((t) => t.vaultName.equals(vaultName))
+          ..orderBy([
           (t) => OrderingTerm.desc(t.isPinned),
           (t) => OrderingTerm.desc(t.updatedAt),
         ]))
@@ -59,9 +61,9 @@ class SessionManager {
   }
 
   /// 获取指定伙伴的会话列表
-  Future<List<AgentSession>> getSessionsByAssistant(String assistantId) async {
+  Future<List<AgentSession>> getSessionsByAssistant(String assistantId, String vaultName) async {
     return (_db.select(_db.agentSessions)
-          ..where((t) => t.assistantId.equals(assistantId))
+          ..where((t) => t.assistantId.equals(assistantId) & t.vaultName.equals(vaultName))
           ..orderBy([
             (t) => OrderingTerm.desc(t.isPinned),
             (t) => OrderingTerm.desc(t.updatedAt),
@@ -70,9 +72,9 @@ class SessionManager {
   }
 
   /// 监听指定伙伴的会话列表变化
-  Stream<List<AgentSession>> watchSessionsByAssistant(String assistantId) {
+  Stream<List<AgentSession>> watchSessionsByAssistant(String assistantId, String vaultName) {
     return (_db.select(_db.agentSessions)
-          ..where((t) => t.assistantId.equals(assistantId))
+          ..where((t) => t.assistantId.equals(assistantId) & t.vaultName.equals(vaultName))
           ..orderBy([
             (t) => OrderingTerm.desc(t.isPinned),
             (t) => OrderingTerm.desc(t.updatedAt),
@@ -81,20 +83,21 @@ class SessionManager {
   }
 
   /// 获取指定伙伴的会话数量
-  Future<int> getSessionCountByAssistant(String assistantId) async {
+  Future<int> getSessionCountByAssistant(String assistantId, String vaultName) async {
     final count =
         await (_db.selectOnly(_db.agentSessions)
               ..addColumns([_db.agentSessions.id.count()])
-              ..where(_db.agentSessions.assistantId.equals(assistantId)))
+              ..where(_db.agentSessions.assistantId.equals(assistantId) & _db.agentSessions.vaultName.equals(vaultName)))
             .getSingle();
     return count.read(_db.agentSessions.id.count()) ?? 0;
   }
 
   /// 获取每个伙伴的会话数量（批量）
-  Future<Map<String, int>> getSessionCountsByAssistant() async {
+  Future<Map<String, int>> getSessionCountsByAssistant(String vaultName) async {
     final results = await _db
         .customSelect(
-          'SELECT assistant_id, COUNT(*) AS cnt FROM agent_sessions WHERE assistant_id IS NOT NULL GROUP BY assistant_id',
+          'SELECT assistant_id, COUNT(*) AS cnt FROM agent_sessions WHERE assistant_id IS NOT NULL AND vault_name = ? GROUP BY assistant_id',
+          variables: [Variable.withString(vaultName)],
         )
         .get();
     return {
@@ -105,11 +108,12 @@ class SessionManager {
 
   /// 获取指定伙伴最近 N 条会话标题
   Future<List<AgentSession>> getRecentSessionsByAssistant(
-    String assistantId, {
+    String assistantId,
+    String vaultName, {
     int limit = 5,
   }) async {
     return (_db.select(_db.agentSessions)
-          ..where((t) => t.assistantId.equals(assistantId))
+          ..where((t) => t.assistantId.equals(assistantId) & t.vaultName.equals(vaultName))
           ..orderBy([(t) => OrderingTerm.desc(t.updatedAt)])
           ..limit(limit))
         .get();
