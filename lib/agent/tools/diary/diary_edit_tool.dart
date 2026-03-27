@@ -1,15 +1,18 @@
 /// DiaryEditTool — AI 写入/追加/编辑日记内容
 ///
 /// Agent 通过此工具将内容写入指定日期的 Markdown 日记文件。
-/// 如果日记已存在，默认追加；可设置 overwrite 覆盖。
-/// AI 应先用 diary_read 读取再用此工具写入，确保不覆盖重要内容。
+/// 支持自动管理标签与获取时间上下文，并能处理增量读写。
 
-import 'dart:io';
 import 'package:baishou/agent/tools/agent_tool.dart';
 import 'package:baishou/i18n/strings.g.dart';
 import 'package:flutter/material.dart';
+import 'package:baishou/features/diary/domain/repositories/diary_repository.dart';
 
 class DiaryEditTool extends AgentTool {
+  final DiaryRepository repository;
+
+  DiaryEditTool(this.repository);
+
   @override
   String get id => 'diary_edit';
 
@@ -28,15 +31,13 @@ class DiaryEditTool extends AgentTool {
   @override
   String get description =>
       'Write, append, or edit content in a diary entry for a specific date. '
-      'The diary file is a Markdown file located at Journals/YYYY/MM/YYYY-MM-DD.md. '
       'MANDATORY: You MUST call diary_read FIRST to check if a diary already exists '
-      'for the target date and review its current content BEFORE calling this tool. '
-      'This prevents accidentally overwriting what the user already wrote today. '
-      'If diary_read returns content, decide whether to append or incorporate existing content. '
-      'By default, content is appended to the end of the file. '
-      'When appending, content MUST be formatted with a level-5 heading using the current time: '
-      '"##### HH:mm\n{content}". Use the current_time tool to get the exact time if needed. '
-      'If no date is specified, the current date will be used. '
+      'for the target date and review its current content BEFORE calling this tool.\n'
+      'TEMPORAL AWARENESS: When writing entries for past dates, use absolute temporal context. '
+      'DO NOT write relative words like "yesterday" in yesterday\'s diary. Write "I did X" or "Today I did X" (as if writing exactly on that day).\n'
+      'TAGS: Analyze the content to determine if new tags are needed (e.g. food, programming, weather). Pass them to the `tags` array parameter. The tool will merge them with existing tags.\n'
+      'By default, content is appended. When appending, content MUST be formatted with a level-5 heading using the current time: '
+      '"##### HH:mm\\n{content}". Use the current_time tool to get the exact time if needed. '
       'Set mode to "overwrite" to replace the entire file content.';
 
   @override
@@ -52,8 +53,13 @@ class DiaryEditTool extends AgentTool {
       'content': {
         'type': 'string',
         'description':
-            'The Markdown content to write to the diary. '
-            'For append mode, this will be added after existing content with a newline separator.',
+            'The Markdown content to write to the diary.',
+      },
+      'tags': {
+        'type': 'array',
+        'items': {'type': 'string'},
+        'description': 'A list of new tags relevant to this edit (e.g. ["美食", "日常"]). '
+            'The tool will automatically merge these with existing tags.',
       },
       'mode': {
         'type': 'string',
@@ -75,8 +81,10 @@ class DiaryEditTool extends AgentTool {
     final rawDate = arguments['date'] as String?;
     final content = arguments['content'] as String?;
     final mode = arguments['mode'] as String? ?? 'append';
+    
+    final tagsDynamic = arguments['tags'] as List<dynamic>?;
+    final newTags = tagsDynamic?.map((e) => e.toString()).toList() ?? [];
 
-    // 如果未指定日期，使用当前日期
     final date = (rawDate != null && rawDate.isNotEmpty)
         ? rawDate
         : '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
@@ -85,7 +93,6 @@ class DiaryEditTool extends AgentTool {
       return ToolResult.error('Missing required parameter: content');
     }
 
-    // 验证日期格式
     final dateRegex = RegExp(r'^\d{4}-\d{2}-\d{2}$');
     if (!dateRegex.hasMatch(date)) {
       return ToolResult.error(
@@ -93,65 +100,67 @@ class DiaryEditTool extends AgentTool {
       );
     }
 
-    // 解析年月 → 构建路径: Journals/YYYY/MM/YYYY-MM-DD.md
     final parts = date.split('-');
-    final year = parts[0];
-    final month = parts[1];
-    final dirPath = '${context.vaultPath}/Journals/$year/$month';
-    final filePath = '$dirPath/$date.md';
+    final year = int.parse(parts[0]);
+    final month = int.parse(parts[1]);
+    final day = int.parse(parts[2]);
+    final logicalDate = DateTime(year, month, day);
+    final diaryId = year * 10000 + month * 100 + day;
 
     try {
-      // 确保目录存在
-      final dir = Directory(dirPath);
-      if (!await dir.exists()) {
-        await dir.create(recursive: true);
+      final existingDiary = await repository.getDiaryById(diaryId);
+      final existed = existingDiary != null;
+      
+      List<String> finalTags = [];
+      if (existed && mode == 'append') {
+        finalTags.addAll(existingDiary.tags);
+      }
+      for (final t in newTags) {
+        if (!finalTags.contains(t)) {
+          finalTags.add(t);
+        }
       }
 
-      final file = File(filePath);
-      final existed = await file.exists();
+      String finalContent = content;
 
       if (mode == 'overwrite' || !existed) {
-        // 覆盖模式或文件不存在：直接写入
-        await file.writeAsString(content);
-        return ToolResult(
-          output: existed
-              ? 'Diary for $date has been overwritten successfully.'
-              : 'Diary for $date has been created successfully.',
-          success: true,
-          metadata: {
-            'date': date,
-            'mode': existed ? 'overwrite' : 'create',
-            'length': content.length,
-          },
-        );
+        // 覆盖或是新建
       } else {
-        // 追加模式：自动加上 ##### HH:mm 五级标题
-        final existing = await file.readAsString();
-        final separator = existing.endsWith('\n') ? '\n' : '\n\n';
+        // 追加模式
+        final existingContent = existingDiary.content;
+        final separator = existingContent.endsWith('\n') ? '\n' : '\n\n';
         final timeHeader =
             '##### ${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
-        // 如果内容已包含五级标题则不再自动添加
+            
         final formattedContent = content.trimLeft().startsWith('#####')
             ? content
             : '$timeHeader\n$content';
-        final newContent = '$existing$separator$formattedContent';
-        await file.writeAsString(newContent);
-        return ToolResult(
-          output:
-              'Content has been appended to diary for $date. '
-              'Total length: ${newContent.length} characters.',
-          success: true,
-          metadata: {
-            'date': date,
-            'mode': 'append',
-            'previous_length': existing.length,
-            'appended_length': formattedContent.length,
-            'total_length': newContent.length,
-          },
-        );
+            
+        finalContent = '$existingContent$separator$formattedContent';
       }
+
+      await repository.saveDiary(
+        id: existed ? diaryId : null,
+        date: logicalDate,
+        content: finalContent,
+        tags: finalTags,
+      );
+
+      return ToolResult(
+        output: existed
+            ? 'Diary for $date has been ${mode == 'append' ? 'appended' : 'overwritten'} successfully. Current tags: ${finalTags.join(", ")}'
+            : 'Diary for $date has been created successfully. Current tags: ${finalTags.join(", ")}',
+        success: true,
+        metadata: {
+          'date': date,
+          'mode': existed ? mode : 'create',
+          'tags_added': newTags.length,
+          'total_tags': finalTags.length,
+          'length': finalContent.length,
+        },
+      );
     } catch (e) {
-      return ToolResult.error('Failed to edit diary: $e');
+      return ToolResult.error('Failed to edit diary through repository: $e');
     }
   }
 }

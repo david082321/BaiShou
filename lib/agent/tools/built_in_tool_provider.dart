@@ -16,6 +16,7 @@ import 'package:baishou/agent/tools/summary/summary_read_tool.dart';
 import 'package:baishou/agent/tools/utility/current_time_tool.dart';
 import 'package:baishou/core/database/app_database.dart';
 import 'package:baishou/core/services/api_config_service.dart';
+import 'package:baishou/features/diary/data/repositories/diary_repository_impl.dart';
 import 'package:baishou/features/index/data/shadow_index_database.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -28,9 +29,8 @@ part 'built_in_tool_provider.g.dart';
 @riverpod
 List<AgentTool> builtInTools(Ref ref) {
   return [
-    // ── 日记工具 ──
     DiaryReadTool(),
-    DiaryEditTool(),
+    DiaryEditTool(ref.read(diaryRepositoryProvider)),
     DiaryDeleteTool(ref.read(agentDatabaseProvider)),
     DiaryListTool(),
     DiarySearchTool(ref.read(shadowIndexDatabaseProvider.notifier)),
