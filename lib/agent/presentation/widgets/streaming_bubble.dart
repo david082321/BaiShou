@@ -2,12 +2,15 @@
 ///
 /// 包含：StreamingBubble, 工具执行分组, 完成/活跃工具项, 跳动三点动画
 
+import 'dart:io';
 import 'package:baishou/agent/presentation/notifiers/agent_chat_notifier.dart';
+import 'package:baishou/agent/presentation/notifiers/assistant_notifier.dart';
 import 'package:baishou/i18n/strings.g.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class StreamingBubble extends StatelessWidget {
+class StreamingBubble extends ConsumerWidget {
   final String text;
   final String? activeToolName;
   final List<ToolExecution> completedTools;
@@ -20,9 +23,62 @@ class StreamingBubble extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final hasTools = completedTools.isNotEmpty || activeToolName != null;
+
+    final chatState = ref.watch(agentChatProvider);
+    final currentAssistantId = chatState.currentAssistantId;
+    final assistantsAsync = ref.watch(assistantListProvider);
+    final assistantData = assistantsAsync.whenOrNull(
+      data: (list) {
+        if (currentAssistantId == null) return null;
+        final match = list.where((a) => a.id.toString() == currentAssistantId);
+        return match.isNotEmpty ? match.first : null;
+      },
+    );
+
+    final aiName = assistantData?.name ?? t.agent.chat.ai_label;
+    final avatarPath = assistantData?.avatarPath;
+    final emoji = assistantData?.emoji;
+
+    Widget avatarWidget;
+    if (avatarPath != null && File(avatarPath).existsSync()) {
+      avatarWidget = CircleAvatar(
+        radius: 18,
+        backgroundColor: theme.colorScheme.primaryContainer,
+        backgroundImage: FileImage(File(avatarPath)),
+      );
+    } else if (emoji != null && emoji.isNotEmpty) {
+      avatarWidget = Container(
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          color: theme.colorScheme.primaryContainer.withValues(alpha: 0.6),
+          shape: BoxShape.circle,
+        ),
+        child: Center(
+          child: Text(
+            emoji,
+            style: const TextStyle(fontSize: 18),
+          ),
+        ),
+      );
+    } else {
+      avatarWidget = Container(
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          color: theme.colorScheme.primaryContainer.withValues(alpha: 0.6),
+          shape: BoxShape.circle,
+        ),
+        child: Icon(
+          Icons.auto_awesome_outlined,
+          size: 20,
+          color: theme.colorScheme.primary,
+        ),
+      );
+    }
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -30,19 +86,7 @@ class StreamingBubble extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // AI 头像
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: theme.colorScheme.primaryContainer.withValues(alpha: 0.6),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              Icons.auto_awesome_outlined,
-              size: 20,
-              color: theme.colorScheme.primary,
-            ),
-          ),
+          avatarWidget,
           const SizedBox(width: 10),
           Flexible(
             child: Column(
@@ -52,7 +96,7 @@ class StreamingBubble extends StatelessWidget {
                 Padding(
                   padding: const EdgeInsets.only(left: 4, bottom: 6),
                   child: Text(
-                    t.agent.chat.ai_label,
+                    aiName,
                     style: theme.textTheme.labelSmall?.copyWith(
                       color: theme.colorScheme.outline,
                       fontWeight: FontWeight.w600,

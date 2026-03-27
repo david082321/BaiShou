@@ -40,6 +40,7 @@ class _AgentMainPageState extends ConsumerState<AgentMainPage> {
     final assistant = await service.ensureDefaultAssistant();
     if (mounted) {
       setState(() => _currentAssistant = assistant);
+      ref.read(agentChatProvider.notifier).setCurrentAssistantId(assistant.id);
       await _loadSessions();
     }
   }

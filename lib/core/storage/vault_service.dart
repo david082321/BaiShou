@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:baishou/agent/database/agent_database.dart';
 import 'package:baishou/core/storage/storage_path_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
@@ -237,6 +238,9 @@ class VaultService extends _$VaultService {
 
     // 4. 清理物理文件夹
     try {
+      // 释放该 Vault 关联的底层 SQLite 数据库缓存，解除文件锁（特别是 Windows 系统下）
+      closeAgentDatabaseCache(vaultName);
+      
       final vaultDir = await _pathProvider.getVaultDirectory(vaultName);
       if (vaultDir.existsSync()) {
         await vaultDir.delete(recursive: true);

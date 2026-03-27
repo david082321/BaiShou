@@ -731,9 +731,15 @@ QueryExecutor _openAgentConnection(
   });
 }
 
-/// 追踪上一个 AgentDatabase 实例，确保 vault 切换时在新实例创建前关闭旧实例，
-/// 避免 drift 检测到同一 QueryExecutor 类型有两个实例共存（race condition 警告）。
-AgentDatabase? _previousAgentDb;
+/// 缓存所有工作区的 AgentDatabase 实例，避免切换工作区时旧实例被提前关闭
+/// 从而导致旧工作区后台仍处于活跃状态的任务（如生成对话标题、计算 token）因连接断开而失败。
+final Map<String, AgentDatabase> _dbCache = {};
+
+/// 清除并关闭指定工作区的数据库缓存（用于工作区永久删除时释放文件句柄）
+void closeAgentDatabaseCache(String vaultName) {
+  final db = _dbCache.remove(vaultName);
+  db?.close();
+}
 
 /// Riverpod Provider
 @Riverpod(keepAlive: true)
@@ -741,29 +747,15 @@ AgentDatabase agentDatabase(Ref ref) {
   final pathService = ref.watch(storagePathServiceProvider);
   final vaultName = ref.watch(activeVaultNameProvider) ?? 'Personal';
 
-  // Riverpod 同步重建：先 create 新实例，再异步 dispose 旧实例。
-  // 为避免短暂共存，在创建新实例之前手动关闭上一个。
-  final oldDb = _previousAgentDb;
-  if (oldDb != null) {
-    oldDb.close();
-    _previousAgentDb = null;
-  }
-
   // drift 的 close() 是异步操作，在同步 Provider 中无法 await，
-  // 导致新实例创建时旧实例在 drift 静态注册表中尚未清除。
-  // vault 切换是明确的有意行为且旧 DB 会被正确关闭，安全抑制此警告。
+  // 并且我们需要保持旧数据库实例连接开启，以应对旧工作区中尚未完结的网络请求。
+  // vault 切换意味着多库共存，这是明确的设计需求，因此安全抑制警告。
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
 
-  final db = AgentDatabase(_openAgentConnection(pathService, vaultName));
-  _previousAgentDb = db;
+  if (!_dbCache.containsKey(vaultName)) {
+    final db = AgentDatabase(_openAgentConnection(pathService, vaultName));
+    _dbCache[vaultName] = db;
+  }
 
-  ref.onDispose(() {
-    // app 退出等场景的兜底关闭
-    db.close();
-    if (_previousAgentDb == db) {
-      _previousAgentDb = null;
-    }
-  });
-
-  return db;
+  return _dbCache[vaultName]!;
 }
