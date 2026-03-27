@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:baishou/agent/database/agent_database.dart';
 import 'package:baishou/core/services/data_refresh_notifier.dart';
+import 'package:baishou/core/storage/vault_service.dart';
 import 'package:path/path.dart' as p;
 import 'package:baishou/features/index/data/shadow_index_database.dart';
 import 'package:baishou/features/diary/data/initial_data.dart';
@@ -99,9 +100,10 @@ class _DeveloperOptionsViewState extends ConsumerState<DeveloperOptionsView> {
 
     setState(() => _isClearing = true);
     try {
-      // 1. 释放数据库句柄（Windows 需要释放文件锁）
+      // 1. Release all database handles (Windows needs file locks released)
       await ref.read(appDatabaseProvider).close();
       ref.read(shadowIndexDatabaseProvider.notifier).close();
+      await closeAllAgentDatabases();
 
       // 给操作系统一点时间释放文件句柄，尤其是在 Windows 上
       await Future.delayed(const Duration(milliseconds: 500));
@@ -130,14 +132,13 @@ class _DeveloperOptionsViewState extends ConsumerState<DeveloperOptionsView> {
         }
       }
 
-      // 4. 清理 App 内部专属元数据（快照、缓存、数据库残余）
+      // 4. 清理 App 内部专属元数据（快照、缓存目录）
+      // 注意：baishou.sqlite / agent.sqlite 现已位于各 Vault 的 .baishou/ 下，
+      // 已在步骤 3 中随 rootDir 一起被递归删除。
       final internalTargets = [
         'snapshots',
         'avatars',
         'images',
-        'baishou.sqlite',
-        'baishou.sqlite-wal',
-        'baishou.sqlite-shm',
       ];
       for (final targetName in internalTargets) {
         final targetPath = p.join(appDir.path, targetName);
@@ -192,7 +193,7 @@ class _DeveloperOptionsViewState extends ConsumerState<DeveloperOptionsView> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('清理 Agent 数据库'),
-        content: const Text('将删除所有 Agent 会话、伙伴和消息数据。\n重启后数据库会自动重建。'),
+        content: const Text('将删除所有工作空间下的 Agent 会话、伙伴和消息数据。\n重启后数据库会自动重建。'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
@@ -213,20 +214,29 @@ class _DeveloperOptionsViewState extends ConsumerState<DeveloperOptionsView> {
 
     setState(() => _isClearingAgent = true);
     try {
-      final agentDb = ref.read(agentDatabaseProvider);
-      await agentDb.close();
+      // 1. 关闭所有 Agent 数据库缓存连接，释放文件锁
+      await closeAllAgentDatabases();
       await Future.delayed(const Duration(milliseconds: 300));
 
-      final appDir = await getApplicationDocumentsDirectory();
-      for (final name in [
-        'agent_database.db',
-        'agent_database.db-wal',
-        'agent_database.db-shm',
-      ]) {
-        final file = File(p.join(appDir.path, name));
-        if (file.existsSync()) {
-          file.deleteSync();
-          debugPrint('ClearAgentDB: Deleted $name');
+      // 2. 遍历所有 Vault，删除每个 Vault 下的 agent.sqlite 及其 WAL/SHM
+      final storageService = ref.read(storagePathServiceProvider);
+      final vaultService = ref.read(vaultServiceProvider.notifier);
+      final allVaults = vaultService.getAllVaults();
+      int deletedCount = 0;
+
+      for (final vault in allVaults) {
+        final sysDir = await storageService.getVaultSystemDirectory(vault.name);
+        for (final name in [
+          'agent.sqlite',
+          'agent.sqlite-wal',
+          'agent.sqlite-shm',
+        ]) {
+          final file = File(p.join(sysDir.path, name));
+          if (file.existsSync()) {
+            file.deleteSync();
+            deletedCount++;
+            debugPrint('ClearAgentDB: Deleted ${vault.name}/$name');
+          }
         }
       }
 
@@ -236,7 +246,10 @@ class _DeveloperOptionsViewState extends ConsumerState<DeveloperOptionsView> {
           barrierDismissible: false,
           builder: (ctx) => AlertDialog(
             title: const Text('清理完成'),
-            content: const Text('Agent 数据库已清理，请重启应用。'),
+            content: Text(
+              '已清理 ${allVaults.length} 个工作空间的 Agent 数据库'
+              '（$deletedCount 个文件），请重启应用。',
+            ),
             actions: [
               FilledButton(
                 onPressed: () => exit(0),
