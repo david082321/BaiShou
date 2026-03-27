@@ -140,7 +140,7 @@ class McpServerService {
     final stream = controller.stream.map((data) => utf8.encode(data));
 
     Future.microtask(() {
-      final endpointUrl = 'http://localhost:$port/message?sessionId=$sessionId';
+      final endpointUrl = request.requestedUri.resolve('/message?sessionId=$sessionId').toString();
       controller.add('event: endpoint\ndata: $endpointUrl\n\n');
     });
 
