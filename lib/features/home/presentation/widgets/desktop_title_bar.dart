@@ -123,11 +123,14 @@ class _DesktopTitleBarState extends ConsumerState<DesktopTitleBar>
 
     final theme = Theme.of(context);
 
-    return Column(
-      children: [
-        _buildTitleBar(theme),
-        Expanded(child: widget.child),
-      ],
+    return Material(
+      color: theme.colorScheme.surface,
+      child: Column(
+        children: [
+          _buildTitleBar(theme),
+          Expanded(child: widget.child),
+        ],
+      ),
     );
   }
 

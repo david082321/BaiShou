@@ -39,6 +39,7 @@ void main() async {
       center: true,
       title: t.common.app_tagline,
       titleBarStyle: TitleBarStyle.hidden,
+      backgroundColor: Colors.transparent,
     );
     windowManager.waitUntilReadyToShow(windowOptions, () async {
       await windowManager.show();

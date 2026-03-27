@@ -59,9 +59,7 @@ class DataArchiveManager extends _$DataArchiveManager {
     if (outputPath != null) {
       final destFile = File(outputPath);
       if (!Platform.isAndroid && !Platform.isIOS) {
-        if (!destFile.existsSync()) {
-          await zipFile.copy(destFile.path);
-        }
+        await zipFile.copy(destFile.path);
       }
       return destFile;
     }
