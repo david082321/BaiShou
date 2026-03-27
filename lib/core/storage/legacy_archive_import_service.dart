@@ -117,7 +117,7 @@ class LegacyArchiveImportService extends _$LegacyArchiveImportService {
       summarySyncService.setSyncEnabled(true);
       shadowIndexSyncService.setSyncEnabled(true);
       await summarySyncService.fullScanArchives();
-      await shadowIndexSyncService.fullScanVault();
+      await shadowIndexSyncService.fullScanVault(skipRag: true);
       await vaultIndex.forceReload();
       ref.read(dataRefreshProvider.notifier).refresh();
 
@@ -131,7 +131,7 @@ class LegacyArchiveImportService extends _$LegacyArchiveImportService {
       try {
         summarySyncService.setSyncEnabled(true);
         shadowIndexSyncService.setSyncEnabled(true);
-        await shadowIndexSyncService.fullScanVault();
+        await shadowIndexSyncService.fullScanVault(skipRag: true);
         await vaultIndex.forceReload();
       } catch (_) {}
       rethrow;

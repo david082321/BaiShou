@@ -436,7 +436,10 @@
     "max_backup_desc": "超过上限后，同步时将自动删除最早的备份文件",
     "max_backup_count_label": "最大备份数量",
     "max_backup_count_value": "$count 个",
-    "max_backup_auto_cleaned": "已自动清理 $count 个旧备份"
+    "max_backup_auto_cleaned": "已自动清理 $count 个旧备份",
+    "download_backup": "下载到本地",
+    "downloading": "正在下载...",
+    "download_success": "已保存至: $path"
   },
   "lan_transfer": {
     "status_idle": "等待发现...",

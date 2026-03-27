@@ -132,7 +132,7 @@ class ShadowIndexSyncService extends _$ShadowIndexSyncService {
 
   /// 触发单条目标日记的强同步 (通常在 UI 执行 Save 操作后被调用)
   /// 返回同步结果，供增量更新内存索引使用
-  Future<JournalSyncResult> syncJournal(DateTime date) async {
+  Future<JournalSyncResult> syncJournal(DateTime date, {bool skipRag = false}) async {
     if (_isSyncDisabled) {
       debugPrint(
         'ShadowIndexSyncService: Skipped syncJournal because sync is disabled.',
@@ -236,7 +236,9 @@ class ShadowIndexSyncService extends _$ShadowIndexSyncService {
     debugPrint('ShadowIndexSyncService: Upsert complete for ID ${diary.id}');
 
     // 5. 异步触发 RAG 向量嵌入（统一入口，无论是 UI、Agent 还是外部修改）
-    _triggerEmbeddingAsync(diary);
+    if (!skipRag) {
+      _triggerEmbeddingAsync(diary);
+    }
 
     // 返回最新的元数据，方便上层更新内存状态
     final content = diary.content;
@@ -292,7 +294,8 @@ class ShadowIndexSyncService extends _$ShadowIndexSyncService {
   /// 这是“影子索引”架构的兜底同步机制：
   /// 当用户更换设备拷入文件、或者数据库意外损坏时，
   /// 该方法会递归物理磁盘，将所有 Markdown 文件重新解析并强行对齐到 SQLite 中。
-  Future<void> fullScanVault() async {
+  /// [skipRag] 是否跳过触发 RAG 同步（大批量数据还原时必带以防止请求风暴）
+  Future<void> fullScanVault({bool skipRag = false}) async {
     if (_isSyncDisabled) {
       debugPrint(
         'ShadowIndexSyncService: Skipped fullScanVault because sync is disabled.',
@@ -346,7 +349,7 @@ class ShadowIndexSyncService extends _$ShadowIndexSyncService {
           if (dateStr != null) {
             scannedDates.add(dateStr);
             final date = DateTime.parse(dateStr);
-            await syncJournal(date);
+            await syncJournal(date, skipRag: skipRag);
           }
         } catch (e) {
           continue;

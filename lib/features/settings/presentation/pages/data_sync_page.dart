@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:baishou/core/widgets/app_toast.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
+import 'package:file_picker/file_picker.dart';
 import 'package:baishou/features/settings/domain/services/data_sync_config_service.dart';
 import 'package:baishou/features/settings/domain/services/data_sync_service.dart';
 import 'package:baishou/features/settings/domain/services/s3_client_service.dart';
@@ -410,6 +411,7 @@ class _DataSyncPageState extends ConsumerState<DataSyncPage> {
                         onRestore: () => _restoreRecord(record),
                         onRename: () => _renameRecord(record),
                         onDelete: () => _deleteRecord(record),
+                        onDownload: () => _downloadRecord(record),
                       );
                     },
                   ),
@@ -788,6 +790,82 @@ class _DataSyncPageState extends ConsumerState<DataSyncPage> {
       }
     } catch (e) {
       AppToast.showError(context, t.common.error);
+    } finally {
+      if (mounted) setState(() => _isSyncing = false);
+    }
+  }
+
+  Future<void> _downloadRecord(dynamic record) async {
+    setState(() => _isSyncing = true); // 复用 同步中 状态，可考虑提示正在下载
+    if (mounted) {
+      AppToast.showSuccess(context, t.data_sync.downloading);
+    }
+
+    try {
+      final appDir = await getTemporaryDirectory();
+      final tempPath = p.join(
+        appDir.path,
+        'download_${DateTime.now().millisecondsSinceEpoch}.zip',
+      );
+
+      final config = ref.read(dataSyncConfigServiceProvider);
+      if (config.syncTarget == SyncTarget.s3) {
+        final client = S3ClientService(
+          endpoint: config.s3Endpoint,
+          region: config.s3Region,
+          bucket: config.s3Bucket,
+          accessKey: config.s3AccessKey,
+          secretKey: config.s3SecretKey,
+          basePath: config.s3Path,
+        );
+        await client.downloadFile(record.filename, tempPath);
+      } else if (config.syncTarget == SyncTarget.webdav) {
+        final client = WebDavClientService(
+          url: config.webdavUrl,
+          username: config.webdavUsername,
+          password: config.webdavPassword,
+          basePath: config.webdavPath,
+        );
+        await client.downloadFile(record.filename, tempPath);
+      } else {
+        throw Exception('Unsupported sync target for download');
+      }
+
+      final tempFile = File(tempPath);
+      if (!await tempFile.exists()) {
+        throw Exception('Downloaded file not found at temp path');
+      }
+
+      final outputPath = await FilePicker.platform.saveFile(
+        dialogTitle: t.data_sync.download_backup,
+        fileName: record.filename,
+        type: FileType.custom,
+        allowedExtensions: ['zip'],
+        bytes: Platform.isAndroid || Platform.isIOS
+            ? await tempFile.readAsBytes()
+            : null,
+      );
+
+      if (outputPath != null) {
+        if (!Platform.isAndroid && !Platform.isIOS) {
+          await tempFile.copy(outputPath);
+        }
+        if (mounted) {
+          AppToast.showSuccess(
+            context,
+            t.data_sync.download_success(path: outputPath),
+          );
+        }
+      }
+
+      // 无论用户有没有保存，清理缓存文件
+      try {
+        await tempFile.delete();
+      } catch (_) {}
+    } catch (e) {
+      if (mounted) {
+        AppToast.showError(context, 'Download failed: $e');
+      }
     } finally {
       if (mounted) setState(() => _isSyncing = false);
     }

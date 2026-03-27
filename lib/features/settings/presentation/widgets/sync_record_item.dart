@@ -10,6 +10,7 @@ class SyncRecordItem extends StatelessWidget {
   final VoidCallback onRestore;
   final VoidCallback onRename;
   final VoidCallback onDelete;
+  final VoidCallback onDownload;
 
   const SyncRecordItem({
     super.key,
@@ -20,6 +21,7 @@ class SyncRecordItem extends StatelessWidget {
     required this.onRestore,
     required this.onRename,
     required this.onDelete,
+    required this.onDownload,
   });
 
   @override
@@ -83,11 +85,16 @@ class SyncRecordItem extends StatelessWidget {
                 if (val == 'restore') onRestore();
                 if (val == 'rename') onRename();
                 if (val == 'delete') onDelete();
+                if (val == 'download') onDownload();
               },
               itemBuilder: (ctx) => [
                 PopupMenuItem(
                   value: 'restore',
                   child: Text(t.data_sync.restore_this),
+                ),
+                PopupMenuItem(
+                  value: 'download',
+                  child: Text(t.data_sync.download_backup),
                 ),
                 PopupMenuItem(value: 'rename', child: Text(t.data_sync.rename)),
                 PopupMenuItem(

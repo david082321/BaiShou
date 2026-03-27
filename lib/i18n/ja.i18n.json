@@ -436,7 +436,10 @@
     "max_backup_desc": "上限を超えた場合、同期時に古いバックアップが自動削除されます",
     "max_backup_count_label": "最大バックアップ数",
     "max_backup_count_value": "$count 個",
-    "max_backup_auto_cleaned": "$count 個の古いバックアップを自動削除しました"
+    "max_backup_auto_cleaned": "$count 個の古いバックアップを自動削除しました",
+    "download_backup": "ローカルへダウンロード",
+    "downloading": "ダウンロード中...",
+    "download_success": "保存先: $path"
   },
   "lan_transfer": {
     "status_idle": "待機中...",

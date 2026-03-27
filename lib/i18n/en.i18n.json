@@ -436,7 +436,10 @@
     "max_backup_desc": "Old backups will be auto-deleted when exceeding the limit",
     "max_backup_count_label": "Max Backup Count",
     "max_backup_count_value": "$count",
-    "max_backup_auto_cleaned": "Auto-cleaned $count old backup(s)"
+    "max_backup_auto_cleaned": "Auto-cleaned $count old backup(s)",
+    "download_backup": "Download to Local",
+    "downloading": "Downloading...",
+    "download_success": "Saved to: $path"
   },
   "lan_transfer": {
     "status_idle": "Waiting...",

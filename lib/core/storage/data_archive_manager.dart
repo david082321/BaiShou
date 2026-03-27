@@ -509,7 +509,7 @@ class DataArchiveManager extends _$DataArchiveManager {
       summarySyncService.setSyncEnabled(true);
       shadowIndexSyncService.setSyncEnabled(true);
       await summarySyncService.fullScanArchives(force: true);
-      await shadowIndexSyncService.fullScanVault();
+      await shadowIndexSyncService.fullScanVault(skipRag: true);
       await vaultIndex.forceReload();
 
       ref.read(dataRefreshProvider.notifier).refresh();
@@ -524,7 +524,7 @@ class DataArchiveManager extends _$DataArchiveManager {
       try {
         summarySyncService.setSyncEnabled(true);
         shadowIndexSyncService.setSyncEnabled(true);
-        await shadowIndexSyncService.fullScanVault();
+        await shadowIndexSyncService.fullScanVault(skipRag: true);
         await vaultIndex.forceReload();
       } catch (_) {}
       rethrow;
