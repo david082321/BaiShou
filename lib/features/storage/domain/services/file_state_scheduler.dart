@@ -107,7 +107,9 @@ class FileStateScheduler extends _$FileStateScheduler {
 
   /// 启动底层的神经元触手 (Directory Watcher)
   Future<void> startWatchingVault() async {
+    // 防止重入：cancel 后置空，避免 Android _MultiplexingFileSystemWatcher assertion
     await _watchSubscription?.cancel();
+    _watchSubscription = null;
     final activeVault = await ref.read(vaultServiceProvider.future);
     if (activeVault == null) return;
 
@@ -118,8 +120,10 @@ class FileStateScheduler extends _$FileStateScheduler {
     if (!vaultDir.existsSync()) return;
 
     try {
-      _watchSubscription = vaultDir
-          .watch(recursive: true)
+      // Android 的 _MultiplexingFileSystemWatcher 在特定条件下会抛 assertion
+      // （如目录已被另一个 watcher 监听或路径不可访问）
+      final stream = vaultDir.watch(recursive: true);
+      _watchSubscription = stream
           .listen(
             (event) async {
               final dateFileRegex = RegExp(r'^(\d{4}-\d{2}-\d{2})\.md$');
@@ -193,8 +197,10 @@ class FileStateScheduler extends _$FileStateScheduler {
       );
     } catch (e) {
       debugPrint(
-        'FileStateScheduler: Synchronous exception while starting watcher: $e',
+        'FileStateScheduler: Failed to start file watcher (degraded mode): $e',
       );
+      // 降级：Android 文件监听不可用时，不影响应用启动
+      // 用户仍可通过手动刷新或下次启动时触发同步
     }
   }
 }
