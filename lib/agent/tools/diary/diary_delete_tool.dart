@@ -3,16 +3,16 @@
 /// Agent 通过此工具删除指定日期的日记文件。
 /// 会同时删除物理文件和对应的 RAG 向量。
 
-import 'dart:io';
-import 'package:baishou/agent/database/agent_database.dart';
+
+import 'package:baishou/features/diary/domain/repositories/diary_repository.dart';
 import 'package:baishou/agent/tools/agent_tool.dart';
 import 'package:baishou/i18n/strings.g.dart';
 import 'package:flutter/material.dart';
 
 class DiaryDeleteTool extends AgentTool {
-  final AgentDatabase _db;
+  final DiaryRepository _repo;
 
-  DiaryDeleteTool(this._db);
+  DiaryDeleteTool(this._repo);
 
   @override
   String get id => 'diary_delete';
@@ -67,14 +67,12 @@ class DiaryDeleteTool extends AgentTool {
       );
     }
 
-    final parts = date.split('-');
-    final year = parts[0];
-    final month = parts[1];
-    final filePath = '${context.vaultPath}/Journals/$year/$month/$date.md';
-
     try {
-      final file = File(filePath);
-      if (!await file.exists()) {
+      final start = DateTime.parse(date);
+      final end = DateTime(start.year, start.month, start.day, 23, 59, 59);
+      final diaries = await _repo.getDiariesByDateRange(start, end);
+
+      if (diaries.isEmpty) {
         return ToolResult(
           output: 'No diary found for date $date. Nothing to delete.',
           success: true,
@@ -82,37 +80,33 @@ class DiaryDeleteTool extends AgentTool {
         );
       }
 
-      // 读取内容用于确认信息
-      final content = await file.readAsString();
-      final preview = content.length > 80
-          ? '${content.substring(0, 80)}...'
-          : content;
+      int deletedCount = 0;
+      int deletedLength = 0;
+      String lastPreview = '';
 
-      // 删除文件
-      await file.delete();
+      for (final diary in diaries) {
+        final content = diary.content;
+        if (content.isNotEmpty) {
+           lastPreview = content.length > 80
+              ? '${content.substring(0, 80)}...'
+              : content;
+           deletedLength += content.length;
+        }
 
-      // 清理该日记对应的 RAG 向量
-      // 日记的 source_id 是其数字 ID（yyyyMMdd 格式），从日期推算
-      try {
-        final logicalDate = DateTime.parse(date);
-        final diaryId = logicalDate.year * 10000 +
-            logicalDate.month * 100 +
-            logicalDate.day;
-        await _db.deleteEmbeddingsBySource('diary', diaryId.toString());
-        debugPrint('DiaryDeleteTool: Cleaned RAG vectors for diary $diaryId');
-      } catch (e) {
-        debugPrint('DiaryDeleteTool: Failed to clean RAG vectors: $e');
+        // 使用标准的 Repo 接口删除：会自动清理物理文件、SQLite索引、RAG向量，并直接同步内存更新 UI！
+        await _repo.deleteDiary(diary.id);
+        deletedCount++;
       }
 
       return ToolResult(
         output:
-            'Diary for $date has been deleted successfully.\n'
-            'Deleted content preview: $preview',
+            'Diary for $date has been deleted successfully. ($deletedCount entry/entries removed)\n'
+            'Deleted content preview: $lastPreview',
         success: true,
         metadata: {
           'date': date,
           'deleted': true,
-          'deleted_length': content.length,
+          'deleted_length': deletedLength,
         },
       );
     } catch (e) {
