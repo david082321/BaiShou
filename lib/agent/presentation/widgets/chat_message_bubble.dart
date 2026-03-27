@@ -195,6 +195,7 @@ class ChatMessageBubble extends ConsumerWidget {
 
     final aiName = assistantData?.name ?? t.agent.chat.ai_label;
     final avatarPath = assistantData?.avatarPath;
+    final emoji = assistantData?.emoji;
 
     Widget avatarWidget;
     if (avatarPath != null && File(avatarPath).existsSync()) {
@@ -202,6 +203,21 @@ class ChatMessageBubble extends ConsumerWidget {
         radius: 18,
         backgroundColor: theme.colorScheme.primaryContainer,
         backgroundImage: FileImage(File(avatarPath)),
+      );
+    } else if (emoji != null && emoji.isNotEmpty) {
+      avatarWidget = Container(
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          color: theme.colorScheme.primaryContainer.withValues(alpha: 0.6),
+          shape: BoxShape.circle,
+        ),
+        child: Center(
+          child: Text(
+            emoji,
+            style: const TextStyle(fontSize: 18),
+          ),
+        ),
       );
     } else {
       avatarWidget = Container(
