@@ -212,12 +212,13 @@ class EmbeddingService {
       await _db.initVectorIndex(currentDimension);
     }
 
+    // 并发度 3 嵌入所有 chunk
+    final futures = <Future<void>>[];
     for (final chunk in chunks) {
-      // 每个 chunk 前注入上下文前缀（如日期），确保后续分片也携带时间信息
       final embeddingInput = chunkPrefix != null
           ? '$chunkPrefix${chunk.text}'
           : chunk.text;
-      await _retryEmbed(() async {
+      final future = _retryEmbed(() async {
         final embedding = await client.generateEmbedding(
           input: embeddingInput,
           modelId: embeddingModelId,
@@ -235,6 +236,18 @@ class EmbeddingService {
           sourceCreatedAt: sourceCreatedAt,
         );
       }, label: 'embedText chunk ${chunk.index}');
+
+      futures.add(future);
+
+      // 每积攒 3 个并发任务就等待它们全部完成
+      if (futures.length >= 3) {
+        await Future.wait(futures);
+        futures.clear();
+      }
+    }
+    // 处理剩余不足 3 个的任务
+    if (futures.isNotEmpty) {
+      await Future.wait(futures);
     }
   }
 

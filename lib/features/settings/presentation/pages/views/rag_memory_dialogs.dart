@@ -302,13 +302,17 @@ class RagMemoryDialogs {
           continue;
         }
         final dateLabel = DateFormat('yyyy-MM-dd').format(diary.date);
+        final tagList = diary.tags;
+        final tagPrefix = tagList.isNotEmpty
+            ? '[标签: ${tagList.join(', ')}] '
+            : '';
         await embeddingService.reEmbedText(
           text: diary.content,
           sourceType: 'diary',
           sourceId: diary.id.toString(),
           sourceCreatedAt: diary.date.millisecondsSinceEpoch,
           groupId: 'diary_batch',
-          chunkPrefix: '[$dateLabel 日记:]\n',
+          chunkPrefix: '$tagPrefix[$dateLabel 日记:]\n',
           metadataJson: jsonEncode({
             'updated_at': diary.updatedAt.millisecondsSinceEpoch,
           }),
