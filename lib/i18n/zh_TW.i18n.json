@@ -572,6 +572,7 @@
     "records_suffix": "條記錄",
     "diary_count": "日記條數",
     "shared_memory": "共同回憶",
+    "shared_memory_copy_subtitle": "過去 $months 個月的共同回憶",
     "shared_memory_desc": "已為您提取摺疊後的高價值記憶片段，便於快速分享與回顧。",
     "extraction_stats": "提取記憶",
     "view_all": "查看全部",

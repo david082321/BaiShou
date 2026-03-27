@@ -572,6 +572,7 @@
     "records_suffix": "Records",
     "diary_count": "Diary Entries",
     "shared_memory": "Shared Memory",
+    "shared_memory_copy_subtitle": "Shared memories from the past $months months",
     "shared_memory_desc": "High-value memory fragments, folded and extracted for quick sharing and review.",
     "extraction_stats": "Extraction Stats",
     "view_all": "View All",

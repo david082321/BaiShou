@@ -572,6 +572,7 @@
     "records_suffix": "件の記録",
     "diary_count": "日記数",
     "shared_memory": "共有の思い出",
+    "shared_memory_copy_subtitle": "過去 $months ヶ月間の共有の思い出",
     "shared_memory_desc": "共有と振り返りに適した、折り畳まれて抽出された価値の高い記憶の断片。",
     "extraction_stats": "記憶の抽出",
     "view_all": "すべて見る",

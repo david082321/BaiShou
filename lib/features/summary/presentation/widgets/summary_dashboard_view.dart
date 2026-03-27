@@ -161,7 +161,7 @@ class _SummaryDashboardViewState extends ConsumerState<SummaryDashboardView>
       '✨ ${t.common.app_title} | ${t.summary.shared_memory}',
     ];
     final slang = (slangs..shuffle()).first;
-    final header = '$slang\n过去 $months 个月的共同回忆（白守算法折叠）\n';
+    final header = '$slang\n${t.summary.shared_memory_copy_subtitle(months: months.toString())}\n';
 
     final prefix = ref.read(summaryFilterProvider).copyContextPrefix;
     final body = _result!.text;
