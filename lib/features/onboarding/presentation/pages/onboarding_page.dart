@@ -130,7 +130,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage>
   void _nextPage() {
     if (_currentPage < _numPages - 1) {
       _pageController.nextPage(
-        duration: const Duration(milliseconds: 400),
+        duration: const Duration(milliseconds: 650),
         curve: Curves.easeOutCubic,
       );
     } else {
@@ -141,7 +141,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage>
   void _previousPage() {
     if (_currentPage > 0) {
       _pageController.previousPage(
-        duration: const Duration(milliseconds: 400),
+        duration: const Duration(milliseconds: 650),
         curve: Curves.easeOutCubic,
       );
     }
@@ -375,6 +375,9 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage>
     );
   }
 
+  /// 中文优先字体回退栈
+  static const _zhFontFallback = ['PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', 'Heiti SC'];
+
   Widget _slideTitle(String text) {
     return Text(
       text,
@@ -383,6 +386,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage>
             fontWeight: FontWeight.w700,
             letterSpacing: -0.3,
             height: 1.3,
+            fontFamilyFallback: _zhFontFallback,
           ),
     );
   }
@@ -395,6 +399,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage>
             color: Colors.grey.shade600,
             height: 1.7,
             fontSize: 16,
+            fontFamilyFallback: _zhFontFallback,
           ),
     );
   }
@@ -402,6 +407,11 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage>
   // ─── Slide 0: Welcome ────────────────────────────────────────
 
   Widget _buildWelcomeSlide() {
+    // 桌面端限制图标尺寸，避免过大溢出
+    final isDesktop = Platform.isWindows || Platform.isMacOS || Platform.isLinux;
+    final iconSize = isDesktop ? 100.0 : 140.0;
+    final iconRadius = isDesktop ? 24.0 : 32.0;
+
     return _slideWrapper(
       children: [
         AnimatedBuilder(
@@ -412,10 +422,10 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage>
             return Transform.scale(
               scale: scale,
               child: Container(
-                width: 140,
-                height: 140,
+                width: iconSize,
+                height: iconSize,
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(32),
+                  borderRadius: BorderRadius.circular(iconRadius),
                   boxShadow: [
                     BoxShadow(
                       color: _brandBlue.withOpacity(0.25),
@@ -425,14 +435,14 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage>
                   ],
                 ),
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(32),
+                  borderRadius: BorderRadius.circular(iconRadius),
                   child: Image.asset(
                     'assets/icon/icon.png',
-                    width: 140,
-                    height: 140,
+                    width: iconSize,
+                    height: iconSize,
                     errorBuilder: (_, __, ___) => Icon(
                       Icons.pets,
-                      size: 80,
+                      size: 60,
                       color: _brandBlue,
                     ),
                   ),
@@ -441,7 +451,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage>
             );
           },
         ),
-        const SizedBox(height: 40),
+        const SizedBox(height: 36),
         Text(
           t.onboarding.welcome_title,
           textAlign: TextAlign.center,
@@ -449,6 +459,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage>
                 fontWeight: FontWeight.w800,
                 letterSpacing: -0.5,
                 color: _brandBlueDark,
+                fontFamilyFallback: _zhFontFallback,
               ),
         ),
         const SizedBox(height: 16),
@@ -631,9 +642,9 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage>
           '「纯白誓约，守护一生」',
           style: TextStyle(
             fontSize: 15,
-            fontStyle: FontStyle.italic,
-            color: Colors.grey.shade400,
+            color: Colors.grey.shade600,
             letterSpacing: 2,
+            fontFamilyFallback: _zhFontFallback,
           ),
         ),
       ],
@@ -704,7 +715,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage>
       child: FilledButton(
         onPressed: _nextPage,
         style: FilledButton.styleFrom(
-          backgroundColor: isLast ? theme.iconColor : _brandBlue,
+          backgroundColor: isLast ? theme.iconColor : _brandBlueDark,
           foregroundColor: Colors.white,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           shape: RoundedRectangleBorder(

@@ -29,58 +29,56 @@ class _CompressionChartState extends State<CompressionChart>
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return AnimatedBuilder(
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 420),
+        child: AnimatedBuilder(
           animation: _controller,
           builder: (context, _) {
             return Column(
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                // 从窄到宽，全部左对齐（右端递进加宽）
                 _buildStairStep(
                   context,
                   t.common.daily,
                   const Color(0xFFB3E5FC),
-                  alignment: Alignment.centerRight,
-                  widthFactor: 0.25,
+                  widthFactor: 0.30,
                   delay: 0.0,
                 ),
-                _buildConnector(),
+                const SizedBox(height: 6),
                 _buildStairStep(
                   context,
                   t.common.weekly,
                   const Color(0xFF81D4FA),
-                  alignment: const Alignment(0.4, 0),
-                  widthFactor: 0.28,
+                  widthFactor: 0.48,
                   delay: 0.15,
                 ),
-                _buildConnector(),
+                const SizedBox(height: 6),
                 _buildStairStep(
                   context,
                   t.common.monthly,
                   const Color(0xFF4FC3F7),
-                  alignment: const Alignment(-0.15, 0),
-                  widthFactor: 0.32,
+                  widthFactor: 0.66,
                   delay: 0.3,
                 ),
-                _buildConnector(),
+                const SizedBox(height: 6),
                 _buildStairStep(
                   context,
                   t.common.quarterly,
                   const Color(0xFF29B6F6),
-                  alignment: Alignment.centerLeft,
-                  widthFactor: 0.38,
+                  widthFactor: 0.82,
                   delay: 0.45,
                 ),
-                const SizedBox(height: 16),
-                // 基底年鉴
+                const SizedBox(height: 12),
+                // 年鉴基底 — 全宽
                 _buildBaseBar(delay: 0.6),
               ],
             );
           },
-        );
-      },
+        ),
+      ),
     );
   }
 
@@ -88,7 +86,6 @@ class _CompressionChartState extends State<CompressionChart>
     BuildContext context,
     String label,
     Color color, {
-    required Alignment alignment,
     required double widthFactor,
     required double delay,
   }) {
@@ -96,14 +93,13 @@ class _CompressionChartState extends State<CompressionChart>
     return Opacity(
       opacity: progress.clamp(0.0, 1.0),
       child: Transform.translate(
-        offset: Offset(0, 12 * (1 - progress)),
+        offset: Offset(0, 10 * (1 - progress)),
         child: Align(
-          alignment: alignment,
+          alignment: Alignment.centerLeft,
           child: FractionallySizedBox(
             widthFactor: widthFactor,
             child: Container(
-              height: 42,
-              margin: const EdgeInsets.symmetric(vertical: 3),
+              height: 40,
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [color, color.withOpacity(0.75)],
@@ -127,6 +123,7 @@ class _CompressionChartState extends State<CompressionChart>
                   fontWeight: FontWeight.w600,
                   fontSize: 14,
                   letterSpacing: 0.5,
+                  fontFamilyFallback: ['PingFang SC', 'Microsoft YaHei', 'Noto Sans SC'],
                 ),
               ),
             ),
@@ -141,9 +138,9 @@ class _CompressionChartState extends State<CompressionChart>
     return Opacity(
       opacity: progress.clamp(0.0, 1.0),
       child: Transform.translate(
-        offset: Offset(0, 16 * (1 - progress)),
+        offset: Offset(0, 14 * (1 - progress)),
         child: Container(
-          height: 48,
+          height: 46,
           decoration: BoxDecoration(
             gradient: const LinearGradient(
               colors: [Color(0xFF9AD4EA), Color(0xFF64B5F6)],
@@ -162,20 +159,17 @@ class _CompressionChartState extends State<CompressionChart>
           alignment: Alignment.center,
           child: Text(
             t.common.yearly,
-            style: const TextStyle(
+            style: TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.w700,
               fontSize: 17,
               letterSpacing: 3,
+              fontFamilyFallback: ['PingFang SC', 'Microsoft YaHei', 'Noto Sans SC'],
             ),
           ),
         ),
       ),
     );
-  }
-
-  Widget _buildConnector() {
-    return const SizedBox(height: 3);
   }
 
   double _delayedProgress(double delay) {
