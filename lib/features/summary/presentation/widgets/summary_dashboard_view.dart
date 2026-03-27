@@ -134,7 +134,18 @@ class _SummaryDashboardViewState extends ConsumerState<SummaryDashboardView>
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        AppToast.showError(context, '${t.summary.load_failed}: $e');
+        // drift 隔离通道关闭（热重启/数据库未就绪）时静默重试，不弹 Toast
+        final msg = e.toString();
+        if (msg.contains('Channel was closed') ||
+            msg.contains('Closed before') ||
+            msg.contains('数据库未挂载')) {
+          debugPrint('SummaryDashboard: DB not ready, will retry in 1s: $e');
+          Future.delayed(const Duration(seconds: 1), () {
+            if (mounted) _loadAllData();
+          });
+        } else {
+          AppToast.showError(context, '${t.summary.load_failed}: $e');
+        }
       }
     }
   }
