@@ -110,23 +110,27 @@ class SummarySyncService extends _$SummarySyncService {
   bool _isDisposed = false;
 
   /// 全量扫描归档目录并对齐索引
-  Future<void> fullScanArchives() async {
+  /// [force] 为 true 时跳过所有守卫（用于 importFromZip 等需要强制扫描的场景）
+  Future<void> fullScanArchives({bool force = false}) async {
     if (_isDisposed) return;
-    final prefs = ref.read(sharedPreferencesProvider);
-    final isMigrated = prefs.getBool('is_legacy_sql_summary_migrated') == true;
 
-    if (_isMigrating || !isMigrated || _isSyncDisabled) {
-      debugPrint(
-        'SummarySyncService: Skipped full scan because migration/scan is in progress, not yet migrated, or sync is disabled.',
-      );
-      return;
-    }
+    if (!force) {
+      final prefs = ref.read(sharedPreferencesProvider);
+      final isMigrated = prefs.getBool('is_legacy_sql_summary_migrated') == true;
 
-    if (_isScanning) {
-      debugPrint(
-        'SummarySyncService: Skipped full scan because another scan is already in progress.',
-      );
-      return;
+      if (_isMigrating || !isMigrated || _isSyncDisabled) {
+        debugPrint(
+          'SummarySyncService: Skipped full scan because migration/scan is in progress, not yet migrated, or sync is disabled.',
+        );
+        return;
+      }
+
+      if (_isScanning) {
+        debugPrint(
+          'SummarySyncService: Skipped full scan because another scan is already in progress.',
+        );
+        return;
+      }
     }
 
     _isScanning = true;

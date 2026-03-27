@@ -412,7 +412,7 @@ class DataArchiveManager extends _$DataArchiveManager {
       // 重新对齐并点火
       summarySyncService.setSyncEnabled(true);
       shadowIndexSyncService.setSyncEnabled(true);
-      await summarySyncService.fullScanArchives();
+      await summarySyncService.fullScanArchives(force: true);
       await shadowIndexSyncService.fullScanVault();
       await vaultIndex.forceReload();
 
