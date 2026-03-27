@@ -561,7 +561,10 @@ class _AiModelServicesViewState extends ConsumerState<AiModelServicesView> {
             iconBuilder: (type) => getProviderIcon(type),
             onFetchRequested: () => _fetchModels(setModalState: setModalState),
             isFetching: _isFetchingModels,
-            onModelToggled: _loadProviderConfig,
+            onModelToggled: () {
+              _loadProviderConfig();
+              setModalState?.call(() {});
+            },
           ),
         ],
       ),
