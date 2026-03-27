@@ -204,6 +204,50 @@ class VaultService extends _$VaultService {
     //    从而实现“切换库”的一瞬间，底层数据库也跟着无缝切换的效果。
     state = AsyncData(_getActiveVault());
   }
+
+  /// 安全删除指定工作区
+  Future<void> deleteVault(String vaultName) async {
+    // 1. 防呆保护：不可删除当前活动库
+    final activeVault = _getActiveVault();
+    if (activeVault?.name == vaultName) {
+      throw Exception('不能删除当前正在使用的工作区，请先切换至其他空间！');
+    }
+
+    final existingIndex = _vaults.indexWhere((v) => v.name == vaultName);
+    if (existingIndex == -1) {
+      throw Exception('试图删除的工作区 [$vaultName] 不存在。');
+    }
+
+    // 2. 移出索引列表
+    _vaults.removeAt(existingIndex);
+
+    // 3. 兜底保护：若全库被删空，强制恢复 Personal
+    if (_vaults.isEmpty) {
+      final defaultVaultDir = await _pathProvider.getVaultDirectory('Personal');
+      _vaults.add(
+        VaultInfo(
+          name: 'Personal',
+          path: defaultVaultDir.path,
+          createdAt: DateTime.now(),
+          lastAccessedAt: DateTime.now(),
+        ),
+      );
+    }
+    await _saveRegistry();
+
+    // 4. 清理物理文件夹
+    try {
+      final vaultDir = await _pathProvider.getVaultDirectory(vaultName);
+      if (vaultDir.existsSync()) {
+        await vaultDir.delete(recursive: true);
+      }
+    } catch (e) {
+      debugPrint('VaultService: Error deleting vault directory: $e');
+      throw Exception('工作区记录已清除，但物理文件夹删除失败 (可能文件仍被占用)，需手动清理。');
+    }
+
+    state = AsyncData(_getActiveVault());
+  }
 }
 
 /// 专门提供当前活跃 Vault 名称的轻量级 Provider
