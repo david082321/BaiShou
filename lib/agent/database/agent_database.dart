@@ -144,36 +144,48 @@ class AgentDatabase extends _$AgentDatabase {
     String query, {
     int limit = 20,
   }) async {
-    final results = await customSelect(
-      '''
-      SELECT
-        f.message_id,
-        f.session_id,
-        f.role,
-        snippet(agent_messages_fts, 3, '<b>', '</b>', '...', 48) AS snippet,
-        s.title AS session_title,
-        s.updated_at AS session_updated_at
-      FROM agent_messages_fts AS f
-      LEFT JOIN agent_sessions AS s ON f.session_id = s.id
-      WHERE agent_messages_fts MATCH ?
-      ORDER BY rank
-      LIMIT ?
-      ''',
-      variables: [Variable.withString(query), Variable.withInt(limit)],
-    ).get();
+    // 清洗 FTS5 特殊字符：单引号、双引号、星号、括号等可能破坏 MATCH 语法的字符
+    final sanitized = query
+        .replaceAll(RegExp(r'''['"()*^~{}[\]<>]'''), ' ')
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
+    if (sanitized.isEmpty) return [];
 
-    return results.map((row) {
-      return {
-        'message_id': row.read<String>('message_id'),
-        'session_id': row.read<String>('session_id'),
-        'role': row.read<String>('role'),
-        'snippet': row.read<String>('snippet'),
-        'session_title':
-            row.readNullable<String>('session_title') ??
-            t.agent.sessions.unnamed_session,
-        'session_updated_at': row.readNullable<DateTime>('session_updated_at'),
-      };
-    }).toList();
+    try {
+      final results = await customSelect(
+        '''
+        SELECT
+          f.message_id,
+          f.session_id,
+          f.role,
+          snippet(agent_messages_fts, 3, '<b>', '</b>', '...', 48) AS snippet,
+          s.title AS session_title,
+          s.updated_at AS session_updated_at
+        FROM agent_messages_fts AS f
+        LEFT JOIN agent_sessions AS s ON f.session_id = s.id
+        WHERE agent_messages_fts MATCH ?
+        ORDER BY rank
+        LIMIT ?
+        ''',
+        variables: [Variable.withString(sanitized), Variable.withInt(limit)],
+      ).get();
+
+      return results.map((row) {
+        return {
+          'message_id': row.read<String>('message_id'),
+          'session_id': row.read<String>('session_id'),
+          'role': row.read<String>('role'),
+          'snippet': row.read<String>('snippet'),
+          'session_title':
+              row.readNullable<String>('session_title') ??
+              t.agent.sessions.unnamed_session,
+          'session_updated_at': row.readNullable<DateTime>('session_updated_at'),
+        };
+      }).toList();
+    } catch (e) {
+      debugPrint('searchFts failed for query "$sanitized": $e');
+      return [];
+    }
   }
 
   // ── 原生 sqlite-vector 向量搜索 ────────────────────────────────
