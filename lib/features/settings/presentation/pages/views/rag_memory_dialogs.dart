@@ -303,10 +303,12 @@ class RagMemoryDialogs {
         }
         final dateLabel = DateFormat('yyyy-MM-dd').format(diary.date);
         await embeddingService.reEmbedText(
-          text: '$dateLabel: ${diary.content}',
+          text: diary.content,
           sourceType: 'diary',
           sourceId: diary.id.toString(),
+          sourceCreatedAt: diary.date.millisecondsSinceEpoch,
           groupId: 'diary_batch',
+          chunkPrefix: '[$dateLabel 日记:]\n',
           metadataJson: jsonEncode({
             'updated_at': diary.updatedAt.millisecondsSinceEpoch,
           }),
