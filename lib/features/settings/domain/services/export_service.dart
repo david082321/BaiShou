@@ -161,6 +161,7 @@ class ExportService {
     // 5. 写入 config/user_profile.json（含 API Key）
     final config = {
       'nickname': _userProfile.nickname,
+      'identity_facts': _userProfile.identityFacts,
       'theme_mode': _themeState.mode.index,
       'seed_color': _themeState.seedColor.toARGB32(),
       // AI 新架构配置

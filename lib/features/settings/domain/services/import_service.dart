@@ -521,6 +521,15 @@ class ImportService {
       await _profileNotifier.updateNickname(nickname);
     }
 
+    // 恢复身份卡事实
+    final identityFacts = config['identity_facts'];
+    if (identityFacts is Map) {
+      final facts = identityFacts.map(
+        (key, value) => MapEntry(key.toString(), value.toString()),
+      );
+      await _profileNotifier.updateAllFacts(facts);
+    }
+
     // 恢复主题色
     final seedColorValue = config['seed_color'] as int?;
     if (seedColorValue != null) {
