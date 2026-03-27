@@ -13,6 +13,7 @@ import 'package:baishou/agent/tools/message/message_search_tool.dart';
 import 'package:baishou/agent/tools/search/web_search_tool.dart';
 import 'package:baishou/agent/tools/search/url_read_tool.dart';
 import 'package:baishou/agent/tools/summary/summary_read_tool.dart';
+import 'package:baishou/agent/tools/utility/current_time_tool.dart';
 import 'package:baishou/core/database/app_database.dart';
 import 'package:baishou/core/services/api_config_service.dart';
 import 'package:baishou/features/index/data/shadow_index_database.dart';
@@ -52,5 +53,8 @@ List<AgentTool> builtInTools(Ref ref) {
 
     // ── 网页读取工具 ──
     UrlReadTool(),
+
+    // ── 实用工具 ──
+    CurrentTimeTool(),
   ];
 }

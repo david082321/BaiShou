@@ -698,6 +698,7 @@
       "vector_search": "語義搜尋",
       "memory_store": "記憶儲存",
       "memory_delete": "記憶刪除",
+      "current_time": "當前時間",
       "web_search": "網路搜尋",
       "param_max_results": "搜尋結果上限",
       "param_max_results_desc": "AI 每次搜尋時返回的最大結果數量",

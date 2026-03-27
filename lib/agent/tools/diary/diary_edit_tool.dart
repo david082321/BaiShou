@@ -29,11 +29,14 @@ class DiaryEditTool extends AgentTool {
   String get description =>
       'Write, append, or edit content in a diary entry for a specific date. '
       'The diary file is a Markdown file located at Journals/YYYY/MM/YYYY-MM-DD.md. '
-      'IMPORTANT: Always use diary_read first to check existing content before writing, '
-      'to avoid overwriting important entries. '
+      'MANDATORY: You MUST call diary_read FIRST to check if a diary already exists '
+      'for the target date and review its current content BEFORE calling this tool. '
+      'This prevents accidentally overwriting what the user already wrote today. '
+      'If diary_read returns content, decide whether to append or incorporate existing content. '
       'By default, content is appended to the end of the file. '
       'When appending, content MUST be formatted with a level-5 heading using the current time: '
-      '"##### HH:mm\n{content}". If no date is specified, the current date will be used. '
+      '"##### HH:mm\n{content}". Use the current_time tool to get the exact time if needed. '
+      'If no date is specified, the current date will be used. '
       'Set mode to "overwrite" to replace the entire file content.';
 
   @override

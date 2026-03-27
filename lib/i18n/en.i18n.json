@@ -698,6 +698,7 @@
       "vector_search": "Semantic Search",
       "memory_store": "Memory Store",
       "memory_delete": "Memory Delete",
+      "current_time": "Current Time",
       "web_search": "Web Search",
       "param_max_results": "Max Results",
       "param_max_results_desc": "Maximum number of results returned per AI search",

@@ -698,6 +698,7 @@
       "vector_search": "语义搜索",
       "memory_store": "记忆存储",
       "memory_delete": "记忆删除",
+      "current_time": "当前时间",
       "web_search": "网络搜索",
       "param_max_results": "搜索结果上限",
       "param_max_results_desc": "AI 每次搜索时返回的最大结果数量",

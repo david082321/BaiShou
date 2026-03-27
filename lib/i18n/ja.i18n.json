@@ -698,6 +698,7 @@
       "vector_search": "セマンティック検索",
       "memory_store": "記憶保存",
       "memory_delete": "記憶削除",
+      "current_time": "現在時刻",
       "web_search": "ウェブ検索",
       "param_max_results": "最大結果数",
       "param_max_results_desc": "AI検索時の最大結果数",
