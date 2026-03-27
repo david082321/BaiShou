@@ -193,6 +193,7 @@ class EmbeddingService {
     required String groupId,
     String metadataJson = '{}',
     int? sourceCreatedAt,
+    String? chunkPrefix,
   }) async {
     if (!isConfigured || text.trim().isEmpty) return;
 
@@ -212,9 +213,13 @@ class EmbeddingService {
     }
 
     for (final chunk in chunks) {
+      // 每个 chunk 前注入上下文前缀（如日期），确保后续分片也携带时间信息
+      final embeddingInput = chunkPrefix != null
+          ? '$chunkPrefix${chunk.text}'
+          : chunk.text;
       await _retryEmbed(() async {
         final embedding = await client.generateEmbedding(
-          input: chunk.text,
+          input: embeddingInput,
           modelId: embeddingModelId,
         );
         await _db.insertEmbedding(
@@ -223,7 +228,7 @@ class EmbeddingService {
           sourceId: sourceId,
           groupId: groupId,
           chunkIndex: chunk.index,
-          chunkText: chunk.text,
+          chunkText: embeddingInput,
           metadataJson: metadataJson,
           embedding: _normalize(embedding),
           modelId: embeddingModelId,
@@ -241,6 +246,7 @@ class EmbeddingService {
     required String groupId,
     String metadataJson = '{}',
     int? sourceCreatedAt,
+    String? chunkPrefix,
   }) async {
     await _db.deleteEmbeddingsBySource(sourceType, sourceId);
     await embedText(
@@ -250,6 +256,7 @@ class EmbeddingService {
       groupId: groupId,
       metadataJson: metadataJson,
       sourceCreatedAt: sourceCreatedAt,
+      chunkPrefix: chunkPrefix,
     );
   }
 

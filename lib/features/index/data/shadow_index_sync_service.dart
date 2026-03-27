@@ -257,11 +257,12 @@ class ShadowIndexSyncService extends _$ShadowIndexSyncService {
         final dateLabel =
             '${diary.date.year}-${diary.date.month.toString().padLeft(2, '0')}-${diary.date.day.toString().padLeft(2, '0')}';
         await embeddingService.reEmbedText(
-          text: '$dateLabel: ${diary.content}',
+          text: diary.content,
           sourceType: 'diary',
           sourceId: diary.id.toString(),
           groupId: 'diary_auto',
           sourceCreatedAt: diary.date.millisecondsSinceEpoch,
+          chunkPrefix: '[$dateLabel 日记] ',
           metadataJson: '{"updated_at":${diary.updatedAt.millisecondsSinceEpoch}}',
         );
         debugPrint('ShadowIndexSyncService: RAG embedded for $dateLabel');
