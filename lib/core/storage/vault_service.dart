@@ -279,7 +279,11 @@ class VaultService extends _$VaultService {
       throw Exception('工作区记录已清除，但物理文件夹删除失败 (可能文件仍被占用)，需手动清理。');
     }
 
-    state = AsyncData(_getActiveVault());
+    // 强制通知所有监听方刷新。
+    // 因为删除的是非活跃 vault，_getActiveVault() 返回值不变，
+    // 仅靠 state = AsyncData(...) 的 == 比较不会触发 UI rebuild，
+    // 但 getAllVaults() 的结果已经变了，必须通知 UI 重建列表。
+    ref.notifyListeners();
   }
 }
 
