@@ -177,10 +177,7 @@ class _DataManagementCardState extends ConsumerState<DataManagementCard> {
         ref.read(baishou_refresh.dataRefreshProvider.notifier).refresh();
         AppToast.showSuccess(
           context,
-          t.settings.restore_success(
-            diaries: importResult.diariesImported,
-            summaries: importResult.summariesImported,
-          ),
+          t.settings.restore_success_simple,
         );
       } else {
         AppToast.showError(
@@ -326,10 +323,7 @@ class _DataManagementCardState extends ConsumerState<DataManagementCard> {
         ref.read(baishou_refresh.dataRefreshProvider.notifier).refresh();
         AppToast.showSuccess(
           context,
-          t.settings.restore_success(
-            diaries: importResult.diariesImported,
-            summaries: importResult.summariesImported,
-          ),
+          t.settings.restore_success_simple,
           duration: const Duration(seconds: 4),
         );
       } else {
