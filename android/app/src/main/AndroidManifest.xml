@@ -12,7 +12,7 @@
         android:icon="@mipmap/launcher_icon"
         android:extractNativeLibs="true"
         android:requestLegacyExternalStorage="true"
-        android:enableOnBackInvokedCallback="false">
+        android:enableOnBackInvokedCallback="true">
         <activity
             android:name=".MainActivity"
             android:exported="true"

@@ -116,7 +116,7 @@ class _SettingsPageState extends State<SettingsPage> {
             if (context.canPop()) {
               context.pop();
             } else {
-              context.go('/diary');
+              context.go('/');
             }
           },
         ),
@@ -232,7 +232,7 @@ class _SettingsPageState extends State<SettingsPage> {
                           if (context.canPop()) {
                             context.pop();
                           } else {
-                            context.go('/diary');
+                            context.go('/');
                           }
                         },
                         tooltip: t.common.cancel,

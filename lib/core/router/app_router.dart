@@ -33,12 +33,6 @@ final syncNavKey = GlobalKey<NavigatorState>(debugLabel: 'sync');
 final settingsNavKey = GlobalKey<NavigatorState>(debugLabel: 'settings');
 final agentNavKey = GlobalKey<NavigatorState>(debugLabel: 'agent');
 
-/// 用于记录 App 是否已经经历过首次启动，一旦启动所有后续对 '/' 的访问全部作为幽灵 Intent 拦截
-class AppLaunchGuard {
-  static bool hasStarted = false;
-  static String? lastRoute;
-}
-
 /// 全局路由配置
 /// 使用 GoRouter 处理页面导航、重定向（如开启引导页）以及子路由嵌套。
 @Riverpod(keepAlive: true)
@@ -49,7 +43,7 @@ GoRouter goRouter(Ref ref) {
   final onboardingCompleted = ref.watch(onboardingCompletedProvider);
 
   // Determine initial location based on saved sidebar order
-  String initialLoc = '/diary';
+  String initialLoc = '/';
   final prefs = ref.watch(sharedPreferencesProvider);
   final savedOrder = prefs.getStringList('desktop_sidebar_nav_order');
   if (savedOrder != null && savedOrder.isNotEmpty) {
@@ -66,9 +60,6 @@ GoRouter goRouter(Ref ref) {
     initialLocation: initialLoc,
     debugLogDiagnostics: true,
     redirect: (context, state) {
-      debugPrint(
-        '[ROUTER_TRACE] redirect triggered | uri: ${state.uri.path} | matched: ${state.matchedLocation} | hasStarted: ${AppLaunchGuard.hasStarted}',
-      );
       final isGoingToOnboarding = state.matchedLocation == '/onboarding';
 
       if (!onboardingCompleted && !isGoingToOnboarding) {
@@ -78,27 +69,6 @@ GoRouter goRouter(Ref ref) {
       if (onboardingCompleted && isGoingToOnboarding) {
         return initialLoc;
       }
-
-      // 如果是 '/'，且 App 刚启动，则放行到 initialLoc，并标记已启动。
-      // 如果已启动，说明是 Android MIUI 到底层的假路由指令，直接弹回当前路由。
-      if (state.uri.path == '/') {
-        if (!AppLaunchGuard.hasStarted) {
-          debugPrint(
-            '[ROUTER_TRACE] Cold start detect: allowing / to initialLoc ($initialLoc)',
-          );
-          AppLaunchGuard.hasStarted = true;
-          return initialLoc;
-        } else {
-          debugPrint(
-            '[NAV_GUARD] ⚠️ BLOCKED spurious / -> stay at ${AppLaunchGuard.lastRoute ?? initialLoc}',
-          );
-          return AppLaunchGuard.lastRoute ?? initialLoc;
-        }
-      }
-
-      // 非 '/' 的所有路由，直接正常放行并记录当前足迹
-      AppLaunchGuard.hasStarted = true;
-      AppLaunchGuard.lastRoute = state.matchedLocation;
 
       return null;
     },
@@ -116,7 +86,7 @@ GoRouter goRouter(Ref ref) {
             navigatorKey: diaryNavKey,
             routes: [
               GoRoute(
-                path: '/diary',
+                path: '/',
                 builder: (context, state) => const DiaryListPage(),
               ),
             ],
@@ -253,7 +223,7 @@ GoRouter goRouter(Ref ref) {
       ),
       GoRoute(
         parentNavigatorKey: rootNavigatorKey,
-        path: '/diary/edit',
+        path: '/edit',
         builder: (context, state) {
           final dateStr = state.uri.queryParameters['date'];
           final idStr = state.uri.queryParameters['id'];

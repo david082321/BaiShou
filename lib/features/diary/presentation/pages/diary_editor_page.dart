@@ -367,7 +367,7 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
           if (Navigator.of(context).canPop()) {
             Navigator.of(context).pop(savedDiary);
           } else {
-            context.go('/diary');
+            context.go('/');
           }
         });
       }
@@ -411,7 +411,7 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
           if (Navigator.of(context).canPop()) {
             Navigator.of(context).pop();
           } else {
-            context.go('/diary');
+            context.go('/');
           }
         }
       },
@@ -431,7 +431,7 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
                   debugPrint('AppBar back pressed, canPop: $canPop');
                   final popped = await nav.maybePop();
                   if (!popped && context.mounted) {
-                    context.go('/diary');
+                    context.go('/');
                   }
                 },
               ),

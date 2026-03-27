@@ -199,11 +199,9 @@ class _DiaryListPageState extends ConsumerState<DiaryListPage> {
           heroTag: 'editToday',
           onPressed: () {
             if (todayMeta != null) {
-              context.push('/diary/edit?id=${todayMeta.id}&append=1');
+              context.push('/edit?id=${todayMeta.id}&append=1');
             } else {
-              context.push(
-                '/diary/edit?date=${DateTime.now().toIso8601String()}',
-              );
+              context.push('/edit?date=${DateTime.now().toIso8601String()}');
             }
           },
           backgroundColor: Theme.of(context).colorScheme.secondaryContainer,
@@ -216,9 +214,8 @@ class _DiaryListPageState extends ConsumerState<DiaryListPage> {
         // 新增按钮
         FloatingActionButton(
           heroTag: 'addNew',
-          onPressed: () => context.push(
-            '/diary/edit?date=${DateTime.now().toIso8601String()}',
-          ),
+          onPressed: () =>
+              context.push('/edit?date=${DateTime.now().toIso8601String()}'),
           backgroundColor: AppTheme.primary,
           child: const Icon(Icons.add, color: Colors.white, size: 28),
         ),
@@ -383,12 +380,10 @@ class _DiaryListPageState extends ConsumerState<DiaryListPage> {
                               : t.settings.write_today_tooltip,
                           onPressed: () {
                             if (todayMeta != null) {
-                              context.push(
-                                '/diary/edit?id=${todayMeta.id}&append=1',
-                              );
+                              context.push('/edit?id=${todayMeta.id}&append=1');
                             } else {
                               context.push(
-                                '/diary/edit?date=${DateTime.now().toIso8601String()}',
+                                '/edit?date=${DateTime.now().toIso8601String()}',
                               );
                             }
                           },
@@ -400,7 +395,7 @@ class _DiaryListPageState extends ConsumerState<DiaryListPage> {
                         const SizedBox(width: 4),
                         FilledButton.icon(
                           onPressed: () => context.push(
-                            '/diary/edit?date=${DateTime.now().toIso8601String()}',
+                            '/edit?date=${DateTime.now().toIso8601String()}',
                           ),
                           icon: const Icon(Icons.add, size: 18),
                           label: Text(t.settings.write_diary_button),

@@ -52,7 +52,7 @@ class SummaryListView extends ConsumerWidget {
               summary: summary,
               onTap: () {
                 // 导航到编辑页面（使用日记编辑器的总结模式）
-                context.push('/diary/edit?summaryId=${summary.id}');
+                context.push('/edit?summaryId=${summary.id}');
               },
               onDelete: () {
                 _confirmDelete(context, ref, summary);

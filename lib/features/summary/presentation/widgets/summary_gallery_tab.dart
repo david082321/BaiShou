@@ -219,9 +219,7 @@ class GalleryTab extends ConsumerWidget {
                               tooltip: t.common.edit,
                               onPressed: () {
                                 Navigator.pop(ctx);
-                                context.push(
-                                  '/diary/edit?summaryId=${summary.id}',
-                                );
+                                context.push('/edit?summaryId=${summary.id}');
                               },
                             ),
                             IconButton(
@@ -312,7 +310,7 @@ class GalleryTab extends ConsumerWidget {
                 icon: const Icon(Icons.edit_note_rounded),
                 tooltip: t.common.edit,
                 onPressed: () {
-                  context.push('/diary/edit?summaryId=${summary.id}');
+                  context.push('/edit?summaryId=${summary.id}');
                 },
               ),
               IconButton(

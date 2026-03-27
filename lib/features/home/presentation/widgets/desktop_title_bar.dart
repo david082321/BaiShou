@@ -54,7 +54,7 @@ class _DesktopTitleBarState extends ConsumerState<DesktopTitleBar>
     if (_tabController.index == 0) {
       // 根据侧边栏排序首位决定默认路由
       final route = await _getDefaultRoute();
-      if (route == '/diary') {
+      if (route == '/') {
         ref.read(diaryScrollToTopProvider.notifier).trigger();
       }
       widget.router.go(route);
@@ -73,11 +73,11 @@ class _DesktopTitleBarState extends ConsumerState<DesktopTitleBar>
         return switch (firstBranch) {
           2 => '/summary',
           4 => '/sync',
-          _ => '/diary',
+          _ => '/',
         };
       }
     } catch (_) {}
-    return '/diary';
+    return '/';
   }
 
   void _onRouteChanged() {
@@ -95,7 +95,7 @@ class _DesktopTitleBarState extends ConsumerState<DesktopTitleBar>
 
     // 只在主标签路由间同步，覆盖层路由（settings/diary/edit）不改标签
     final isMainRoute =
-        location == '/diary' ||
+        location == '/' ||
         location.startsWith('/summary') ||
         location.startsWith('/sync') ||
         location.startsWith('/agent') ||

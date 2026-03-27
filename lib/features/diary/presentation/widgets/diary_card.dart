@@ -73,7 +73,7 @@ class _DiaryCardState extends State<DiaryCard> {
             child: InkWell(
               onTap: () async {
                 final result = await context.push<Diary?>(
-                  '/diary/edit?id=${widget.diary.id}',
+                  '/edit?id=${widget.diary.id}',
                 );
                 if (result != null) {
                   widget.onUpdated?.call(result);
@@ -363,7 +363,7 @@ class _DiaryCardState extends State<DiaryCard> {
                                   TextButton.icon(
                                     onPressed: () async {
                                       final result = await context.push<Diary?>(
-                                        '/diary/edit?id=${widget.diary.id}',
+                                        '/edit?id=${widget.diary.id}',
                                       );
                                       if (result != null) {
                                         widget.onUpdated?.call(result);

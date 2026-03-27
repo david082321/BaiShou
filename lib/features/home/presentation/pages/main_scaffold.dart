@@ -8,6 +8,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:baishou/agent/rag/embedding_service.dart';
 import 'package:baishou/features/settings/presentation/pages/views/rag_memory_dialogs.dart';
+import 'package:baishou/core/widgets/app_toast.dart';
+import 'package:baishou/core/router/app_router.dart';
+import 'package:baishou/core/providers/shared_preferences_provider.dart';
 
 /// 主级架构视图
 ///
@@ -25,6 +28,19 @@ class MainScaffold extends ConsumerStatefulWidget {
 class _MainScaffoldState extends ConsumerState<MainScaffold>
     with SingleTickerProviderStateMixin {
   late final AnimationController _overlayController;
+  DateTime? _lastPressedAt;
+
+  int _defaultBranch = 0;
+
+  void _computeDefaultBranch() {
+    try {
+      final prefs = ref.read(sharedPreferencesProvider);
+      final saved = prefs.getStringList('desktop_sidebar_nav_order');
+      if (saved != null && saved.isNotEmpty) {
+        _defaultBranch = int.tryParse(saved.first) ?? 0;
+      }
+    } catch (_) {}
+  }
 
   void _goBranch(int index) {
     debugPrint(
@@ -79,6 +95,7 @@ class _MainScaffoldState extends ConsumerState<MainScaffold>
   @override
   void initState() {
     super.initState();
+    _computeDefaultBranch();
     debugPrint(
       '[SCAFFOLD_TRACE] MainScaffold initState called! This means the entire root UI was rebuilt!',
     );
@@ -184,7 +201,56 @@ class _MainScaffoldState extends ConsumerState<MainScaffold>
   // ─── 移动端布局 ──────────────────────────────────────────────
 
   Widget _buildMobileLayout(BuildContext context) {
-    final Widget content = widget.navigationShell;
+    final currentIndex = widget.navigationShell.currentIndex;
+
+    final GlobalKey<NavigatorState>? activeKey = switch (currentIndex) {
+      0 => diaryNavKey,
+      1 => agentNavKey,
+      2 => summaryNavKey,
+      3 => settingsNavKey,
+      4 => syncNavKey,
+      _ => null,
+    };
+
+    final navState = activeKey?.currentState;
+    final bool canPopNested = navState?.canPop() ?? false;
+
+    // ⚠️ canPop 必须恒为 false！
+    // MIUI 的 WindowOnBackDispatcher 在 canPop 从 true→false 变化时
+    // 会向 Flutter Router 发送虚假的路由重置通知（'/'），导致 GoRouter
+    // 的 StatefulShellRoute 回到初始分支。固定为 false 可避免此问题。
+    Widget content = PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+
+        // 1. 如果当前分支有嵌套页面可以 pop，优先 pop 嵌套页面
+        if (canPopNested) {
+          navState?.pop();
+          return;
+        }
+
+        // 2. 如果不在默认分支，返回默认分支
+        if (currentIndex != _defaultBranch) {
+          _goBranch(_defaultBranch);
+          return;
+        }
+
+        // 3. 在默认分支按两次退出
+        final now = DateTime.now();
+        if (_lastPressedAt == null ||
+            now.difference(_lastPressedAt!) > const Duration(seconds: 2)) {
+          setState(() {
+            _lastPressedAt = now;
+          });
+          AppToast.show(context, t.common.exit_hint);
+          return;
+        }
+
+        SystemNavigator.pop();
+      },
+      child: widget.navigationShell,
+    );
 
     return Scaffold(
       body: Container(

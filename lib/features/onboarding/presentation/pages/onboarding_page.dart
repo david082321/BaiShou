@@ -77,7 +77,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
     await ref.read(onboardingCompletedProvider.notifier).complete();
 
     if (mounted) {
-      context.go('/diary');
+      context.go('/');
     }
   }
 
