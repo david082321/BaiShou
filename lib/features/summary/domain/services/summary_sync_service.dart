@@ -57,6 +57,10 @@ class SummarySyncService extends _$SummarySyncService {
       }
     });
 
+    ref.onDispose(() {
+      _isDisposed = true;
+    });
+
     // 4. 初次启动检查：如果 Vault 已经就绪，立即执行检查
     final currentVault = ref.read(vaultServiceProvider).value;
     if (currentVault != null) {
@@ -66,11 +70,13 @@ class SummarySyncService extends _$SummarySyncService {
 
   /// 处理 Vault 变化：判断迁移或扫描
   void _handleVaultChanged(VaultInfo vault) {
+    if (_isDisposed) return;
     final prefs = ref.read(sharedPreferencesProvider);
     if (prefs.getBool('is_legacy_sql_summary_migrated') != true) {
       if (_isMigrating) return;
       _isMigrating = true;
       _migrateLegacySqlSummaries().then((_) {
+        if (_isDisposed) return;
         prefs.setBool('is_legacy_sql_summary_migrated', true);
         _isMigrating = false;
         // 迁移完成后执行常态的文件到 DB 的拉平扫描
@@ -101,8 +107,11 @@ class SummarySyncService extends _$SummarySyncService {
     });
   }
 
+  bool _isDisposed = false;
+
   /// 全量扫描归档目录并对齐索引
   Future<void> fullScanArchives() async {
+    if (_isDisposed) return;
     final prefs = ref.read(sharedPreferencesProvider);
     final isMigrated = prefs.getBool('is_legacy_sql_summary_migrated') == true;
 

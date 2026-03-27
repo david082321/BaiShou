@@ -46,14 +46,17 @@ class DataArchiveManager extends _$DataArchiveManager {
     if (zipFile == null) return null;
 
     final now = DateTime.now();
-    final fileName = 'BaiShou_Vault_Backup_${DateFormat('yyyyMMdd_HHmmss').format(now)}.zip';
+    final fileName =
+        'BaiShou_Vault_Backup_${DateFormat('yyyyMMdd_HHmmss').format(now)}.zip';
 
     final outputPath = await FilePicker.platform.saveFile(
       dialogTitle: t.settings.select_save_location,
       fileName: fileName,
       allowedExtensions: ['zip'],
       type: FileType.custom,
-      bytes: Platform.isAndroid || Platform.isIOS ? await zipFile.readAsBytes() : null,
+      bytes: Platform.isAndroid || Platform.isIOS
+          ? await zipFile.readAsBytes()
+          : null,
     );
 
     if (outputPath != null) {
@@ -66,68 +69,103 @@ class DataArchiveManager extends _$DataArchiveManager {
     return null;
   }
 
-  /// 隐式导出至系统临时目录，用于局域网快传或全量云同步
-  /// 采用革命性的纯物理层面打包，100% 毫无损耗地拷贝 BaiShou_Root 下的所有文件！
-  /// 同时将设备级偏好配置（SharedPreferences）序列化后一并写入 ZIP。
   Future<File?> exportToTempFile() async {
     final pathService = ref.read(storagePathServiceProvider);
-    final rootDir = await pathService.getRootDirectory();
-
-    final encoder = ZipFileEncoder();
     final tempDir = await getTemporaryDirectory();
-    final tempPath = p.join(tempDir.path, 'BaiShou_Full_Archive_${DateTime.now().millisecondsSinceEpoch}.zip');
-    
-    // 生成原生 ZIP
-    encoder.create(tempPath);
-    
-    // 只打包物理引擎需要的数据文件，避开可能循环嵌套的 snapshots 快照目录
+    final zipFileName =
+        'BaiShou_Full_Archive_${DateTime.now().millisecondsSinceEpoch}';
+
+    final archive = Archive();
+    final tempPath = p.join(tempDir.path, '$zipFileName.tmp');
+    final finalPath = p.join(tempDir.path, '$zipFileName.zip');
+
+    void addEntitySafely(FileSystemEntity entity, String relativePath) {
+      if (entity is Directory) {
+        try {
+          for (final child in entity.listSync()) {
+            final childName = p.basename(child.path);
+            addEntitySafely(child, '$relativePath/$childName');
+          }
+        } catch (e) {
+          debugPrint(
+            'DataArchiveManager: Failed to list directory $relativePath: $e',
+          );
+        }
+      } else if (entity is File) {
+        try {
+          debugPrint('DataArchiveManager: ADDING FILE: $relativePath');
+          final stream = InputFileStream(entity.path);
+          archive.addFile(ArchiveFile.stream(relativePath, stream));
+        } catch (e) {
+          debugPrint(
+            'DataArchiveManager: Skipped locked file $relativePath: $e',
+          );
+        }
+      }
+    }
+
+    final rootDir = await pathService.getRootDirectory();
+    debugPrint('DataArchiveManager: ROOT DIR IS ${rootDir.path}');
     final entities = rootDir.listSync();
+    debugPrint(
+      'DataArchiveManager: ENTITIES ARE $entities',
+    ); // 只打包物理引擎需要的数据文件，避开可能循环嵌套的 snapshots 快照目录
     for (final entity in entities) {
       final name = p.basename(entity.path);
       if (name == 'snapshots' || name == 'temp') continue;
-      
-      if (entity is Directory) {
-        encoder.addDirectory(entity);
-      } else if (entity is File) {
-        encoder.addFile(entity);
-      }
+      if (name.startsWith('BaiShou_Full_Archive_')) continue;
+      addEntitySafely(entity, name);
     }
-    encoder.close();
 
-    // 在已生成的 ZIP 中追加设备级偏好配置文件
-    await _injectDevicePreferencesIntoZip(tempPath);
-
-    return File(tempPath);
-  }
-
-  /// 将设备级偏好（SharedPreferences 中的配置）序列化为 JSON 并注入到 ZIP 中
-  Future<void> _injectDevicePreferencesIntoZip(String zipPath) async {
+    // 在已生成的 ZIP 流中直接追加设备级偏好配置文件，避免将整个 ZIP 读入内存(防止 OOM)
     try {
       final configJson = _gatherDevicePreferences();
       final configBytes = utf8.encode(jsonEncode(configJson));
-
-      // 读取已有的 ZIP，追加 config 文件，再重新写回
-      final zipFile = File(zipPath);
-      final zipBytes = await zipFile.readAsBytes();
-      final archive = ZipDecoder().decodeBytes(zipBytes);
-      archive.addFile(ArchiveFile('config/device_preferences.json', configBytes.length, configBytes));
+      archive.addFile(
+        ArchiveFile(
+          'config/device_preferences.json',
+          configBytes.length,
+          configBytes,
+        ),
+      );
+      debugPrint('DataArchiveManager: ADDING CONFIG');
 
       // 用户头像也一并写入
       final userProfile = ref.read(userProfileProvider);
       if (userProfile.avatarPath != null) {
         final avatarFile = File(userProfile.avatarPath!);
         if (avatarFile.existsSync()) {
-          final avatarBytes = await avatarFile.readAsBytes();
+          final stream = InputFileStream(userProfile.avatarPath!);
           final ext = p.extension(userProfile.avatarPath!).replaceAll('.', '');
-          archive.addFile(ArchiveFile('config/avatar.$ext', avatarBytes.length, avatarBytes));
+          archive.addFile(ArchiveFile.stream('config/avatar.$ext', stream));
+          debugPrint('DataArchiveManager: ADDING AVATAR');
         }
       }
-
-      final newZipBytes = ZipEncoder().encode(archive);
-      await zipFile.writeAsBytes(newZipBytes);
     } catch (e) {
       debugPrint('DataArchiveManager: Failed to inject device preferences: $e');
-      // 配置注入失败不阻塞导出流程，物理数据仍然完整
+    }
+
+    final outputStream = OutputFileStream(tempPath);
+    ZipEncoder().encode(archive, output: outputStream);
+    outputStream.close();
+
+    // 清理临时生成的文件
+    try {
+      final configTempFile = File(
+        p.join(tempDir.path, 'temp_device_preferences.json'),
+      );
+      if (configTempFile.existsSync()) configTempFile.deleteSync();
+    } catch (_) {}
+
+    // 最终重命名为目标的 .zip
+    final zipFile = File(tempPath);
+    try {
+      return await zipFile.rename(finalPath);
+    } catch (e) {
+      // 容错: 跨区映射等极端情况下 rename 失败，走 copy + delete
+      await zipFile.copy(finalPath);
+      zipFile.delete().ignore();
+      return File(finalPath);
     }
   }
 
@@ -145,7 +183,7 @@ class DataArchiveManager extends _$DataArchiveManager {
 
       // 主题
       'theme_mode': themeState.mode.index,
-      'seed_color': themeState.seedColor.toARGB32(),
+      'seed_color': themeState.seedColor.value,
 
       // AI 多供应商架构
       'ai_providers_list': apiConfig
@@ -161,7 +199,8 @@ class DataArchiveManager extends _$DataArchiveManager {
       // 兼容旧字段
       'ai_provider': apiConfig.activeProviderId,
       'ai_model': apiConfig.getActiveProvider()?.defaultDialogueModel ?? '',
-      'ai_naming_model': apiConfig.getActiveProvider()?.defaultNamingModel ?? '',
+      'ai_naming_model':
+          apiConfig.getActiveProvider()?.defaultNamingModel ?? '',
       'api_key': apiConfig.getActiveProvider()?.apiKey ?? '',
       'base_url': apiConfig.getActiveProvider()?.baseUrl ?? '',
 
@@ -243,15 +282,25 @@ class DataArchiveManager extends _$DataArchiveManager {
       // 2. 检查解压包的合法性并确定导入策略
       final bytes = await zipFile.readAsBytes();
       final archive = ZipDecoder().decodeBytes(bytes);
-      bool isVaultRoot = archive.any((f) => f.name.contains('.baishou/vault_registry.json'));
-      
+      bool isVaultRoot = archive.any(
+        (f) => f.name
+            .replaceAll('\\', '/')
+            .contains('.baishou/vault_registry.json'),
+      );
+
       // 降级兼容：旧版 JSON 格式备份包（含 manifest.json 而无 vault_registry.json）
       if (!isVaultRoot) {
-        final isLegacyFormat = archive.any((f) => f.name == 'manifest.json' || f.name.endsWith('/manifest.json'));
+        final isLegacyFormat = archive.any(
+          (f) => f.name.replaceAll('\\', '/').endsWith('manifest.json'),
+        );
         if (isLegacyFormat) {
-          debugPrint('DataArchiveManager: Detected legacy JSON backup, delegating to LegacyArchiveImportService...');
+          debugPrint(
+            'DataArchiveManager: Detected legacy JSON backup, delegating to LegacyArchiveImportService...',
+          );
           // 注意：此处不主动关闭数据库，直接走逻辑导入
-          return await ref.read(legacyArchiveImportServiceProvider.notifier).importLegacyZip(archive, snapshotPath);
+          return await ref
+              .read(legacyArchiveImportServiceProvider.notifier)
+              .importLegacyZip(archive, snapshotPath);
         }
         throw Exception(t.settings.restore_failed_generic);
       }
@@ -260,7 +309,7 @@ class DataArchiveManager extends _$DataArchiveManager {
       await closeAppDatabase();
       await closeAllAgentDatabases();
 
-      // 4. 物理级湮灭旧的工作区根目录！
+      // 4. 删除旧的工作区根目录
       final rootDir = await pathService.getRootDirectory();
 
       // 提前提取设备级偏好配置（在湮灭旧目录之前保存好）
@@ -271,7 +320,9 @@ class DataArchiveManager extends _$DataArchiveManager {
           final configStr = utf8.decode(configFile.content);
           devicePreferences = jsonDecode(configStr) as Map<String, dynamic>;
         } catch (e) {
-          debugPrint('DataArchiveManager: Failed to parse device preferences: $e');
+          debugPrint(
+            'DataArchiveManager: Failed to parse device preferences: $e',
+          );
         }
       }
 
@@ -308,7 +359,7 @@ class DataArchiveManager extends _$DataArchiveManager {
       ref.invalidate(appDatabaseProvider);
       ref.invalidate(agentDatabaseProvider);
       ref.invalidate(vaultServiceProvider);
-      
+
       // 6. 恢复设备级偏好配置（API Key、主题色、同步设定等）
       if (devicePreferences != null) {
         await _restoreDevicePreferences(devicePreferences, avatarArchiveFile);
@@ -358,23 +409,27 @@ class DataArchiveManager extends _$DataArchiveManager {
           if (!avatarDir.existsSync()) {
             await avatarDir.create(recursive: true);
           }
-          final localAvatarFile = File(p.join(
-            avatarDir.path,
-            'avatar_imported_${DateTime.now().millisecondsSinceEpoch}.$ext',
-          ));
+          final localAvatarFile = File(
+            p.join(
+              avatarDir.path,
+              'avatar_imported_${DateTime.now().millisecondsSinceEpoch}.$ext',
+            ),
+          );
           await localAvatarFile.writeAsBytes(avatarFile.content);
-          await ref.read(userProfileProvider.notifier).updateAvatar(localAvatarFile);
+          await ref
+              .read(userProfileProvider.notifier)
+              .updateAvatar(localAvatarFile);
         } catch (e) {
           debugPrint('DataArchiveManager: Failed to restore avatar: $e');
         }
       }
     } catch (e) {
-      debugPrint('DataArchiveManager: Failed to restore device preferences: $e');
+      debugPrint(
+        'DataArchiveManager: Failed to restore device preferences: $e',
+      );
       // 配置恢复失败不阻塞导入流程——工作区数据已经完整恢复
     }
   }
-
-
 
   /// 主动生成系统快照，存入应用的私有 snapshots 目录
   Future<File?> createSnapshot() async {

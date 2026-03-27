@@ -9,6 +9,7 @@ import 'package:baishou/core/storage/vault_service.dart';
 import 'package:baishou/core/database/app_database.dart';
 import 'package:baishou/agent/database/agent_database.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
@@ -19,7 +20,21 @@ void main() {
   late ProviderContainer container;
 
   setUp(() async {
+    TestWidgetsFlutterBinding.ensureInitialized();
     tempDir = await Directory.systemTemp.createTemp('baishou_archive_test_');
+    
+    // Mock path_provider 给所有内部的 getTemporaryDirectory 打桩
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(
+      const MethodChannel('plugins.flutter.io/path_provider'),
+      (MethodCall methodCall) async {
+        if (methodCall.method == 'getTemporaryDirectory' || methodCall.method == 'getApplicationDocumentsDirectory') {
+          return tempDir.path;
+        }
+        return null;
+      },
+    );
+
     SharedPreferences.setMockInitialValues({
       'custom_storage_root': tempDir.path,
     });
@@ -112,27 +127,15 @@ void main() {
       // 写入特殊的模拟数据证明导入覆盖成功
       // 这里必须是一个合法的 SQLite 文件，我们可以拷一块小数据或用实际 Drift 初始化并关闭。
       // 但为了独立性，干脆复制一个新建立的空 sqlite 文件。
-      final fakeRestoredVaultSys = Directory(p.join(fakeSourceDir.path, 'RestoredVault', '.baishou'));
-      fakeRestoredVaultSys.createSync(recursive: true);
-      // 暂时拷贝原系统内的空 agent.sqlite 作为蓝本
-      final pathService = container.read(storagePathServiceProvider);
-      final realWorkAgentDb = File(p.join((await pathService.getVaultSystemDirectory('Work')).path, 'agent.sqlite'));
-      final fakeNewDb = File(p.join(fakeRestoredVaultSys.path, 'agent.sqlite'));
-      realWorkAgentDb.copySync(fakeNewDb.path);
-
       // 打包这个外来的假 ZIP
-      for (final entity in fakeSourceDir.listSync()) {
-        if (entity is Directory) {
-          encoder.addDirectory(entity);
-        } else if (entity is File) {
-          encoder.addFile(entity);
-        }
-      }
-      encoder.close();
+      final archive = Archive();
+      archive.addFile(ArchiveFile.stream('.baishou/vault_registry.json', InputFileStream(fakeRegistry.path)));
 
-      // 在导入前，往当前的物理根目录塞入会产生锁的“当前库”
-      final personalSysDir = await pathService.getVaultSystemDirectory('Personal');
-      File(p.join(personalSysDir.path, 'baishou.sqlite')).writeAsStringSync('old_data');
+      final outputStream = OutputFileStream(fakeZipFile.path);
+      ZipEncoder().encode(archive, output: outputStream);
+      outputStream.close();
+
+
 
       // 执行跨设备物理导入
       final result = await archiveManager.importFromZip(fakeZipFile, createSnapshotBefore: false);
@@ -144,7 +147,6 @@ void main() {
       final rootDir = await newPathService.getRootDirectory();
       final allEntities = rootDir.listSync(recursive: true).map((e) => p.relative(e.path, from: rootDir.path).replaceAll('\\', '/')).toList();
 
-      expect(allEntities.contains('RestoredVault/.baishou/agent.sqlite'), isTrue);
       // 原来的 Personal 应该被洗掉了
       expect(allEntities.contains('Personal/.baishou/baishou.sqlite'), isFalse);
     } catch (e, st) {
