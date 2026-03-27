@@ -151,6 +151,13 @@ class SummarySyncService extends _$SummarySyncService {
       final List<File> files = [];
       final archivesDir = Directory(p.join(activeVault.path, 'Archives'));
 
+      debugPrint(
+        'SummarySyncService: [DEBUG] activeVault.path = ${activeVault.path}',
+      );
+      debugPrint(
+        'SummarySyncService: [DEBUG] archivesDir exists = ${archivesDir.existsSync()}',
+      );
+
       if (archivesDir.existsSync()) {
         final entities = archivesDir.listSync(recursive: true);
         for (final entity in entities) {
@@ -159,6 +166,10 @@ class SummarySyncService extends _$SummarySyncService {
           }
         }
       }
+
+      debugPrint(
+        'SummarySyncService: [DEBUG] Found ${files.length} .md files in Archives',
+      );
 
       // 2. 解析文件并准备数据 (带去重逻辑，防止物理路径重复导致 DB 冲突)
       final Map<String, Summary> deDuplicated = {};

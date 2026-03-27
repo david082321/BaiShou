@@ -271,8 +271,9 @@ class _DataSyncPageState extends ConsumerState<DataSyncPage> {
                         ),
                       ],
                     ),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
                       children: [
                         if (_records.isNotEmpty) ...[
                           if (_isManageMode) ...[
@@ -301,7 +302,6 @@ class _DataSyncPageState extends ConsumerState<DataSyncPage> {
                               label: const Text('批量管理'),
                             ),
                           ],
-                          const SizedBox(width: 12),
                         ],
                         OutlinedButton.icon(
                           onPressed: () {
