@@ -13,7 +13,7 @@ import 'package:shelf/shelf_io.dart' as shelf_io;
 import 'package:shelf_router/shelf_router.dart' as shelf_router;
 import 'package:uuid/uuid.dart';
 
-import 'export_service.dart';
+import 'package:baishou/core/storage/data_archive_manager.dart';
 import 'user_profile_service.dart';
 import 'package:baishou/i18n/strings.g.dart';
 
@@ -378,9 +378,10 @@ class LanTransferNotifier extends Notifier<LanTransferState> {
         throw TimeoutException(t.lan_transfer.no_reachable_ip);
       }
 
-      final exportService = ref.read(exportServiceProvider);
-      // 1. 生成 Zip，不调用系统分享 (share: true 表示生成临时文件不弹窗)
-      final zipFile = await exportService.exportToZip(share: true);
+      // 统一调用由 DataArchiveManager 提供的数据导出总入口，摒除各个服务直接访问底层导出机制
+      final dataArchiveManager = ref.read(dataArchiveManagerProvider.notifier);
+      // 1. 生成临时缓存的存档 Zip，专门为局域网双端快传优化
+      final zipFile = await dataArchiveManager.exportToTempFile();
       if (zipFile == null) throw Exception(t.settings.backup_create_failed);
 
       // 2. 读取文件字节
