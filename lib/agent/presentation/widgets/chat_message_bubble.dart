@@ -14,6 +14,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:baishou/agent/presentation/notifiers/agent_chat_notifier.dart';
+import 'package:baishou/agent/presentation/notifiers/assistant_notifier.dart';
 
 // ─── 消息气泡 ─────────────────────────────────────────────────
 
@@ -52,7 +54,7 @@ class ChatMessageBubble extends ConsumerWidget {
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: _buildAiBubble(context, theme),
+      child: _buildAiBubble(context, theme, ref),
     );
   }
 
@@ -179,23 +181,48 @@ class ChatMessageBubble extends ConsumerWidget {
     );
   }
 
-  Widget _buildAiBubble(BuildContext context, ThemeData theme) {
+  Widget _buildAiBubble(BuildContext context, ThemeData theme, WidgetRef ref) {
+    final chatState = ref.watch(agentChatProvider);
+    final currentAssistantId = chatState.currentAssistantId;
+    final assistantsAsync = ref.watch(assistantListProvider);
+    final assistantData = assistantsAsync.whenOrNull(
+      data: (list) {
+        if (currentAssistantId == null) return null;
+        final match = list.where((a) => a.id.toString() == currentAssistantId);
+        return match.isNotEmpty ? match.first : null;
+      },
+    );
+
+    final aiName = assistantData?.name ?? t.agent.chat.ai_label;
+    final avatarPath = assistantData?.avatarPath;
+
+    Widget avatarWidget;
+    if (avatarPath != null && File(avatarPath).existsSync()) {
+      avatarWidget = CircleAvatar(
+        radius: 18,
+        backgroundColor: theme.colorScheme.primaryContainer,
+        backgroundImage: FileImage(File(avatarPath)),
+      );
+    } else {
+      avatarWidget = Container(
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          color: theme.colorScheme.primaryContainer.withValues(alpha: 0.6),
+          shape: BoxShape.circle,
+        ),
+        child: Icon(
+          Icons.auto_awesome_outlined,
+          size: 20,
+          color: theme.colorScheme.primary,
+        ),
+      );
+    }
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          width: 36,
-          height: 36,
-          decoration: BoxDecoration(
-            color: theme.colorScheme.primaryContainer.withValues(alpha: 0.6),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(
-            Icons.auto_awesome_outlined,
-            size: 20,
-            color: theme.colorScheme.primary,
-          ),
-        ),
+        avatarWidget,
         const SizedBox(width: 10),
         Flexible(
           child: Column(
@@ -207,7 +234,7 @@ class ChatMessageBubble extends ConsumerWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      t.agent.chat.ai_label,
+                      aiName,
                       style: theme.textTheme.labelSmall?.copyWith(
                         color: theme.colorScheme.outline,
                         fontWeight: FontWeight.w600,
