@@ -101,14 +101,21 @@ class _AgentChatPageState extends ConsumerState<AgentChatPage> {
     final chatState = ref.watch(agentChatProvider);
     final theme = Theme.of(context);
 
-    // 监听消息变化（如果不在底部但新增了消息，或者有其他特殊情况，可以保留逻辑。
-    // 由于 reverse: true 且 offset 处于 0 时 Flutter 原生支持平滑上推插入，无需在流式输出时手动 jumpTo(0)
-    // 删除了对 streamText 变化的反复滚动，极大改善性能和滚动条跳动。
+    // 消息数量变化（如工具结果添加、AI 回复完成）时：仅在底部才自动滚动
     ref.listen(agentChatProvider, (prev, next) {
+      // 新消息到达
       if (prev?.messages.length != next.messages.length) {
         if (_isAtBottom) {
           _scrollToBottom(animate: true);
         }
+      }
+      // 流式输出期间：用户在底部时确保粘底（reverse list 自然行为 +
+      // 偶尔因极端 cacheExtent 导致的 offset 漂移补偿）
+      if (_isAtBottom &&
+          next.isLoading &&
+          _scrollController.hasClients &&
+          _scrollController.position.pixels > 1) {
+        _scrollController.jumpTo(0);
       }
     });
 
