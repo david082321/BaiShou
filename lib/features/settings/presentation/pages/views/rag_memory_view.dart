@@ -143,299 +143,338 @@ class _RagMemoryViewState extends ConsumerState<RagMemoryView> {
 
     return Container(
       color: colorScheme.surface,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 标题 + 全局开关
-          Padding(
-            padding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
-            child: Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              crossAxisAlignment: WrapCrossAlignment.center,
+      child: CustomScrollView(
+        slivers: [
+          SliverToBoxAdapter(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.color_lens, size: 24, color: colorScheme.primary),
-                Text(
-                  t.agent.rag.title,
-                  style: textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                // 全局记忆开关
-                Switch(
-                  value: ref.read(apiConfigServiceProvider).ragEnabled,
-                  onChanged: (v) async {
-                    await ref.read(apiConfigServiceProvider).setRagEnabled(v);
-                    setState(() {});
-                  },
-                ),
-                if (totalCount > 0)
-                  TextButton.icon(
-                    onPressed: _clearAll,
-                    icon: Icon(
-                      Icons.delete_sweep_outlined,
-                      size: 18,
-                      color: colorScheme.error,
-                    ),
-                    label: Text(
-                      t.agent.rag.clear_all,
-                      style: TextStyle(color: colorScheme.error),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-
-          // RAG 关闭提示
-          if (!ref.read(apiConfigServiceProvider).ragEnabled)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 32),
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  color: colorScheme.errorContainer.withValues(alpha: 0.3),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.info_outline,
-                      size: 16,
-                      color: colorScheme.error,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      t.agent.rag.rag_disabled_hint,
-                      style: TextStyle(fontSize: 13, color: colorScheme.error),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-          // 统计信息
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: RagMemoryStatsBoard(
-              totalCount: totalCount,
-              stats: _stats,
-              isDetectingDimension: _isDetectingDimension,
-              onDetectDimension: _detectDimension,
-            ),
-          ),
-
-          const SizedBox(height: 12),
-
-          // RAG 检索参数调节
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 24),
-            child: RagMemoryRetrievalConfig(),
-          ),
-
-          const SizedBox(height: 12),
-
-          // 如果正在进行模型迁移，显示专门的进度高亮区域
-          if (isMigrating)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: colorScheme.primaryContainer.withValues(alpha: 0.3),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: colorScheme.primary.withValues(alpha: 0.5),
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: colorScheme.primary,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          t.agent.rag.migration_preparing,
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: colorScheme.primary,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      ragState.statusText.isNotEmpty
-                          ? ragState.statusText
-                          : '...',
-                      style: textTheme.bodyMedium,
-                    ),
-                    const SizedBox(height: 8),
-                    LinearProgressIndicator(
-                      value: ragState.total > 0
-                          ? (ragState.progress / ragState.total).clamp(0.0, 1.0)
-                          : null,
-                      backgroundColor: colorScheme.outlineVariant.withValues(
-                        alpha: 0.3,
+                // 标题 + 全局开关
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.color_lens,
+                        size: 24,
+                        color: colorScheme.primary,
                       ),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                  ],
-                ),
-              ),
-            )
-          else if (_hasMismatchModel)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: colorScheme.errorContainer.withValues(alpha: 0.3),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: colorScheme.error.withValues(alpha: 0.5),
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.warning_amber_rounded,
-                          size: 18,
-                          color: colorScheme.error,
+                      Text(
+                        t.agent.rag.title,
+                        style: textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
                         ),
-                        const SizedBox(width: 8),
-                        Text(
-                          t.agent.rag.migration_mismatch_title,
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
+                      ),
+                      // 全局记忆开关
+                      Switch(
+                        value: ref.read(apiConfigServiceProvider).ragEnabled,
+                        onChanged: (v) async {
+                          await ref
+                              .read(apiConfigServiceProvider)
+                              .setRagEnabled(v);
+                          setState(() {});
+                        },
+                      ),
+                      if (totalCount > 0)
+                        TextButton.icon(
+                          onPressed: _clearAll,
+                          icon: Icon(
+                            Icons.delete_sweep_outlined,
+                            size: 18,
                             color: colorScheme.error,
                           ),
+                          label: Text(
+                            t.agent.rag.clear_all,
+                            style: TextStyle(color: colorScheme.error),
+                          ),
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      t.agent.rag.migration_mismatch_content,
-                      style: textTheme.bodyMedium,
-                    ),
-                    const SizedBox(height: 12),
-                    FilledButton.icon(
-                      style: FilledButton.styleFrom(
-                        backgroundColor: colorScheme.error,
-                        foregroundColor: colorScheme.onError,
-                      ),
-                      onPressed: _triggerMigration,
-                      icon: const Icon(Icons.sync, size: 16),
-                      label: Text(t.agent.rag.migration_continue),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ),
 
-          // 操作按钮行
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                // 清空当前维度
-                RagActionChip(
-                  icon: Icons.layers_clear,
-                  label: t.agent.rag.action_clear_dimension,
-                  color: isBusy ? colorScheme.outline : colorScheme.error,
-                  onTap: isBusy ? null : _clearCurrentDimension,
+                // RAG 关闭提示
+                if (!ref.read(apiConfigServiceProvider).ragEnabled)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 32),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: colorScheme.errorContainer.withValues(
+                          alpha: 0.3,
+                        ),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.info_outline,
+                            size: 16,
+                            color: colorScheme.error,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            t.agent.rag.rag_disabled_hint,
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: colorScheme.error,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                // 统计信息
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: RagMemoryStatsBoard(
+                    totalCount: totalCount,
+                    stats: _stats,
+                    isDetectingDimension: _isDetectingDimension,
+                    onDetectDimension: _detectDimension,
+                  ),
                 ),
-                // 全量嵌入日记
-                RagActionChip(
-                  icon: Icons.auto_stories,
-                  label: isBatchEmbedding
-                      ? t.agent.rag.batch_embed_progress(
-                          progress: ragState.progress.toString(),
-                          total: ragState.total.toString(),
-                        )
-                      : t.agent.rag.action_batch_embed,
-                  color: isBusy ? colorScheme.outline : colorScheme.primary,
-                  onTap: isBusy ? null : _batchEmbedDiaries,
-                  isLoading: isBatchEmbedding,
+
+                const SizedBox(height: 12),
+
+                // RAG 检索参数调节
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 24),
+                  child: RagMemoryRetrievalConfig(),
                 ),
-                // 手动添加记忆
-                RagActionChip(
-                  icon: Icons.add_comment_outlined,
-                  label: t.agent.rag.action_add_memory,
-                  color: isBusy ? colorScheme.outline : colorScheme.tertiary,
-                  onTap: isBusy ? null : _addManualMemory,
+
+                const SizedBox(height: 12),
+
+                // 如果正在进行模型迁移，显示专门的进度高亮区域
+                if (isMigrating)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 8,
+                    ),
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: colorScheme.primaryContainer.withValues(
+                          alpha: 0.3,
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: colorScheme.primary.withValues(alpha: 0.5),
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: colorScheme.primary,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                t.agent.rag.migration_preparing,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: colorScheme.primary,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            ragState.statusText.isNotEmpty
+                                ? ragState.statusText
+                                : '...',
+                            style: textTheme.bodyMedium,
+                          ),
+                          const SizedBox(height: 8),
+                          LinearProgressIndicator(
+                            value: ragState.total > 0
+                                ? (ragState.progress / ragState.total).clamp(
+                                    0.0,
+                                    1.0,
+                                  )
+                                : null,
+                            backgroundColor: colorScheme.outlineVariant
+                                .withValues(alpha: 0.3),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                else if (_hasMismatchModel)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 8,
+                    ),
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: colorScheme.errorContainer.withValues(
+                          alpha: 0.3,
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: colorScheme.error.withValues(alpha: 0.5),
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.warning_amber_rounded,
+                                size: 18,
+                                color: colorScheme.error,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                t.agent.rag.migration_mismatch_title,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: colorScheme.error,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            t.agent.rag.migration_mismatch_content,
+                            style: textTheme.bodyMedium,
+                          ),
+                          const SizedBox(height: 12),
+                          FilledButton.icon(
+                            style: FilledButton.styleFrom(
+                              backgroundColor: colorScheme.error,
+                              foregroundColor: colorScheme.onError,
+                            ),
+                            onPressed: _triggerMigration,
+                            icon: const Icon(Icons.sync, size: 16),
+                            label: Text(t.agent.rag.migration_continue),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                // 操作按钮行
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      // 清空当前维度
+                      RagActionChip(
+                        icon: Icons.layers_clear,
+                        label: t.agent.rag.action_clear_dimension,
+                        color: isBusy ? colorScheme.outline : colorScheme.error,
+                        onTap: isBusy ? null : _clearCurrentDimension,
+                      ),
+                      // 全量嵌入日记
+                      RagActionChip(
+                        icon: Icons.auto_stories,
+                        label: isBatchEmbedding
+                            ? t.agent.rag.batch_embed_progress(
+                                progress: ragState.progress.toString(),
+                                total: ragState.total.toString(),
+                              )
+                            : t.agent.rag.action_batch_embed,
+                        color: isBusy
+                            ? colorScheme.outline
+                            : colorScheme.primary,
+                        onTap: isBusy ? null : _batchEmbedDiaries,
+                        isLoading: isBatchEmbedding,
+                      ),
+                      // 手动添加记忆
+                      RagActionChip(
+                        icon: Icons.add_comment_outlined,
+                        label: t.agent.rag.action_add_memory,
+                        color: isBusy
+                            ? colorScheme.outline
+                            : colorScheme.tertiary,
+                        onTap: isBusy ? null : _addManualMemory,
+                      ),
+                      // 手动重置迁移
+                      RagActionChip(
+                        icon: Icons.sync,
+                        label: "手动迁移模型配置",
+                        color: isBusy
+                            ? colorScheme.outline
+                            : colorScheme.secondary,
+                        onTap: isBusy ? null : _triggerMigration,
+                      ),
+                    ],
+                  ),
                 ),
-                // 手动重置迁移
-                RagActionChip(
-                  icon: Icons.sync,
-                  label: "手动迁移模型配置",
-                  color: isBusy ? colorScheme.outline : colorScheme.secondary,
-                  onTap: isBusy ? null : _triggerMigration,
+
+                const SizedBox(height: 12),
+
+                // 搜索框
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: TextField(
+                    controller: _searchController,
+                    decoration: InputDecoration(
+                      hintText: t.agent.rag.search_hint,
+                      prefixIcon: const Icon(Icons.search, size: 20),
+                      isDense: true,
+                      filled: true,
+                      fillColor: colorScheme.surfaceContainerLow,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide.none,
+                      ),
+                      suffixIcon: _searchQuery.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear, size: 18),
+                              onPressed: () {
+                                _searchController.clear();
+                                setState(() => _searchQuery = '');
+                              },
+                            )
+                          : null,
+                    ),
+                    onChanged: (v) => setState(() => _searchQuery = v),
+                  ),
                 ),
+
+                const SizedBox(height: 12),
+
+                // 加载态或空状态
+                if (_isLoading || _filteredEntries.isEmpty)
+                  SizedBox(
+                    height: 300,
+                    child: _isLoading
+                        ? const Center(child: CircularProgressIndicator())
+                        : _buildEmptyState(colorScheme, textTheme),
+                  ),
               ],
             ),
           ),
 
-          const SizedBox(height: 12),
-
-          // 搜索框
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: t.agent.rag.search_hint,
-                prefixIcon: const Icon(Icons.search, size: 20),
-                isDense: true,
-                filled: true,
-                fillColor: colorScheme.surfaceContainerLow,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 10,
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide.none,
-                ),
-                suffixIcon: _searchQuery.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear, size: 18),
-                        onPressed: () {
-                          _searchController.clear();
-                          setState(() => _searchQuery = '');
-                        },
-                      )
-                    : null,
-              ),
-              onChanged: (v) => setState(() => _searchQuery = v),
-            ),
-          ),
-
-          const SizedBox(height: 12),
-
-          // 条目列表
-          Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : _filteredEntries.isEmpty
-                ? _buildEmptyState(colorScheme, textTheme)
-                : _buildEntryList(colorScheme, textTheme),
-          ),
+          // 条目列表 Sliver
+          if (!_isLoading && _filteredEntries.isNotEmpty)
+            _buildSliverEntryList(colorScheme, textTheme),
         ],
       ),
     );
@@ -470,29 +509,32 @@ class _RagMemoryViewState extends ConsumerState<RagMemoryView> {
     );
   }
 
-  Widget _buildEntryList(ColorScheme colorScheme, TextTheme textTheme) {
+  Widget _buildSliverEntryList(ColorScheme colorScheme, TextTheme textTheme) {
     final entries = _filteredEntries;
 
-    return ListView.builder(
+    return SliverPadding(
       padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-      itemCount: entries.length,
-      itemBuilder: (context, index) {
-        final entry = entries[index];
-        final text = entry['chunk_text'] as String? ?? '';
-        final model = entry['model_id'] as String? ?? '';
-        final embeddingId = entry['embedding_id'] as String? ?? '';
-        final createdAt = entry['created_at'] as int?;
-        final dateFormat = DateFormat('MM/dd HH:mm');
-        final timeStr = createdAt != null
-            ? dateFormat.format(DateTime.fromMillisecondsSinceEpoch(createdAt))
-            : '';
-        return MemoryEntryCard(
-          entry: entry,
-          onDelete: () => _deleteEntry(embeddingId),
-          onEdit: () => _editEntry(entry),
-          onTap: () => _showFullContent(text, model, timeStr),
-        );
-      },
+      sliver: SliverList(
+        delegate: SliverChildBuilderDelegate((context, index) {
+          final entry = entries[index];
+          final text = entry['chunk_text'] as String? ?? '';
+          final model = entry['model_id'] as String? ?? '';
+          final embeddingId = entry['embedding_id'] as String? ?? '';
+          final createdAt = entry['created_at'] as int?;
+          final dateFormat = DateFormat('MM/dd HH:mm');
+          final timeStr = createdAt != null
+              ? dateFormat.format(
+                  DateTime.fromMillisecondsSinceEpoch(createdAt),
+                )
+              : '';
+          return MemoryEntryCard(
+            entry: entry,
+            onDelete: () => _deleteEntry(embeddingId),
+            onEdit: () => _editEntry(entry),
+            onTap: () => _showFullContent(text, model, timeStr),
+          );
+        }, childCount: entries.length),
+      ),
     );
   }
 }
