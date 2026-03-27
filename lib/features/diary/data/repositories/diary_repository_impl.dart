@@ -8,6 +8,7 @@ import 'package:baishou/features/diary/domain/repositories/diary_repository.dart
 import 'package:baishou/features/index/data/shadow_index_database.dart';
 import 'package:baishou/features/index/data/shadow_index_sync_service.dart';
 import 'package:baishou/features/storage/domain/services/journal_file_service.dart';
+import 'package:baishou/agent/database/agent_database.dart';
 import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -17,12 +18,14 @@ class DiaryRepositoryImpl implements DiaryRepository {
   final ShadowIndexDatabase _dbService;
   final JournalFileService _fileService;
   final ShadowIndexSyncService _syncService;
+  final AgentDatabase _agentDatabase;
   final VaultIndex _vaultIndex;
 
   DiaryRepositoryImpl(
     this._dbService,
     this._fileService,
     this._syncService,
+    this._agentDatabase,
     this._vaultIndex,
   ) {
     // 仓库初始化时，立即执行一次全量扫描，确保物理文件和数据库影子索引一致（支持手动删除同步）
@@ -235,7 +238,14 @@ class DiaryRepositoryImpl implements DiaryRepository {
     // 3. 删除影子索引表中的记录
     await _dbService.deleteJournalIndex(id);
 
-    // 4. 直接从 VaultIndex 内存删除（UI 立即响应）
+    // 4. 清除对应的 RAG 记忆向量
+    try {
+      await _agentDatabase.deleteEmbeddingsBySource('diary', id.toString());
+    } catch (e) {
+      debugPrint('DiaryRepository: Failed to delete embeddings for diary $id: $e');
+    }
+
+    // 5. 直接从 VaultIndex 内存删除（UI 立即响应）
     _vaultIndex.remove(id);
   }
 
@@ -244,6 +254,11 @@ class DiaryRepositoryImpl implements DiaryRepository {
     final db = _dbService.database;
     db.execute('DELETE FROM journals_index');
     db.execute('DELETE FROM journals_fts');
+    
+    try {
+      await _agentDatabase.customStatement("DELETE FROM memory_embeddings WHERE source_type = 'diary'");
+    } catch (_) {}
+
     _vaultIndex.clear();
   }
 
@@ -306,12 +321,14 @@ DiaryRepository diaryRepository(Ref ref) {
   final dbService = ref.watch(shadowIndexDatabaseProvider.notifier);
   final fileService = ref.watch(journalFileServiceProvider.notifier);
   final syncService = ref.watch(shadowIndexSyncServiceProvider.notifier);
+  final agentDb = ref.watch(agentDatabaseProvider);
   final vaultIndex = ref.watch(vaultIndexProvider.notifier);
 
   final repo = DiaryRepositoryImpl(
     dbService,
     fileService,
     syncService,
+    agentDb,
     vaultIndex,
   );
 

@@ -614,6 +614,7 @@ class AgentDatabase extends _$AgentDatabase {
         'dimension': row.read<int>('dimension'),
         'model_id': row.read<String>('model_id'),
         'created_at': row.read<int>('created_at'),
+        'source_created_at': row.readNullable<int>('source_created_at'),
         // 取出原生 BLOB 供外部 Base64 编码
         'embedding': row.read<Uint8List>('embedding'),
       };
@@ -629,8 +630,8 @@ class AgentDatabase extends _$AgentDatabase {
       final stmt =
           'INSERT INTO memory_embeddings '
           '(id, embedding_id, source_type, source_id, group_id, chunk_index, chunk_text, '
-          'metadata_json, embedding, dimension, model_id, created_at) '
-          'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)';
+          'metadata_json, embedding, dimension, model_id, created_at, source_created_at) '
+          'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)';
 
       for (final e in embeddings) {
         await customStatement(stmt, [
@@ -642,6 +643,7 @@ class AgentDatabase extends _$AgentDatabase {
           e['chunk_index'], e['chunk_text'], e['metadata_json'],
           e['embedding'], // Uint8List
           e['dimension'], e['model_id'], e['created_at'],
+          e['source_created_at'],
         ]);
       }
     });

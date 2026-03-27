@@ -8,6 +8,7 @@ import 'package:flutter/foundation.dart';
 import 'package:baishou/core/storage/vault_service.dart';
 import 'package:baishou/core/services/api_config_service.dart';
 import 'package:baishou/agent/rag/embedding_service.dart';
+import 'package:baishou/agent/database/agent_database.dart';
 import 'package:crypto/crypto.dart';
 import 'package:path/path.dart' as p;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -164,6 +165,15 @@ class ShadowIndexSyncService extends _$ShadowIndexSyncService {
         for (final row in existingRows) {
           final idToRemove = row['id'] as int;
           await dbService.deleteJournalIndex(idToRemove);
+          
+          try {
+            // 同步清理 RAG 记忆中这篇日记留下的碎片
+            final agentDb = ref.read(agentDatabaseProvider);
+            await agentDb.deleteEmbeddingsBySource('diary', idToRemove.toString());
+          } catch (e) {
+            debugPrint('ShadowIndexSyncService: Failed removing vectors: $e');
+          }
+
           debugPrint(
             'ShadowIndexSyncService: Deleted index ID $idToRemove for missing file $dayStr',
           );
