@@ -156,8 +156,7 @@ Future<ContextResult> _processContextData(_ContextInput input) async {
 
   // 4. 构建 Markdown
   final buffer = StringBuffer();
-  buffer.writeln(t.ai_prompt.context_title(months: months.toString()));
-  buffer.writeln();
+  // 标题在复制时由 UI 层添加（Isolate 中 i18n 会回退到英文）
 
   // 最好按时间顺序输出以便于 AI 上下文。
 
@@ -200,15 +199,7 @@ Future<ContextResult> _processContextData(_ContextInput input) async {
     buffer.writeln();
   }
 
-  // 将元数据附加到文本？
-  // 通常元数据用于调试在仪表板。
-  // 保持在文本中以便 LLM 了解上下文量。
-  buffer.writeln('__Meta Statistics__');
-  buffer.writeln('- Yearly: ${yList.length}');
-  buffer.writeln('- Quarterly: ${qList.length}');
-  buffer.writeln('- Monthly: ${visibleMonths.length}');
-  buffer.writeln('- Weekly: ${visibleWeeks.length}');
-  buffer.writeln('- Dailies: ${visibleDiaries.length}');
+
 
   return ContextResult(
     text: buffer.toString(),

@@ -302,60 +302,65 @@ class _WebSearchSettingsViewState extends ConsumerState<WebSearchSettingsView> {
     required ValueChanged<double> onChanged,
   }) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Row(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon),
-          const SizedBox(width: 16),
-          Expanded(
-            flex: 3,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title),
-                Text(
-                  desc,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
+          // 第一行：icon + 标题 + 描述
+          Row(
+            children: [
+              Icon(icon, size: 20),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title),
+                    Text(
+                      desc,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-          const SizedBox(width: 8),
-          Expanded(
-            flex: 2,
-            child: Row(
-              children: [
-                Expanded(
-                  child: SliderTheme(
-                    data: SliderTheme.of(context).copyWith(
-                      trackHeight: 4,
-                      thumbShape: const RoundSliderThumbShape(
-                        enabledThumbRadius: 8,
-                      ),
-                      overlayShape: const RoundSliderOverlayShape(
-                        overlayRadius: 16,
-                      ),
+          const SizedBox(height: 4),
+          // 第二行：滑动条 + 数值
+          Row(
+            children: [
+              Expanded(
+                child: SliderTheme(
+                  data: SliderTheme.of(context).copyWith(
+                    trackHeight: 4,
+                    thumbShape: const RoundSliderThumbShape(
+                      enabledThumbRadius: 8,
                     ),
-                    child: Slider(
-                      value: value,
-                      min: min,
-                      max: max,
-                      onChanged: onChanged,
+                    overlayShape: const RoundSliderOverlayShape(
+                      overlayRadius: 16,
                     ),
                   ),
-                ),
-                SizedBox(
-                  width: 40,
-                  child: Text(
-                    value.toInt().toString(),
-                    style: theme.textTheme.titleMedium,
-                    textAlign: TextAlign.end,
+                  child: Slider(
+                    value: value,
+                    min: min,
+                    max: max,
+                    onChanged: onChanged,
                   ),
                 ),
-              ],
-            ),
+              ),
+              SizedBox(
+                width: 40,
+                child: Text(
+                  value.toInt().toString(),
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                  textAlign: TextAlign.end,
+                ),
+              ),
+            ],
           ),
         ],
       ),

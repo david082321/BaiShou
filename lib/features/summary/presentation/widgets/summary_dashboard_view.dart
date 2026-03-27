@@ -152,10 +152,22 @@ class _SummaryDashboardViewState extends ConsumerState<SummaryDashboardView>
 
   Future<void> _copyContext() async {
     if (_result == null) return;
+    final months = ref.read(summaryFilterProvider).lookbackMonths;
+
+    // slang 风格标题（随机选一条）
+    final slangs = [
+      '📖 ${t.common.app_title} · ${t.summary.shared_memory}',
+      '🌸 ${t.summary.shared_memory} — ${t.common.app_title}',
+      '✨ ${t.common.app_title} | ${t.summary.shared_memory}',
+    ];
+    final slang = (slangs..shuffle()).first;
+    final header = '$slang\n过去 $months 个月的共同回忆（白守算法折叠）\n';
+
     final prefix = ref.read(summaryFilterProvider).copyContextPrefix;
+    final body = _result!.text;
     final textToCopy = prefix.isEmpty
-        ? _result!.text
-        : "$prefix\n\n${_result!.text}";
+        ? '$header\n$body'
+        : '$prefix\n\n$header\n$body';
     await Clipboard.setData(ClipboardData(text: textToCopy));
     if (mounted) {
       AppToast.showSuccess(context, t.summary.toast_copied);
