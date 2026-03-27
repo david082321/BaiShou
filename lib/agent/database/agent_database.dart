@@ -144,12 +144,10 @@ class AgentDatabase extends _$AgentDatabase {
     String query, {
     int limit = 20,
   }) async {
-    // 清洗 FTS5 特殊字符：单引号、双引号、星号、括号等可能破坏 MATCH 语法的字符
-    final sanitized = query
-        .replaceAll(RegExp(r'''['"()*^~{}[\]<>]'''), ' ')
-        .replaceAll(RegExp(r'\s+'), ' ')
-        .trim();
-    if (sanitized.isEmpty) return [];
+    // FTS5 短语搜索：用双引号包裹整段查询，内部的单引号等字符都安全
+    // 只需要将查询中已有的双引号转义（替换为空格）即可
+    final cleaned = query.replaceAll('"', ' ').trim();
+    if (cleaned.isEmpty) return [];
 
     try {
       final results = await customSelect(
@@ -167,7 +165,7 @@ class AgentDatabase extends _$AgentDatabase {
         ORDER BY rank
         LIMIT ?
         ''',
-        variables: [Variable.withString(sanitized), Variable.withInt(limit)],
+        variables: [Variable.withString('"$cleaned"'), Variable.withInt(limit)],
       ).get();
 
       return results.map((row) {
@@ -183,7 +181,7 @@ class AgentDatabase extends _$AgentDatabase {
         };
       }).toList();
     } catch (e) {
-      debugPrint('searchFts failed for query "$sanitized": $e');
+      debugPrint('searchFts failed for query "$cleaned": $e');
       return [];
     }
   }
