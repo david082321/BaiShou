@@ -24,12 +24,22 @@ class ThemeNotifier extends Notifier<AppThemeState> {
 
   late SharedPreferences _prefs;
 
+  /// 白守品牌专属浅蓝（与外观设置唯一色盘选项一致）
+  static const int _brandBlue = 0xFF9AD4EA;
+
   @override
   AppThemeState build() {
     _prefs = ref.watch(sharedPreferencesProvider);
 
+    // [v3 一次性迁移] 老用户升级后统一重置为品牌色
+    final hasMigratedColor = _prefs.getBool('migrated_seed_color_v3') ?? false;
+    if (!hasMigratedColor) {
+      _prefs.setInt(_keySeedColor, _brandBlue);
+      _prefs.setBool('migrated_seed_color_v3', true);
+    }
+
     final modeIndex = _prefs.getInt(_keyThemeMode) ?? ThemeMode.system.index;
-    final colorValue = _prefs.getInt(_keySeedColor) ?? 0xFF9AD4EA; // 白守专属浅蓝
+    final colorValue = _prefs.getInt(_keySeedColor) ?? _brandBlue;
 
     return AppThemeState(
       mode: ThemeMode.values[modeIndex],
