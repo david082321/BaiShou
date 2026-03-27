@@ -474,9 +474,8 @@ class _DataSyncPageState extends ConsumerState<DataSyncPage> {
                   value: currentValue,
                   min: 1,
                   max: 100,
-                  divisions: 10,
                   onChanged: (v) {
-                    setDialogState(() => currentValue = v);
+                    setDialogState(() => currentValue = v.roundToDouble());
                   },
                 ),
               ],
