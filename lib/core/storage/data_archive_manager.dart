@@ -559,11 +559,19 @@ class DataArchiveManager extends _$DataArchiveManager {
           if (!avatarDir.existsSync()) {
             await avatarDir.create(recursive: true);
           }
+
+          // 清理旧的 avatar_imported_* 残留，避免重复导入导致文件堆积
+          try {
+            for (final old in avatarDir.listSync()) {
+              if (old is File && p.basename(old.path).startsWith('avatar_imported_')) {
+                old.deleteSync();
+              }
+            }
+          } catch (_) {}
+
+          // 使用固定文件名而非时间戳，覆盖旧文件
           final localAvatarFile = File(
-            p.join(
-              avatarDir.path,
-              'avatar_imported_${DateTime.now().millisecondsSinceEpoch}.$ext',
-            ),
+            p.join(avatarDir.path, 'user_avatar.$ext'),
           );
           await localAvatarFile.writeAsBytes(avatarFile.content);
           await ref
