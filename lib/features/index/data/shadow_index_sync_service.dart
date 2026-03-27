@@ -372,6 +372,15 @@ class ShadowIndexSyncService extends _$ShadowIndexSyncService {
         if (!File(filePath).existsSync()) {
           // 物理文件确实不存在，安全执行影子清理
           await dbService.deleteJournalIndex(id);
+
+          // 同步清理 RAG 记忆中这篇日记留下的碎片（与 syncJournal 的删除分支保持一致）
+          try {
+            final agentDb = ref.read(agentDatabaseProvider);
+            await agentDb.deleteEmbeddingsBySource('diary', id.toString());
+          } catch (e) {
+            debugPrint('ShadowIndexSyncService: Failed removing vectors for orphan $id: $e');
+          }
+
           debugPrint(
             'ShadowIndexSyncService: Cleaned orphaned index for date $dateStr (ID: $id)',
           );

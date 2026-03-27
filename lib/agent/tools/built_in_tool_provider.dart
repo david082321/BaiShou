@@ -31,7 +31,7 @@ List<AgentTool> builtInTools(Ref ref) {
     // ── 日记工具 ──
     DiaryReadTool(),
     DiaryEditTool(),
-    DiaryDeleteTool(),
+    DiaryDeleteTool(ref.read(agentDatabaseProvider)),
     DiaryListTool(),
     DiarySearchTool(ref.read(shadowIndexDatabaseProvider.notifier)),
 

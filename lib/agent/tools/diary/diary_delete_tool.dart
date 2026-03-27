@@ -1,14 +1,19 @@
 /// DiaryDeleteTool — 删除指定日期的日记
 ///
 /// Agent 通过此工具删除指定日期的日记文件。
-/// 会同时删除物理文件和对应的索引条目。
+/// 会同时删除物理文件和对应的 RAG 向量。
 
 import 'dart:io';
+import 'package:baishou/agent/database/agent_database.dart';
 import 'package:baishou/agent/tools/agent_tool.dart';
 import 'package:baishou/i18n/strings.g.dart';
 import 'package:flutter/material.dart';
 
 class DiaryDeleteTool extends AgentTool {
+  final AgentDatabase _db;
+
+  DiaryDeleteTool(this._db);
+
   @override
   String get id => 'diary_delete';
 
@@ -85,6 +90,19 @@ class DiaryDeleteTool extends AgentTool {
 
       // 删除文件
       await file.delete();
+
+      // 清理该日记对应的 RAG 向量
+      // 日记的 source_id 是其数字 ID（yyyyMMdd 格式），从日期推算
+      try {
+        final logicalDate = DateTime.parse(date);
+        final diaryId = logicalDate.year * 10000 +
+            logicalDate.month * 100 +
+            logicalDate.day;
+        await _db.deleteEmbeddingsBySource('diary', diaryId.toString());
+        debugPrint('DiaryDeleteTool: Cleaned RAG vectors for diary $diaryId');
+      } catch (e) {
+        debugPrint('DiaryDeleteTool: Failed to clean RAG vectors: $e');
+      }
 
       return ToolResult(
         output:
