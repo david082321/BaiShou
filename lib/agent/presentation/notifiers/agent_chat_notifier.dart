@@ -8,8 +8,6 @@
 /// - 副作用服务 → chat_side_effects.dart
 
 import 'dart:async';
-import 'dart:convert';
-import 'package:intl/intl.dart';
 import 'package:baishou/i18n/strings.g.dart';
 import 'package:baishou/agent/clients/ai_client.dart';
 import 'package:baishou/agent/models/ai_provider_model.dart';
@@ -32,7 +30,6 @@ import 'package:baishou/core/storage/storage_path_provider.dart';
 import 'package:baishou/core/storage/vault_service.dart';
 import 'package:baishou/features/diary/data/vault_index_notifier.dart';
 import 'package:baishou/features/index/data/shadow_index_sync_service.dart';
-import 'package:baishou/features/storage/domain/services/journal_file_service.dart';
 import 'package:baishou/agent/rag/memory_deduplication_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -475,28 +472,7 @@ class AgentChatNotifier extends _$AgentChatNotifier {
         if (result.isChanged && result.meta != null) {
           ref.read(vaultIndexProvider.notifier).upsert(result.meta!);
           debugPrint('AgentChatNotifier: Diary index refreshed for $dateStr');
-
-          // ADD: 同步触发 RAG 向量更新
-          final apiConfig = ref.read(apiConfigServiceProvider);
-          final embeddingService = ref.read(embeddingServiceProvider);
-          if (apiConfig.ragEnabled && embeddingService.isConfigured) {
-            final journalService =
-                ref.read(journalFileServiceProvider.notifier);
-            final diary = await journalService.readJournal(date);
-            if (diary != null) {
-              final dateLabel = DateFormat('yyyy-MM-dd').format(diary.date);
-              await embeddingService.reEmbedText(
-                text: '$dateLabel: ${diary.content}',
-                sourceType: 'diary',
-                sourceId: diary.id.toString(),
-                groupId: 'diary_auto',
-                metadataJson: jsonEncode({
-                  'updated_at': diary.updatedAt.millisecondsSinceEpoch,
-                }),
-              );
-              debugPrint('AgentChatNotifier: Diary RAG embedded for $dateStr');
-            }
-          }
+          // RAG 向量嵌入已由 ShadowIndexSyncService 文件监听自动触发，此处无需手动调用
         }
       } catch (e) {
         debugPrint('AgentChatNotifier: Failed to refresh diary index: $e');

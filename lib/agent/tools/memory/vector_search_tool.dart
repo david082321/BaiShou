@@ -115,7 +115,7 @@ class VectorSearchTool extends AgentTool {
                 score: 1.0 - (r['distance'] as double),
                 source: 'vector',
                 createdAt: DateTime.fromMillisecondsSinceEpoch(
-                  r['created_at'] as int,
+                  (r['source_created_at'] ?? r['created_at']) as int,
                 ),
               ),
             )
@@ -167,7 +167,7 @@ class VectorSearchTool extends AgentTool {
                 score: 1.0 - (r['distance'] as double),
                 source: 'vector',
                 createdAt: DateTime.fromMillisecondsSinceEpoch(
-                  r['created_at'] as int,
+                  (r['source_created_at'] ?? r['created_at']) as int,
                 ),
               ),
             )

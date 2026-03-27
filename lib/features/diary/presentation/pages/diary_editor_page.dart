@@ -15,10 +15,7 @@ import 'package:intl/intl.dart';
 import 'package:baishou/i18n/strings.g.dart';
 import 'package:baishou/features/diary/domain/entities/diary.dart';
 import 'package:baishou/features/diary/data/vault_index_notifier.dart';
-import 'dart:convert';
 import 'package:collection/collection.dart';
-import 'package:baishou/agent/rag/embedding_service.dart';
-import 'package:baishou/core/services/api_config_service.dart';
 
 /// 日记/总结编辑器页面
 /// 支持日记记录（标题、内容、标签）以及对 AI 生成总结的查看与编辑。
@@ -331,27 +328,7 @@ class _DiaryEditorPageState extends ConsumerState<DiaryEditorPage> {
         // 保存成功后，更新当前页面的追踪 ID，防止短时间内再次点击产生 ID 冲突
         _currentDiaryId = savedDiary?.id;
 
-        // 自动将新日记内容加入 RAG 记忆中（无需等待）
-        if (savedDiary != null) {
-          final embeddingService = ref.read(embeddingServiceProvider);
-          final apiConfig = ref.read(apiConfigServiceProvider);
-          if (apiConfig.ragEnabled && embeddingService.isConfigured) {
-            final dateLabel = DateFormat('yyyy-MM-dd').format(savedDiary.date);
-            embeddingService
-                .reEmbedText(
-                  text: '$dateLabel: ${savedDiary.content}',
-                  sourceType: 'diary',
-                  sourceId: savedDiary.id.toString(),
-                  groupId: 'diary_auto',
-                  metadataJson: jsonEncode({
-                    'updated_at': savedDiary.updatedAt.millisecondsSinceEpoch,
-                  }),
-                )
-                .catchError((e) {
-                  debugPrint('Diary auto-embedding failed: $e');
-                });
-          }
-        }
+        // RAG 向量嵌入已由 ShadowIndexSyncService 文件监听自动触发，此处无需手动调用
       }
 
       if (mounted) {

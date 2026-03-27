@@ -22,8 +22,8 @@ part 'embedding_service.g.dart';
 
 /// 嵌入服务
 class EmbeddingService {
-  static const int _maxChunkLength = 512; // 字符数
-  static const int _chunkOverlap = 64;
+  static const int _maxChunkLength = 1024; // 字符数
+  static const int _chunkOverlap = 128;
 
   final ApiConfigService _apiConfig;
   final AgentDatabase _db;
@@ -192,6 +192,7 @@ class EmbeddingService {
     required String sourceId,
     required String groupId,
     String metadataJson = '{}',
+    int? sourceCreatedAt,
   }) async {
     if (!isConfigured || text.trim().isEmpty) return;
 
@@ -226,6 +227,7 @@ class EmbeddingService {
           metadataJson: metadataJson,
           embedding: _normalize(embedding),
           modelId: embeddingModelId,
+          sourceCreatedAt: sourceCreatedAt,
         );
       }, label: 'embedText chunk ${chunk.index}');
     }
@@ -238,6 +240,7 @@ class EmbeddingService {
     required String sourceId,
     required String groupId,
     String metadataJson = '{}',
+    int? sourceCreatedAt,
   }) async {
     await _db.deleteEmbeddingsBySource(sourceType, sourceId);
     await embedText(
@@ -246,6 +249,7 @@ class EmbeddingService {
       sourceId: sourceId,
       groupId: groupId,
       metadataJson: metadataJson,
+      sourceCreatedAt: sourceCreatedAt,
     );
   }
 
@@ -421,6 +425,7 @@ class EmbeddingService {
             metadataJson: chunk['metadata_json'] as String,
             embedding: _normalize(embedding),
             modelId: embeddingModelId,
+            sourceCreatedAt: chunk['source_created_at'] as int?,
           );
 
           // 标记这条 chunk 迁移完成

@@ -31,7 +31,7 @@ class AgentDatabase extends _$AgentDatabase {
   AgentDatabase(super.executor);
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -99,6 +99,16 @@ class AgentDatabase extends _$AgentDatabase {
               FROM message_embeddings
             ''');
         await customStatement('DROP TABLE IF EXISTS message_embeddings');
+      }
+      if (from < 7) {
+        // v6 → v7: 新增 source_created_at 列，分离"嵌入生成时间"和"源内容真实时间"
+        await customStatement(
+          'ALTER TABLE memory_embeddings ADD COLUMN source_created_at INTEGER',
+        );
+        // 回填：将 created_at 作为默认的 source_created_at
+        await customStatement(
+          'UPDATE memory_embeddings SET source_created_at = created_at WHERE source_created_at IS NULL',
+        );
       }
     },
   );
@@ -184,7 +194,8 @@ class AgentDatabase extends _$AgentDatabase {
         embedding BLOB NOT NULL,
         dimension INTEGER NOT NULL,
         model_id TEXT NOT NULL DEFAULT '',
-        created_at INTEGER NOT NULL
+        created_at INTEGER NOT NULL,
+        source_created_at INTEGER
       )
     ''');
     await customStatement('''
@@ -226,15 +237,17 @@ class AgentDatabase extends _$AgentDatabase {
     String metadataJson = '{}',
     required List<double> embedding,
     required String modelId,
+    int? sourceCreatedAt,
   }) async {
     // 将 List<double> 转为 JSON 数组字符串，供 vector_as_f32() 解析
     final vectorJson = '[${embedding.join(',')}]';
+    final now = DateTime.now().millisecondsSinceEpoch;
 
     await customStatement(
       '''INSERT OR REPLACE INTO memory_embeddings
          (embedding_id, source_type, source_id, group_id, chunk_index, chunk_text,
-          metadata_json, embedding, dimension, model_id, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, vector_as_f32(?), ?, ?, ?)''',
+          metadata_json, embedding, dimension, model_id, created_at, source_created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, vector_as_f32(?), ?, ?, ?, ?)''',
       [
         id,
         sourceType,
@@ -246,7 +259,8 @@ class AgentDatabase extends _$AgentDatabase {
         vectorJson,
         embedding.length,
         modelId,
-        DateTime.now().millisecondsSinceEpoch,
+        now,
+        sourceCreatedAt ?? now,
       ],
     );
   }
@@ -286,7 +300,8 @@ class AgentDatabase extends _$AgentDatabase {
           e.dimension,
           e.model_id,
           v.distance,
-          e.created_at
+          e.created_at,
+          e.source_created_at
         FROM vector_full_scan('memory_embeddings', 'embedding', vector_as_f32(?), ?) AS v
         JOIN memory_embeddings AS e ON e.id = v.rowid
         WHERE e.dimension = ?
@@ -355,15 +370,16 @@ class AgentDatabase extends _$AgentDatabase {
         old_model_id  TEXT NOT NULL,
         old_dimension INTEGER NOT NULL,
         migrated      INTEGER NOT NULL DEFAULT 0,
-        created_at    INTEGER NOT NULL
+        created_at    INTEGER NOT NULL,
+        source_created_at INTEGER
       )
     ''');
     await customStatement('''
       INSERT INTO _embedding_migration_backup
         (embedding_id, source_type, source_id, group_id, chunk_index, chunk_text,
-         metadata_json, old_model_id, old_dimension, migrated, created_at)
+         metadata_json, old_model_id, old_dimension, migrated, created_at, source_created_at)
       SELECT embedding_id, source_type, source_id, group_id, chunk_index, chunk_text,
-             metadata_json, model_id, dimension, 0, created_at
+             metadata_json, model_id, dimension, 0, created_at, source_created_at
       FROM memory_embeddings
     ''');
     final result = await customSelect(
@@ -383,7 +399,7 @@ class AgentDatabase extends _$AgentDatabase {
   /// 获取未迁移的备份 chunk 列表
   Future<List<Map<String, dynamic>>> getUnmigratedBackupChunks() async {
     final results = await customSelect('''
-      SELECT embedding_id, source_type, source_id, group_id, chunk_index, chunk_text, metadata_json
+      SELECT embedding_id, source_type, source_id, group_id, chunk_index, chunk_text, metadata_json, source_created_at
       FROM _embedding_migration_backup
       WHERE migrated = 0
       ORDER BY created_at, chunk_index
@@ -398,6 +414,7 @@ class AgentDatabase extends _$AgentDatabase {
             'chunk_index': row.read<int>('chunk_index'),
             'chunk_text': row.read<String>('chunk_text'),
             'metadata_json': row.read<String>('metadata_json'),
+            'source_created_at': row.readNullable<int>('source_created_at'),
           },
         )
         .toList();

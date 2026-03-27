@@ -6,6 +6,8 @@ import 'package:baishou/features/index/data/shadow_index_database.dart';
 import 'package:baishou/features/storage/domain/services/journal_file_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:baishou/core/storage/vault_service.dart';
+import 'package:baishou/core/services/api_config_service.dart';
+import 'package:baishou/agent/rag/embedding_service.dart';
 import 'package:crypto/crypto.dart';
 import 'package:path/path.dart' as p;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -223,6 +225,9 @@ class ShadowIndexSyncService extends _$ShadowIndexSyncService {
 
     debugPrint('ShadowIndexSyncService: Upsert complete for ID ${diary.id}');
 
+    // 5. 异步触发 RAG 向量嵌入（统一入口，无论是 UI、Agent 还是外部修改）
+    _triggerEmbeddingAsync(diary);
+
     // 返回最新的元数据，方便上层更新内存状态
     final content = diary.content;
     return JournalSyncResult(
@@ -235,6 +240,35 @@ class ShadowIndexSyncService extends _$ShadowIndexSyncService {
         updatedAt: diary.updatedAt,
       ),
     );
+  }
+
+  /// 异步触发日记内容的 RAG 向量嵌入
+  ///
+  /// 这是整个系统中日记 Embedding 的**唯一触发源**。
+  /// 无论日记是通过 UI 编辑器、Agent diary_edit 工具、局域网同步、
+  /// 还是用户用外部编辑器手动修改 .md 文件，都会经过此方法。
+  void _triggerEmbeddingAsync(dynamic diary) {
+    () async {
+      try {
+        final apiConfig = ref.read(apiConfigServiceProvider);
+        final embeddingService = ref.read(embeddingServiceProvider);
+        if (!apiConfig.ragEnabled || !embeddingService.isConfigured) return;
+
+        final dateLabel =
+            '${diary.date.year}-${diary.date.month.toString().padLeft(2, '0')}-${diary.date.day.toString().padLeft(2, '0')}';
+        await embeddingService.reEmbedText(
+          text: '$dateLabel: ${diary.content}',
+          sourceType: 'diary',
+          sourceId: diary.id.toString(),
+          groupId: 'diary_auto',
+          sourceCreatedAt: diary.date.millisecondsSinceEpoch,
+          metadataJson: '{"updated_at":${diary.updatedAt.millisecondsSinceEpoch}}',
+        );
+        debugPrint('ShadowIndexSyncService: RAG embedded for $dateLabel');
+      } catch (e) {
+        debugPrint('ShadowIndexSyncService: RAG embedding failed: $e');
+      }
+    }();
   }
 
   /// 全量空间扫描
