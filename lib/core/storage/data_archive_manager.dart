@@ -399,15 +399,20 @@ class DataArchiveManager extends _$DataArchiveManager {
         );
       }
 
-      // 5. 让 Riverpod 的持久化 Provider 失效，从而强制挂载新物理文件
+      // 5. 恢复设备级偏好配置（API Key、主题色、同步设定等）
+      // 必须在 invalidate 之前执行，因为 invalidate 会触发 provider 重建，
+      // 可能引发并发修改异常导致后续步骤被中断。
+      if (devicePreferences != null) {
+        await _restoreDevicePreferences(devicePreferences, avatarArchiveFile);
+      }
+
+      // 6. 让 Riverpod 的持久化 Provider 失效，从而强制挂载新物理文件
       ref.invalidate(appDatabaseProvider);
       ref.invalidate(agentDatabaseProvider);
       ref.invalidate(vaultServiceProvider);
 
-      // 6. 恢复设备级偏好配置（API Key、主题色、同步设定等）
-      if (devicePreferences != null) {
-        await _restoreDevicePreferences(devicePreferences, avatarArchiveFile);
-      }
+      // 等待 provider 重建稳定后再触发扫描
+      await Future.delayed(const Duration(milliseconds: 200));
 
       // 重新对齐并点火
       summarySyncService.setSyncEnabled(true);

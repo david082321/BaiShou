@@ -290,6 +290,7 @@ class _LanTransferPageState extends ConsumerState<LanTransferPage>
     );
     await Future.delayed(Duration.zero);
     void closeDialog() {
+      if (!mounted) return;
       if (dialogContext != null && Navigator.of(dialogContext!).canPop()) {
         Navigator.of(dialogContext!).pop();
       }
