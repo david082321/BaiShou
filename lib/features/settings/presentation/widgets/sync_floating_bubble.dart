@@ -81,13 +81,6 @@ class SyncFloatingBubble extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      Text(
-                        service.attributes['ip'] ?? 'Unknown',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Theme.of(context).colorScheme.outline,
-                        ),
-                      ),
                     ],
                   ),
                 ),
