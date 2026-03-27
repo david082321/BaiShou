@@ -6,6 +6,7 @@ import 'dart:io';
 import 'package:baishou/agent/database/agent_database.dart';
 import 'package:baishou/agent/session/assistant_repository.dart';
 import 'package:baishou/i18n/strings.g.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
@@ -207,7 +208,7 @@ class AssistantService {
   Future<String> _saveAvatar(String assistantId, String sourcePath) async {
     final sourceFile = File(sourcePath);
     final ext = sourcePath.split('.').last;
-    final appDir = sourceFile.parent.parent;
+    final appDir = await getApplicationDocumentsDirectory();
     final avatarsDir = Directory('${appDir.path}/avatars');
     if (!await avatarsDir.exists()) {
       await avatarsDir.create(recursive: true);

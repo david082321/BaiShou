@@ -151,46 +151,36 @@ class DataArchiveManager extends _$DataArchiveManager {
         }
       }
 
-      // 伙伴头像：扫描 appDir/avatars/ 目录，打包到 assistant_avatars/
-      final appDir = await getApplicationDocumentsDirectory();
-      // 伙伴头像：只打包数据库中实际引用的文件，避免 avatar_imported_* 副本堆积
-      final assistantAvatarsDir = Directory(p.join(appDir.path, 'avatars'));
-      if (assistantAvatarsDir.existsSync()) {
-        // 收集数据库中实际引用的头像文件名
-        final referencedFileNames = <String>{};
-        try {
-          final agentDb = ref.read(agentDatabaseProvider);
-          final rows = await agentDb.customSelect(
-            'SELECT avatar_path FROM agent_assistants WHERE avatar_path IS NOT NULL',
-          ).get();
-          for (final row in rows) {
-            final avatarPath = row.read<String>('avatar_path');
-            referencedFileNames.add(avatarPath.split(RegExp(r'[/\\]')).last);
-          }
-        } catch (e) {
-          debugPrint('DataArchiveManager: Failed to query assistant avatars: $e');
-        }
-
-        for (final entity in assistantAvatarsDir.listSync()) {
-          if (entity is File) {
-            final name = p.basename(entity.path);
-            // 只打包被数据库引用的头像（如果查询失败则全部打包作为兜底）
-            if (referencedFileNames.isNotEmpty && !referencedFileNames.contains(name)) {
-              continue;
-            }
+      // 伙伴头像：直接从数据库的 avatar_path 读取（文件可能在任意位置）
+      try {
+        final agentDb = ref.read(agentDatabaseProvider);
+        final rows = await agentDb.customSelect(
+          'SELECT avatar_path FROM agent_assistants WHERE avatar_path IS NOT NULL',
+        ).get();
+        for (final row in rows) {
+          final avatarPath = row.read<String>('avatar_path');
+          final avatarFile = File(avatarPath);
+          if (avatarFile.existsSync()) {
             try {
-              final bytes = entity.readAsBytesSync();
+              final bytes = avatarFile.readAsBytesSync();
+              final name = p.basename(avatarPath);
               archive.addFile(
                 ArchiveFile('assistant_avatars/$name', bytes.length, bytes),
               );
               debugPrint('DataArchiveManager: ADDING ASSISTANT AVATAR: $name');
             } catch (e) {
               debugPrint(
-                'DataArchiveManager: Skipped assistant avatar ${entity.path}: $e',
+                'DataArchiveManager: Skipped assistant avatar $avatarPath: $e',
               );
             }
+          } else {
+            debugPrint(
+              'DataArchiveManager: Assistant avatar not found: $avatarPath',
+            );
           }
         }
+      } catch (e) {
+        debugPrint('DataArchiveManager: Failed to export assistant avatars: $e');
       }
     } catch (e) {
       debugPrint('DataArchiveManager: Failed to inject device preferences: $e');
