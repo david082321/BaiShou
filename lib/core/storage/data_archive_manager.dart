@@ -146,6 +146,28 @@ class DataArchiveManager extends _$DataArchiveManager {
           debugPrint('DataArchiveManager: ADDING AVATAR');
         }
       }
+
+      // 伙伴头像：扫描 appDir/avatars/ 目录，打包到 assistant_avatars/
+      final appDir = await getApplicationDocumentsDirectory();
+      final assistantAvatarsDir = Directory(p.join(appDir.path, 'avatars'));
+      if (assistantAvatarsDir.existsSync()) {
+        for (final entity in assistantAvatarsDir.listSync()) {
+          if (entity is File) {
+            try {
+              final bytes = entity.readAsBytesSync();
+              final name = p.basename(entity.path);
+              archive.addFile(
+                ArchiveFile('assistant_avatars/$name', bytes.length, bytes),
+              );
+              debugPrint('DataArchiveManager: ADDING ASSISTANT AVATAR: $name');
+            } catch (e) {
+              debugPrint(
+                'DataArchiveManager: Skipped assistant avatar ${entity.path}: $e',
+              );
+            }
+          }
+        }
+      }
     } catch (e) {
       debugPrint('DataArchiveManager: Failed to inject device preferences: $e');
     }
@@ -406,6 +428,31 @@ class DataArchiveManager extends _$DataArchiveManager {
         await _restoreDevicePreferences(devicePreferences, avatarArchiveFile);
       }
 
+      // 5.5 恢复伙伴头像：从 assistant_avatars/ 提取到 appDir/avatars/
+      // 并修正数据库中的 avatarPath（跨端路径重映射）
+      String? localAvatarsPath;
+      try {
+        final appDir = await getApplicationDocumentsDirectory();
+        final avatarsDir = Directory(p.join(appDir.path, 'avatars'));
+        localAvatarsPath = avatarsDir.path;
+        final assistantAvatarFiles =
+            archive.where((f) => f.name.startsWith('assistant_avatars/') && f.isFile);
+
+        if (assistantAvatarFiles.isNotEmpty) {
+          if (!avatarsDir.existsSync()) {
+            avatarsDir.createSync(recursive: true);
+          }
+          for (final avatarEntry in assistantAvatarFiles) {
+            final fileName = p.basename(avatarEntry.name);
+            final localFile = File(p.join(avatarsDir.path, fileName));
+            await localFile.writeAsBytes(avatarEntry.content);
+            debugPrint('DataArchiveManager: Restored assistant avatar: $fileName');
+          }
+        }
+      } catch (e) {
+        debugPrint('DataArchiveManager: Failed to restore assistant avatars: $e');
+      }
+
       // 6. 让 Riverpod 的持久化 Provider 失效，从而强制挂载新物理文件
       ref.invalidate(appDatabaseProvider);
       ref.invalidate(agentDatabaseProvider);
@@ -413,6 +460,36 @@ class DataArchiveManager extends _$DataArchiveManager {
 
       // 等待 provider 重建稳定后再触发扫描
       await Future.delayed(const Duration(milliseconds: 200));
+
+      // 6.5 修正伙伴头像的跨端路径：
+      // agent_assistants 表中的 avatar_path 列是源设备的绝对路径，
+      // 需要将目录部分替换为本地 avatars 目录。
+      if (localAvatarsPath != null) {
+        try {
+          final agentDb = ref.read(agentDatabaseProvider);
+          final rows = await agentDb.customSelect(
+            'SELECT id, avatar_path FROM agent_assistants WHERE avatar_path IS NOT NULL',
+          ).get();
+          for (final row in rows) {
+            final oldPath = row.read<String>('avatar_path');
+            // 取出文件名（兼容 Windows 和 Unix 路径分隔符）
+            final fileName = oldPath.split(RegExp(r'[/\\]')).last;
+            final newPath = p.join(localAvatarsPath, fileName);
+            if (oldPath != newPath) {
+              await agentDb.customStatement(
+                'UPDATE agent_assistants SET avatar_path = ? WHERE id = ?',
+                [newPath, row.read<String>('id')],
+              );
+              debugPrint(
+                'DataArchiveManager: Remapped assistant avatar path: '
+                '$oldPath -> $newPath',
+              );
+            }
+          }
+        } catch (e) {
+          debugPrint('DataArchiveManager: Failed to remap assistant avatar paths: $e');
+        }
+      }
 
       // 重新对齐并点火
       summarySyncService.setSyncEnabled(true);
