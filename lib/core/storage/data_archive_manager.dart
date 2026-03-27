@@ -92,13 +92,17 @@ class DataArchiveManager extends _$DataArchiveManager {
           );
         }
       } else if (entity is File) {
+        // 跳过 SQLite 事务日志文件：WAL/SHM 文件可以膨胀到数百 MB，
+        // 且导入时不需要（主 .sqlite 文件包含所有已提交数据）。
+        final fileName = p.basename(entity.path);
+        if (fileName.endsWith('-wal') ||
+            fileName.endsWith('-shm') ||
+            fileName.endsWith('-journal')) {
+          debugPrint('DataArchiveManager: SKIPPING journal file: $relativePath');
+          return;
+        }
         try {
           debugPrint('DataArchiveManager: ADDING FILE: $relativePath');
-          // 核心修复：坚决禁用 InputFileStream ！！！
-          // InputFileStream 会把文件句柄（File Descriptor）一直以挂起的状态保持在内存中，直到最后的 ZipEncoder 消费时才释放。
-          // 在物理迁移场景下若有超过 500 个以上的文件（包括日记、总结等），Windows 系统会极其容易撞到单进程 512 句柄锁上限。
-          // 一旦触达，这里会静默 throw 并跳过后续文件（如包含 Archives），导致总结丢失。
-          // 现在直接阻塞式一次性将所有字节捞入 Heap 再交给 Archive，瞬间斩断文件锁，对于日常百兆内数据轻而易举。
           final bytes = entity.readAsBytesSync();
           archive.addFile(ArchiveFile(relativePath, bytes.length, bytes));
         } catch (e) {
@@ -149,13 +153,33 @@ class DataArchiveManager extends _$DataArchiveManager {
 
       // 伙伴头像：扫描 appDir/avatars/ 目录，打包到 assistant_avatars/
       final appDir = await getApplicationDocumentsDirectory();
+      // 伙伴头像：只打包数据库中实际引用的文件，避免 avatar_imported_* 副本堆积
       final assistantAvatarsDir = Directory(p.join(appDir.path, 'avatars'));
       if (assistantAvatarsDir.existsSync()) {
+        // 收集数据库中实际引用的头像文件名
+        final referencedFileNames = <String>{};
+        try {
+          final agentDb = ref.read(agentDatabaseProvider);
+          final rows = await agentDb.customSelect(
+            'SELECT avatar_path FROM agent_assistants WHERE avatar_path IS NOT NULL',
+          ).get();
+          for (final row in rows) {
+            final avatarPath = row.read<String>('avatar_path');
+            referencedFileNames.add(avatarPath.split(RegExp(r'[/\\]')).last);
+          }
+        } catch (e) {
+          debugPrint('DataArchiveManager: Failed to query assistant avatars: $e');
+        }
+
         for (final entity in assistantAvatarsDir.listSync()) {
           if (entity is File) {
+            final name = p.basename(entity.path);
+            // 只打包被数据库引用的头像（如果查询失败则全部打包作为兜底）
+            if (referencedFileNames.isNotEmpty && !referencedFileNames.contains(name)) {
+              continue;
+            }
             try {
               final bytes = entity.readAsBytesSync();
-              final name = p.basename(entity.path);
               archive.addFile(
                 ArchiveFile('assistant_avatars/$name', bytes.length, bytes),
               );
