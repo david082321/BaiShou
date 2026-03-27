@@ -12,37 +12,41 @@ Widget buildAssistantAvatar(
   ColorScheme colorScheme, {
   double size = 40,
 }) {
-  final avatarImage = _getAvatarImage(assistant.avatarPath);
+  final path = assistant.avatarPath;
+  final emoji = assistant.emoji;
 
-  return Container(
+  Widget fallbackWidget = Container(
     width: size,
     height: size,
     decoration: BoxDecoration(
       borderRadius: BorderRadius.circular(size * 0.28),
       color: colorScheme.surfaceContainerHighest,
-      image: avatarImage != null
-          ? DecorationImage(image: avatarImage, fit: BoxFit.cover)
-          : null,
     ),
-    child: avatarImage == null
-        ? Center(
-            child: assistant.emoji != null && assistant.emoji!.isNotEmpty
-                ? Text(assistant.emoji!, style: TextStyle(fontSize: size * 0.5))
-                : Icon(
-                    Icons.auto_awesome_rounded,
-                    size: size * 0.45,
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-          )
-        : null,
+    child: Center(
+      child: emoji != null && emoji.isNotEmpty
+          ? Text(emoji, style: TextStyle(fontSize: size * 0.5))
+          : Icon(
+              Icons.auto_awesome_rounded,
+              size: size * 0.45,
+              color: colorScheme.onSurfaceVariant,
+            ),
+    ),
   );
-}
 
-ImageProvider? _getAvatarImage(String? path) {
-  if (path == null || path.isEmpty) return null;
-  final file = File(path);
-  if (file.existsSync()) return FileImage(file);
-  return null;
+  if (path != null && path.isNotEmpty && File(path).existsSync()) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(size * 0.28),
+      child: Image.file(
+        File(path),
+        width: size,
+        height: size,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => fallbackWidget,
+      ),
+    );
+  }
+
+  return fallbackWidget;
 }
 
 class PickerTag extends StatelessWidget {
