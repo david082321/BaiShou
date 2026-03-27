@@ -221,8 +221,34 @@ class AgentDatabase extends _$AgentDatabase {
         'sqlite-vector: vector index initialized (dim=$dimension, distance=COSINE)',
       );
     } catch (e) {
-      // 索引已存在或扩展未加载时忽略
-      debugPrint('sqlite-vector: vector_init skipped: $e');
+      final err = e.toString();
+      // 如果报错是因为原表维度与现请求配置（新模型）的维度不一致，导致向量引擎崩溃
+      // 此时旧向量对新模型不仅无用甚至会造成库崩盘，这里对其执行清理重置
+      if (err.contains('Inconsistent vector dimension')) {
+        debugPrint(
+          'sqlite-vector: Dimension mismatch detected ($dimension). Recreating memory_embeddings table...',
+        );
+        try {
+          // 摧毁原本的低维/高维不匹配的废弃向量表
+          await customStatement('DROP TABLE IF EXISTS memory_embeddings');
+          // 重新根据 Schema 创建该表
+          await _createEmbeddingTable();
+          // 再次安全地进行对应新维度的向量挂载
+          await customStatement(
+            "SELECT vector_init('memory_embeddings', 'embedding', "
+            "'type=FLOAT32,dimension=$dimension,distance=COSINE')",
+          );
+          debugPrint(
+            'sqlite-vector: vector index RE-initialized successfully (dim=$dimension).',
+          );
+          return;
+        } catch (e2) {
+          debugPrint('sqlite-vector: failed to recreate index: $e2');
+        }
+      }
+
+      // 索引已存在或扩展未加载时抛出通常错误（如 vector_init 不存在等）可忽略
+      debugPrint('sqlite-vector: vector_init skipped: $err');
     }
   }
 
