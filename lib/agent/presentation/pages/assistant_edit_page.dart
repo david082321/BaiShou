@@ -321,8 +321,6 @@ class _AssistantEditPageState extends ConsumerState<AssistantEditPage> {
             value: _contextWindow.clamp(2.0, 100.0),
             min: 2,
             max: 100,
-            divisions: 49,
-            label: '${_contextWindow.round()}',
             onChanged: (v) => setState(() => _contextWindow = v),
           ),
         Text(
@@ -471,8 +469,6 @@ class _AssistantEditPageState extends ConsumerState<AssistantEditPage> {
             value: _compressThreshold.clamp(10000.0, 1000000.0),
             min: 10000,
             max: 1000000,
-            divisions: 99,
-            label: _formatTokens(_compressThreshold.round()),
             onChanged: (v) => setState(() {
               _compressThreshold = v;
             }),
@@ -506,8 +502,6 @@ class _AssistantEditPageState extends ConsumerState<AssistantEditPage> {
             value: _compressKeepTurns.clamp(1.0, 10.0),
             min: 1,
             max: 10,
-            divisions: 9,
-            label: '${_compressKeepTurns.round()}',
             onChanged: (v) => setState(() {
               _compressKeepTurns = v;
             }),

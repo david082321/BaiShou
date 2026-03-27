@@ -156,7 +156,6 @@ class _RecallBottomSheetState extends ConsumerState<RecallBottomSheet> {
             value: _months.toDouble(),
             min: 1,
             max: 60,
-            divisions: 59,
             activeColor: AppTheme.primary,
             onChanged: (v) {
               final newMonths = v.round();
