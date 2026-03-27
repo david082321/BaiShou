@@ -194,6 +194,42 @@ class ExportService {
       's3_bucket': _dataSyncConfig.s3Bucket,
       's3_region': _dataSyncConfig.s3Region,
       's3_path': _dataSyncConfig.s3Path,
+
+      // 全局 Embedding 配置
+      'global_embedding_provider_id': _apiConfig.globalEmbeddingProviderId,
+      'global_embedding_model_id': _apiConfig.globalEmbeddingModelId,
+      'global_embedding_dimension': _apiConfig.globalEmbeddingDimension,
+
+      // AI 伙伴环境偏好
+      'monthly_summary_source': _apiConfig.monthlySummarySource,
+      'agent_context_window_size': _apiConfig.agentContextWindowSize,
+      'companion_compress_tokens': _apiConfig.companionCompressTokens,
+      'companion_truncate_tokens': _apiConfig.companionTruncateTokens,
+      'agent_persona': _apiConfig.agentPersona,
+      'agent_guidelines': _apiConfig.agentGuidelines,
+
+      // 工具及 RAG 体系配置
+      'disabled_tool_ids': _apiConfig.disabledToolIds,
+      'rag_global_enabled': _apiConfig.ragEnabled,
+      'rag_top_k': _apiConfig.ragTopK,
+      'rag_similarity_threshold': _apiConfig.ragSimilarityThreshold,
+      'summary_prompt_instructions': _apiConfig.summaryInstructions ?? '',
+      'all_summary_instructions': _apiConfig.exportAllSummaryInstructions(),
+      'all_tool_configs': _apiConfig.exportAllToolConfigs(),
+
+      // MCP Server 配置
+      'mcp_server_enabled': _apiConfig.mcpEnabled,
+      'mcp_server_port': _apiConfig.mcpPort,
+
+      // 实时网络搜索配置
+      'web_search_engine': _apiConfig.webSearchEngine,
+      'web_search_max_results': _apiConfig.webSearchMaxResults,
+      'web_search_rag_enabled': _apiConfig.webSearchRagEnabled,
+      'tavily_api_key': _apiConfig.tavilyApiKey,
+      'web_search_rag_max_chunks': _apiConfig.webSearchRagMaxChunks,
+      'web_search_rag_chunks_per_source':
+          _apiConfig.webSearchRagChunksPerSource,
+      'web_search_plain_snippet_length': _apiConfig.webSearchPlainSnippetLength,
     };
 
     // 头像：如果存在则以 Base64 编码写入

@@ -598,6 +598,54 @@ class ApiConfigService extends ChangeNotifier {
     return getToolConfig(toolId)[key];
   }
 
+  /// 导出所有自定义类型的总结指令
+  Map<String, String> exportAllSummaryInstructions() {
+    final result = <String, String>{};
+    for (final key in _prefs.getKeys()) {
+      if (key.startsWith('${_keySummaryInstructions}_')) {
+        final type = key.substring('${_keySummaryInstructions}_'.length);
+        result[type] = _prefs.getString(key)!;
+      }
+    }
+    return result;
+  }
+
+  /// 批量导入自定义类型的总结指令
+  Future<void> importAllSummaryInstructions(
+    Map<String, String> instructions,
+  ) async {
+    for (final entry in instructions.entries) {
+      await _prefs.setString(
+        '${_keySummaryInstructions}_${entry.key}',
+        entry.value,
+      );
+    }
+  }
+
+  /// 导出所有工具的独立配置
+  Map<String, dynamic> exportAllToolConfigs() {
+    final result = <String, dynamic>{};
+    for (final key in _prefs.getKeys()) {
+      if (key.startsWith(_keyToolConfigPrefix)) {
+        final toolId = key.substring(_keyToolConfigPrefix.length);
+        try {
+          result[toolId] = json.decode(_prefs.getString(key)!);
+        } catch (_) {}
+      }
+    }
+    return result;
+  }
+
+  /// 批量导入所有工具的独立配置
+  Future<void> importAllToolConfigs(Map<String, dynamic> configs) async {
+    for (final entry in configs.entries) {
+      await _prefs.setString(
+        '$_keyToolConfigPrefix${entry.key}',
+        json.encode(entry.value),
+      );
+    }
+  }
+
   /// 获取所有可用的模型列表，返回一个 Map 列表，方便 UI 渲染下拉框
   /// 每个 Map 包含 provider_id, provider_name, model_id
   List<Map<String, String>> getAllAvailableModels() {

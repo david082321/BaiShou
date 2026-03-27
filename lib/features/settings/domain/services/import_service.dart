@@ -674,7 +674,129 @@ class ImportService {
       }
     }
 
-    // --- 恢复数据同步服务配置 (WebDAV, S3 等) ---
+    // --- 恢复全局 Embedding 配置 ---
+    final globalEmbeddingProviderId =
+        config['global_embedding_provider_id'] as String?;
+    final globalEmbeddingModelId =
+        config['global_embedding_model_id'] as String?;
+    if (globalEmbeddingProviderId != null && globalEmbeddingModelId != null) {
+      await _apiConfig.setGlobalEmbeddingModel(
+        globalEmbeddingProviderId,
+        globalEmbeddingModelId,
+      );
+      final globalEmbeddingDimension =
+          config['global_embedding_dimension'] as int?;
+      if (globalEmbeddingDimension != null) {
+        await _apiConfig.setGlobalEmbeddingDimension(globalEmbeddingDimension);
+      }
+    }
+
+    // --- 恢复 AI 伙伴环境偏好 ---
+    if (config['monthly_summary_source'] != null) {
+      await _apiConfig.setMonthlySummarySource(
+        config['monthly_summary_source'] as String,
+      );
+    }
+    if (config['agent_context_window_size'] != null) {
+      await _apiConfig.setAgentContextWindowSize(
+        config['agent_context_window_size'] as int,
+      );
+    }
+    if (config['companion_compress_tokens'] != null) {
+      await _apiConfig.setCompanionCompressTokens(
+        config['companion_compress_tokens'] as int,
+      );
+    }
+    if (config['companion_truncate_tokens'] != null) {
+      await _apiConfig.setCompanionTruncateTokens(
+        config['companion_truncate_tokens'] as int,
+      );
+    }
+    if (config['agent_persona'] != null) {
+      await _apiConfig.setAgentPersona(config['agent_persona'] as String);
+    }
+    if (config['agent_guidelines'] != null) {
+      await _apiConfig.setAgentGuidelines(config['agent_guidelines'] as String);
+    }
+
+    // --- 恢复工具及 RAG 体系配置 ---
+    if (config['disabled_tool_ids'] != null) {
+      await _apiConfig.setDisabledToolIds(
+        (config['disabled_tool_ids'] as List<dynamic>).cast<String>(),
+      );
+    }
+    if (config['rag_global_enabled'] != null) {
+      await _apiConfig.setRagEnabled(config['rag_global_enabled'] as bool);
+    }
+    if (config['rag_top_k'] != null) {
+      _apiConfig.setRagTopK(config['rag_top_k'] as int);
+    }
+    if (config['rag_similarity_threshold'] != null) {
+      _apiConfig.setRagSimilarityThreshold(
+        (config['rag_similarity_threshold'] as num).toDouble(),
+      );
+    }
+    if (config['summary_prompt_instructions'] != null &&
+        (config['summary_prompt_instructions'] as String).isNotEmpty) {
+      // 兼容老版本单字段结构（若已转换为空则忽略）
+      await _apiConfig.setSummaryInstructions(
+        'legacy',
+        config['summary_prompt_instructions'] as String,
+      );
+    }
+    if (config['all_summary_instructions'] != null) {
+      await _apiConfig.importAllSummaryInstructions(
+        Map<String, String>.from(config['all_summary_instructions'] as Map),
+      );
+    }
+    if (config['all_tool_configs'] != null) {
+      await _apiConfig.importAllToolConfigs(
+        Map<String, dynamic>.from(config['all_tool_configs'] as Map),
+      );
+    }
+
+    // --- 恢复 MCP Server 配置 ---
+    if (config['mcp_server_enabled'] != null) {
+      await _apiConfig.setMcpEnabled(config['mcp_server_enabled'] as bool);
+    }
+    if (config['mcp_server_port'] != null) {
+      await _apiConfig.setMcpPort(config['mcp_server_port'] as int);
+    }
+
+    // --- 恢复实时网络搜索配置 ---
+    if (config['web_search_engine'] != null) {
+      await _apiConfig.setWebSearchEngine(
+        config['web_search_engine'] as String,
+      );
+    }
+    if (config['web_search_max_results'] != null) {
+      await _apiConfig.setWebSearchMaxResults(
+        config['web_search_max_results'] as int,
+      );
+    }
+    if (config['web_search_rag_enabled'] != null) {
+      await _apiConfig.setWebSearchRagEnabled(
+        config['web_search_rag_enabled'] as bool,
+      );
+    }
+    if (config['tavily_api_key'] != null) {
+      await _apiConfig.setTavilyApiKey(config['tavily_api_key'] as String);
+    }
+    if (config['web_search_rag_max_chunks'] != null) {
+      await _apiConfig.setWebSearchRagMaxChunks(
+        config['web_search_rag_max_chunks'] as int,
+      );
+    }
+    if (config['web_search_rag_chunks_per_source'] != null) {
+      await _apiConfig.setWebSearchRagChunksPerSource(
+        config['web_search_rag_chunks_per_source'] as int,
+      );
+    }
+    if (config['web_search_plain_snippet_length'] != null) {
+      await _apiConfig.setWebSearchPlainSnippetLength(
+        config['web_search_plain_snippet_length'] as int,
+      );
+    }
     final syncTargetIndex = config['sync_target'] as int?;
     if (syncTargetIndex != null &&
         syncTargetIndex >= 0 &&
