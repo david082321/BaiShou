@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
-import 'package:baishou/agent/models/ai_provider_model.dart';
 import 'package:baishou/agent/clients/base_ai_client.dart';
 import 'package:baishou/agent/models/chat_message.dart';
 import 'package:baishou/agent/models/stream_event.dart';
@@ -157,7 +156,6 @@ class OpenAiClient extends BaseAiClient {
     required String modelId,
     List<ToolDefinition>? tools,
     double? temperature,
-    bool enableWebSearch = false,
   }) async* {
     final uri = Uri.parse('$baseUrl/chat/completions');
 
@@ -183,24 +181,6 @@ class OpenAiClient extends BaseAiClient {
           .toList();
     }
 
-    // 注入提供商原生内置搜索参数
-    if (enableWebSearch) {
-      if (provider.type == ProviderType.kimi) {
-        final toolsList = (body['tools'] as List?) ?? [];
-        toolsList.add({
-          'type': 'builtin_function',
-          'function': {'name': '\$web_search'},
-        });
-        body['tools'] = toolsList;
-      } else if (provider.type == ProviderType.dashscope) {
-        body['enable_search'] = true; // 阿里云通义千问兼容参数
-      } else {
-        // 部分兼容的外部供应端 (如 SiliconFlow) หรือ标准
-        final toolsList = (body['tools'] as List?) ?? [];
-        toolsList.add({'type': 'web_search_preview'});
-        body['tools'] = toolsList;
-      }
-    }
 
     if (temperature != null) {
       body['temperature'] = temperature;

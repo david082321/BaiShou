@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
-import 'package:baishou/agent/models/ai_provider_model.dart';
 import 'package:baishou/agent/clients/base_ai_client.dart';
 import 'package:baishou/agent/models/chat_message.dart';
 import 'package:baishou/agent/models/stream_event.dart';
@@ -129,7 +128,6 @@ class AnthropicClient extends BaseAiClient {
     required String modelId,
     List<ToolDefinition>? tools,
     double? temperature,
-    bool enableWebSearch = false,
   }) async* {
     final uri = Uri.parse('$baseUrl/messages');
 
@@ -158,16 +156,6 @@ class AnthropicClient extends BaseAiClient {
           .toList();
     }
 
-    // 注入 Anthropic 内置搜索工具
-    if (enableWebSearch) {
-      final toolsList = (body['tools'] as List?) ?? [];
-      toolsList.add({
-        'type': 'web_search',
-        'name': 'web_search',
-        'max_uses': 5,
-      });
-      body['tools'] = toolsList;
-    }
 
     if (temperature != null) {
       body['temperature'] = temperature;

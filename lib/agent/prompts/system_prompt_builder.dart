@@ -18,7 +18,6 @@ class SystemPromptBuilder {
     String? userProfileBlock,
     required String vaultName,
     required ToolRegistry tools,
-    bool enableBuiltinSearch = false,
   }) {
     final buffer = StringBuffer();
 
@@ -67,15 +66,6 @@ class SystemPromptBuilder {
         );
         buffer.writeln();
       }
-    }
-
-    if (enableBuiltinSearch) {
-      buffer.writeln(
-        '- **Built-in Web Search**: You have access to a native web search tool (e.g. `\$web_search` or `web_search_preview`). '
-        'If the user asks for real-time information, weather, news, or unknown facts, ALWAYS use your built-in search capability to find the answer. '
-        'Do NOT claim that your search tool is closed or disabled. It is enabled and ready to use.'
-      );
-      buffer.writeln();
     }
 
     // 行为准则（伙伴模式下可能为 null）

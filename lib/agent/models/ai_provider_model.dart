@@ -22,20 +22,12 @@ enum WebSearchMode {
   /// 关闭搜索
   off,
 
-  /// 使用 Provider 内置搜索（OpenAI/Anthropic/Gemini 原生支持）
-  builtin,
-
   /// 使用外部搜索工具（Tavily / DuckDuckGo 等，所有模型可用）
   tool,
 }
 
 /// 根据 ProviderType 返回默认的搜索模式
-WebSearchMode defaultWebSearchMode(ProviderType type) => switch (type) {
-  ProviderType.openai => WebSearchMode.builtin,
-  ProviderType.anthropic => WebSearchMode.builtin,
-  ProviderType.gemini => WebSearchMode.builtin,
-  _ => WebSearchMode.tool,
-};
+WebSearchMode defaultWebSearchMode(ProviderType type) => WebSearchMode.tool;
 
 class AiProviderModel {
   final String id;

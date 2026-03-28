@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
-import 'package:baishou/agent/models/ai_provider_model.dart';
 import 'package:baishou/agent/clients/base_ai_client.dart';
 import 'package:baishou/agent/models/chat_message.dart';
 import 'package:baishou/agent/models/stream_event.dart';
@@ -178,7 +177,6 @@ class GeminiClient extends BaseAiClient {
     required String modelId,
     List<ToolDefinition>? tools,
     double? temperature,
-    bool enableWebSearch = false,
   }) async* {
     final uri = Uri.parse(
       '$baseUrl/models/$modelId:streamGenerateContent?alt=sse&key=${provider.apiKey}',
@@ -214,20 +212,6 @@ class GeminiClient extends BaseAiClient {
       ];
     }
 
-    // 注入 Gemini Google Search grounding 工具
-    if (enableWebSearch) {
-      final toolsList = (body['tools'] as List?) ?? <Map<String, dynamic>>[];
-      toolsList.add(<String, dynamic>{'google_search': <String, dynamic>{}});
-      body['tools'] = toolsList;
-
-      // Gemini 要求同时使用内置工具（Google Search）和自定义函数调用时，
-      if (tools != null && tools.isNotEmpty) {
-        body['tool_config'] = <String, dynamic>{
-          'function_calling_config': <String, dynamic>{'mode': 'AUTO'},
-          'include_server_side_tool_invocations': true,
-        };
-      }
-    }
 
     final config = <String, dynamic>{'maxOutputTokens': 8192};
     if (temperature != null) config['temperature'] = temperature;

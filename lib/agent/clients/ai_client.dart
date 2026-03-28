@@ -23,7 +23,6 @@ abstract class AiClient {
     required String modelId,
     List<ToolDefinition>? tools,
     double? temperature,
-    bool enableWebSearch = false,
   });
 
   /// 生成文本向量嵌入

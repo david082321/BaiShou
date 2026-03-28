@@ -148,10 +148,6 @@ class _ChatInputBarState extends ConsumerState<ChatInputBar> {
         Icons.block_rounded,
         t.settings.web_search_mode_off,
       ),
-      WebSearchMode.builtin => (
-        Icons.language_rounded,
-        t.settings.web_search_mode_builtin,
-      ),
       WebSearchMode.tool => (
         Icons.travel_explore_rounded,
         t.settings.web_search_mode_tool,
@@ -163,10 +159,9 @@ class _ChatInputBarState extends ConsumerState<ChatInputBar> {
       label: label,
       isActive: mode != WebSearchMode.off,
       onTap: () async {
-        // 循环切换: off -> builtin -> tool -> off
+        // 循环切换: off -> tool -> off
         final nextMode = switch (mode) {
-          WebSearchMode.off => WebSearchMode.builtin,
-          WebSearchMode.builtin => WebSearchMode.tool,
+          WebSearchMode.off => WebSearchMode.tool,
           WebSearchMode.tool => WebSearchMode.off,
         };
         if (provider == null) return;
