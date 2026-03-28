@@ -2,6 +2,9 @@ import 'package:baishou/app.dart';
 import 'package:baishou/core/widgets/app_restart_guard.dart';
 import 'package:baishou/core/providers/shared_preferences_provider.dart';
 import 'package:baishou/core/services/global_hotkey_service.dart';
+import 'package:baishou/core/database/app_database.dart';
+import 'package:baishou/agent/database/agent_database.dart';
+import 'package:baishou/features/index/data/shadow_index_database.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,6 +14,9 @@ import 'package:window_manager/window_manager.dart';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:baishou/i18n/strings.g.dart';
+
+/// 全局 ProviderContainer 引用，供退出时关闭数据库使用
+ProviderContainer? _globalContainer;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -46,7 +52,7 @@ void main() async {
       await windowManager.focus();
     });
 
-    // 拦截窗口关闭事件，确保优雅退出（先清理 SQLite 等原生资源再销毁进程）
+    // 拦截窗口关闭事件，确保优雅退出
     await windowManager.setPreventClose(true);
     windowManager.addListener(_GracefulExitListener());
 
@@ -55,11 +61,17 @@ void main() async {
     await GlobalHotkeyService.instance.init(prefs);
   }
 
+  // 创建 ProviderContainer 并保存全局引用
+  final container = ProviderContainer(
+    overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+  );
+  _globalContainer = container;
+
   runApp(
     AppRestartGuard(
       child: TranslationProvider(
-        child: ProviderScope(
-          overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+        child: UncontrolledProviderScope(
+          container: container,
           child: const BaiShouApp(),
         ),
       ),
@@ -69,9 +81,9 @@ void main() async {
 
 /// 优雅退出监听器
 ///
-/// 拦截 windowManager.close()，在 Dart 侧先完成所有原生资源的清理，
+/// 拦截 windowManager.close()，在 Dart 侧按序关闭所有原生数据库连接，
 /// 再调用 destroy() 真正销毁进程。
-/// 这能彻底规避 Riverpod dispose → SQLite native handle use-after-free 的崩溃。
+/// 这能彻底消除 Riverpod dispose → SQLite native handle use-after-free 的崩溃。
 class _GracefulExitListener extends WindowListener {
   bool _isExiting = false;
 
@@ -80,24 +92,42 @@ class _GracefulExitListener extends WindowListener {
     if (_isExiting) return;
     _isExiting = true;
 
-    debugPrint('GracefulExit: Intercepted close, hiding window...');
+    debugPrint('GracefulExit: Intercepted close, shutting down gracefully...');
 
-    // 1. 立即隐藏窗口 —— 即使后续析构阶段 native 层崩溃弹出错误框，用户也看不到
-    try {
-      await windowManager.setSkipTaskbar(true);
-      await windowManager.hide();
-    } catch (_) {}
-
-    // 2. 注销全局快捷键
+    // ── Step 1: 注销全局快捷键 ──
     try {
       await hotKeyManager.unregisterAll();
       GlobalHotkeyService.instance.dispose();
     } catch (_) {}
 
-    // 3. 极短的排空窗口，让飞行中的异步操作落地
-    await Future.delayed(const Duration(milliseconds: 50));
+    // ── Step 2: 按序关闭全部数据库连接（消除 use-after-free 根因）──
+    final container = _globalContainer;
+    if (container != null) {
+      try {
+        // 2a. 关闭影子索引库（sqlite3 直连，同步 close）
+        container.read(shadowIndexDatabaseProvider.notifier).close();
+        debugPrint('GracefulExit: ShadowIndexDatabase closed.');
+      } catch (_) {}
 
-    // 4. 直接终止进程，由 OS 回收所有资源
-    exit(0);
+      try {
+        // 2b. 关闭主数据库（Drift NativeDatabase，后台 Isolate）
+        await closeAppDatabase();
+        debugPrint('GracefulExit: AppDatabase closed.');
+      } catch (_) {}
+
+      try {
+        // 2c. 关闭全部 Agent 数据库（Drift NativeDatabase + sqlite-vec）
+        await closeAllAgentDatabases();
+        debugPrint('GracefulExit: All AgentDatabases closed.');
+      } catch (_) {}
+    }
+
+    // ── Step 3: 排空残余微任务 ──
+    await Future.delayed(const Duration(milliseconds: 30));
+
+    debugPrint('GracefulExit: All resources released, destroying window.');
+
+    // ── Step 4: 正常销毁窗口（此时所有 native handle 已关闭，不会崩溃）──
+    await windowManager.destroy();
   }
 }
