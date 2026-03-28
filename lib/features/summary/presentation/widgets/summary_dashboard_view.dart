@@ -1,4 +1,5 @@
 import 'package:baishou/core/database/tables/summaries.dart';
+import 'package:baishou/core/storage/vault_service.dart';
 import 'package:baishou/features/diary/data/repositories/diary_repository_impl.dart';
 import 'package:baishou/core/theme/app_theme.dart';
 import 'package:baishou/core/widgets/app_toast.dart';
@@ -189,6 +190,7 @@ class _SummaryDashboardViewState extends ConsumerState<SummaryDashboardView>
   @override
   Widget build(BuildContext context) {
     final refreshVersion = ref.watch(dataRefreshProvider);
+    final activeVaultName = ref.watch(activeVaultNameProvider);
 
     // Vault 切换 → appDatabaseProvider 重建 → summaryRepositoryProvider 跟着重建
     // → listen 感知到变化 → 触发 _loadAllData (内部会等 fullScanArchives 完成再拉取)
@@ -286,6 +288,7 @@ class _SummaryDashboardViewState extends ConsumerState<SummaryDashboardView>
             children: [
               _buildPanelView(theme),
               DashboardGallerySection(
+                key: ValueKey('gallery_${activeVaultName}_$refreshVersion'),
                 galleryTabController: _galleryTabController,
                 selectedSummary: _selectedSummary,
                 onSelect: (s) => setState(() => _selectedSummary = s),
