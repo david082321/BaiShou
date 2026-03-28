@@ -224,7 +224,7 @@ class GeminiClient extends BaseAiClient {
     http.StreamedResponse response;
     try {
       final client = http.Client();
-      response = await client.send(request);
+      response = await client.send(request).timeout(const Duration(seconds: 45));
     } catch (e, st) {
       yield StreamError(e, st);
       return;

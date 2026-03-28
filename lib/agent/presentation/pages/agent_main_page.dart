@@ -58,7 +58,8 @@ class _AgentMainPageState extends ConsumerState<AgentMainPage> {
     setState(() => _isLoading = true);
     try {
       final manager = ref.read(sessionManagerProvider);
-      final vaultName = ref.read(vaultServiceProvider).value?.name ?? 'Personal';
+      final vaultInfo = await ref.read(vaultServiceProvider.future);
+      final vaultName = vaultInfo?.name ?? 'Personal';
 
       await _sessionsSubscription?.cancel();
       _sessionsSubscription = manager
