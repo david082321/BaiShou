@@ -110,6 +110,19 @@ class _LanTransferPageState extends ConsumerState<LanTransferPage>
                 ),
                 onPressed: () => Navigator.of(context).pop(),
               ),
+        actions: [
+          IconButton(
+            icon: Icon(
+              Icons.refresh,
+              color: isDark ? Colors.grey[300] : Colors.grey[800],
+            ),
+            tooltip: t.common.refresh,
+            onPressed: () {
+              final notifier = ref.read(lanTransferServiceProvider.notifier);
+              notifier.stopDualMode().then((_) => notifier.startDualMode());
+            },
+          ),
+        ],
         title: Text(
           t.lan_transfer.title,
           style: TextStyle(

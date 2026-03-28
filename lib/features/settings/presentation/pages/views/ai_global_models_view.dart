@@ -117,88 +117,20 @@ class _AiGlobalModelsViewState extends ConsumerState<AiGlobalModelsView> {
     return '$providerId:$modelId';
   }
 
-  /// 将当前的全局配置保存到持久化存储
-  Future<void> _saveGlobalDefaults() async {
-    final service = ref.read(apiConfigServiceProvider);
-
-    // 解析并保存对话模型
-    if (_globalDialogueModel != null && _globalDialogueModel!.isNotEmpty) {
-      final parts = _globalDialogueModel!.split(':');
+  /// 保存选择的模型
+  Future<void> _updateModel(
+    String? val,
+    Future<void> Function(String, String) saver,
+  ) async {
+    if (val != null && val.isNotEmpty) {
+      final parts = val.split(':');
       if (parts.length >= 2) {
-        await service.setGlobalDialogueModel(
-          parts[0],
-          parts.sublist(1).join(':'),
-        );
-      }
-    }
-
-    // 解析并保存命名模型
-    if (_globalNamingModel != null && _globalNamingModel!.isNotEmpty) {
-      final parts = _globalNamingModel!.split(':');
-      if (parts.length >= 2) {
-        await service.setGlobalNamingModel(
-          parts[0],
-          parts.sublist(1).join(':'),
-        );
-      }
-    }
-
-    // 解析并保存总结模型
-    if (_globalSummaryModel != null && _globalSummaryModel!.isNotEmpty) {
-      final parts = _globalSummaryModel!.split(':');
-      if (parts.length >= 2) {
-        await service.setGlobalSummaryModel(
-          parts[0],
-          parts.sublist(1).join(':'),
-        );
-      }
-    }
-
-    // 解析并保存 Embedding 模型（检测模型是否变化）
-    if (_globalEmbeddingModel != null && _globalEmbeddingModel!.isNotEmpty) {
-      final parts = _globalEmbeddingModel!.split(':');
-      if (parts.length >= 2) {
-        final newProviderId = parts[0];
-        final newModelId = parts.sublist(1).join(':');
-        final oldModelId = service.globalEmbeddingModelId;
-
-        await service.setGlobalEmbeddingModel(newProviderId, newModelId);
-
-        // 模型变化且旧模型非空 → 询问是否重新嵌入
-        if (oldModelId.isNotEmpty && oldModelId != newModelId) {
-          _promptMigration(service);
+        await saver(parts[0], parts.sublist(1).join(':'));
+        if (mounted) {
+          AppToast.showSuccess(context, t.ai_config.global_models_updated);
         }
       }
     }
-
-    if (mounted) {
-      AppToast.showSuccess(context, t.ai_config.global_models_updated);
-    }
-  }
-
-  /// 弹出确认框，询问是否重新嵌入全量向量
-  void _promptMigration(ApiConfigService service) {
-    if (!mounted) return;
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(t.agent.rag.migration_model_changed_title),
-        content: Text(t.agent.rag.migration_model_changed_content),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: Text(t.agent.rag.migration_later),
-          ),
-          FilledButton(
-            onPressed: () {
-              Navigator.of(ctx).pop();
-              RagMemoryDialogs.startMigration(context, ref);
-            },
-            child: Text(t.agent.rag.migration_start_now),
-          ),
-        ],
-      ),
-    );
   }
 
   /// 构建模型选择区块
@@ -278,25 +210,12 @@ class _AiGlobalModelsViewState extends ConsumerState<AiGlobalModelsView> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Wrap(
-              spacing: 16,
-              runSpacing: 12,
-              alignment: WrapAlignment.spaceBetween,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                Text(
-                  t.ai_config.global_models_title,
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                FilledButton.tonal(
-                  onPressed: _saveGlobalDefaults,
-                  child: Text(t.ai_config.save_global_button),
-                ),
-              ],
+            Text(
+              t.ai_config.global_models_title,
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
             ),
-
             const SizedBox(height: 24),
 
             _buildDefaultModelSection(
@@ -305,8 +224,9 @@ class _AiGlobalModelsViewState extends ConsumerState<AiGlobalModelsView> {
               description: t.ai_config.summary_model_desc,
               value: _globalSummaryModel,
               items: nonEmbeddingModels,
-              onChanged: (val) {
+              onChanged: (val) async {
                 setState(() => _globalSummaryModel = val);
+                await _updateModel(val, ref.read(apiConfigServiceProvider).setGlobalSummaryModel);
               },
             ),
 
@@ -318,8 +238,9 @@ class _AiGlobalModelsViewState extends ConsumerState<AiGlobalModelsView> {
               description: t.ai_config.dialogue_model_desc,
               value: _globalDialogueModel,
               items: nonEmbeddingModels,
-              onChanged: (val) {
+              onChanged: (val) async {
                 setState(() => _globalDialogueModel = val);
+                await _updateModel(val, ref.read(apiConfigServiceProvider).setGlobalDialogueModel);
               },
             ),
 
@@ -331,8 +252,9 @@ class _AiGlobalModelsViewState extends ConsumerState<AiGlobalModelsView> {
               description: t.ai_config.naming_model_desc,
               value: _globalNamingModel,
               items: nonEmbeddingModels,
-              onChanged: (val) {
+              onChanged: (val) async {
                 setState(() => _globalNamingModel = val);
+                await _updateModel(val, ref.read(apiConfigServiceProvider).setGlobalNamingModel);
               },
             ),
 

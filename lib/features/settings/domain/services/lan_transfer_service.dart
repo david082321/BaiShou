@@ -312,17 +312,27 @@ class LanTransferNotifier extends Notifier<LanTransferState> {
       _discovery = BonsoirDiscovery(type: _serviceType);
       await _discovery!.initialize();
 
+      final Set<String> _resolvingServices = {};
+
       _discovery!.eventStream!.listen((event) async {
         if (event is BonsoirDiscoveryServiceFoundEvent) {
           // 发现服务，尝试解析。
-          // 优化：如果该 Service 已经在列表中且属性完整，则跳过解析，减少 Native 线程通信压力。
+          final serviceName = event.service.name;
           final alreadyDiscovered = state.discoveredServices.any(
-            (s) => s.name == event.service.name,
+            (s) => s.name == serviceName,
           );
-          if (!alreadyDiscovered) {
-            await _discovery!.serviceResolver.resolveService(event.service);
+          
+          // 加锁防止同一个未识别的服务被并发 resolve 多次（Windows Bonsoir 致命崩溃点）
+          if (!alreadyDiscovered && !_resolvingServices.contains(serviceName)) {
+            _resolvingServices.add(serviceName);
+            try {
+              await _discovery!.serviceResolver.resolveService(event.service);
+            } catch (_) {
+              _resolvingServices.remove(serviceName); // allow retry
+            }
           }
         } else if (event is BonsoirDiscoveryServiceResolvedEvent) {
+          _resolvingServices.remove(event.service.name);
           // 解析成功，获取设备的 IP 地址
           final service = event.service;
           final currentIp = service.attributes['ip'];
