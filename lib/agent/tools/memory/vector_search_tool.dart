@@ -69,7 +69,7 @@ class VectorSearchTool extends AgentTool {
     // 从 userConfig 读取用户配置的相似度阈值，AI 也可通过参数覆盖
     final configThreshold =
         (context.userConfig['rag_similarity_threshold'] as num?)?.toDouble() ??
-        0.3;
+        0.4;
     final minScore =
         (arguments['min_score'] as num?)?.toDouble() ?? configThreshold;
 
@@ -77,9 +77,11 @@ class VectorSearchTool extends AgentTool {
       return ToolResult(output: '请提供搜索查询内容。');
     }
 
-    // 优先使用用户配置的 topK，工具自身的 max_results 作为备选
-    final configTopK = context.userConfig['rag_top_k'] as int? ?? 20;
-    final maxResults = context.userConfig['max_results'] as int? ?? configTopK;
+    // 优先使用 RAG 管理页面的全局 topK，它是用户的主观设定
+    // per-tool 的 max_results 仅在全局未配置时作为后备
+    final configTopK = context.userConfig['rag_top_k'] as int?;
+    final perToolMax = context.userConfig['max_results'] as int?;
+    final maxResults = configTopK ?? perToolMax ?? 20;
 
     try {
       // 通过 ToolContext 获取 fresh EmbeddingService
@@ -95,6 +97,9 @@ class VectorSearchTool extends AgentTool {
       List<SearchResult> results;
       // 搜索流水线摘要（用于 UI 展示）
       final pipeline = StringBuffer();
+      pipeline.writeln(
+        '⚙️ 参数: topK=$maxResults, 阈值=${minScore.toStringAsFixed(2)}, 模式=$mode',
+      );
 
       if (mode == 'hybrid') {
         // ── 混合搜索：原生向量 KNN + FTS5 → RRF 融合 ──
