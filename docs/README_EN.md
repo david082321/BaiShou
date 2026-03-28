@@ -20,14 +20,14 @@ A locally-run, privacy-focused diary and life-recording application with AI-assi
 #### Key Features
 
 - **🔒 Data Privacy**: Built with Flutter + SQLite. All data is stored locally as Markdown files, never uploaded to any server.
-- **🤖 AI Partner System**:
+- **✨ AI Partner System**:
   - Create multiple AI partners, each with their own personality, system prompt, and model configuration.
   - Partners have "memory" — they use RAG semantic search across your diaries and vector memory store to truly understand you.
   - Supports Gemini, OpenAI (DeepSeek/ChatGPT), Anthropic, and more.
 - **📝 Smart Diary Tools**:
   - Agent can invoke diary tools — write diaries for you, search historical records.
   - **One-click memory summarization**: AI reads diaries to generate weekly reports, reads weekly reports to generate monthly reports... building a pyramid of memories.
-- **🧠 RAG Semantic Memory**:
+- **🪴 RAG Semantic Memory**:
   - sqlite-vec vector engine + FTS5 full-text search + RRF reranking fusion search.
   - Automatic diary embedding; search results automatically stored in RAG.
   - Agent proactively stores important conversation information to the memory store.

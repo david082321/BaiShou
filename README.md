@@ -20,14 +20,14 @@
 #### 核心特性
 
 - **🔒 数据私有**：基于 Flutter + SQLite 开发，所有数据存储在本地 Markdown 文件中，不上传任何服务器。
-- **🤖 AI 伙伴系统**：
+- **✨ AI 伙伴系统**：
   - 创建多个 AI 伙伴，各自拥有独立人格、系统提示词和模型配置。
   - 伙伴拥有"记忆"——通过 RAG 语义搜索你的日记和向量记忆库，真正读懂你。
   - 支持 Gemini、OpenAI（DeepSeek/ChatGPT）、Anthropic 等主流模型。
 - **📝 智能日记工具**：
   - Agent 可调用日记读写工具——直接帮你写日记、搜索历史记录。
   - **一键记忆总结**：AI 阅读日记生成周记，阅读周记生成月报……构建记忆的金字塔。
-- **🧠 RAG 语义记忆**：
+- **🪴 RAG 语义记忆**：
   - sqlite-vec 向量引擎 + FTS5 全文检索 + RRF 重排序融合搜索。
   - 日记自动嵌入，搜索结果自动存入 RAG。
   - Agent 主动存储重要对话信息到记忆库。
@@ -44,13 +44,13 @@
 
 #### 技术栈
 
-| 层级 | 技术 |
-|------|------|
-| 前端 | Flutter (Dart) |
-| 状态管理 | Riverpod |
-| 本地数据库 | SQLite (Drift) + sqlite-vec 向量引擎 |
-| AI 集成 | HTTP REST API (Gemini / OpenAI / Anthropic) |
-| 文件存储 | Markdown + YAML Front Matter |
+| 层级       | 技术                                        |
+| ---------- | ------------------------------------------- |
+| 前端       | Flutter (Dart)                              |
+| 状态管理   | Riverpod                                    |
+| 本地数据库 | SQLite (Drift) + sqlite-vec 向量引擎        |
+| AI 集成    | HTTP REST API (Gemini / OpenAI / Anthropic) |
+| 文件存储   | Markdown + YAML Front Matter                |
 
 #### 快速开始
 
