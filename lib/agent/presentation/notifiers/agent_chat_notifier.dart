@@ -80,7 +80,7 @@ class AgentChatNotifier extends _$AgentChatNotifier {
     final session = await manager.getSession(sessionId);
     final lastInput = await manager.getLastInputTokens(sessionId);
     state = state.copyWith(
-      sessionId: sessionId,
+      sessionId: () => sessionId,
       messages: messages,
       isLoading: false,
       streamingText: '',
@@ -121,12 +121,14 @@ class AgentChatNotifier extends _$AgentChatNotifier {
   }
 
   /// 清空当前对话
-  void clearChat() {
+  void clearChat([String? targetAssistantId]) {
     _currentRunId++;
     if (state.sessionId != null) {
       _sessionStateCache.remove(state.sessionId);
     }
-    state = const AgentChatState();
+    state = AgentChatState(
+      currentAssistantId: targetAssistantId ?? state.currentAssistantId,
+    );
   }
 
   /// 停止当前正在进行的生成
@@ -230,7 +232,7 @@ class AgentChatNotifier extends _$AgentChatNotifier {
         modelId: resolved.modelId,
         assistantId: state.currentAssistantId,
       );
-      state = state.copyWith(sessionId: sessionId);
+      state = state.copyWith(sessionId: () => sessionId);
     }
 
     // 复制附件到私有目录

@@ -70,7 +70,7 @@ class AgentChatState {
   });
 
   AgentChatState copyWith({
-    String? sessionId,
+    String? Function()? sessionId,
     List<ChatMessage>? messages,
     String? streamingText,
     bool? isLoading,
@@ -88,7 +88,7 @@ class AgentChatState {
     bool? isLoadingMore,
   }) {
     return AgentChatState(
-      sessionId: sessionId ?? this.sessionId,
+      sessionId: sessionId != null ? sessionId() : this.sessionId,
       messages: messages ?? this.messages,
       streamingText: streamingText ?? this.streamingText,
       isLoading: isLoading ?? this.isLoading,
