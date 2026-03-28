@@ -32,9 +32,15 @@ class GalleryTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    
+    // 监听全局刷新信号（例如 Vault 切换 + fullScanArchives 完成时）
+    // 强制此 Widget 重建，并获取最新的 DB Query Stream，避免移动端 TabBarView 缓存导致的死流
+    ref.watch(dataRefreshProvider);
+    
     final summaryStream = ref
         .watch(summaryRepositoryProvider)
         .watchSummaries(type);
+
 
     return StreamBuilder<List<Summary>>(
       stream: summaryStream,

@@ -82,18 +82,6 @@ class _SummaryDashboardViewState extends ConsumerState<SummaryDashboardView>
     super.dispose();
   }
 
-  /// Vault 切换后 summaryRepositoryProvider 重建时调用
-  /// 等待 SummarySyncService 的 fullScanArchives 完成后再重新加载数据
-  Future<void> _onSummaryRepoChanged() async {
-    try {
-      final syncService = ref.read(summarySyncServiceProvider.notifier);
-      await syncService.waitForScan();
-    } catch (_) {
-      // SummarySyncService 可能尚未初始化，静默忽略
-    }
-    if (mounted) _loadAllData();
-  }
-
   /// 加载全量统计 + 共同回忆
   Future<void> _loadAllData() async {
     // 等待影子索引库初始化完成后再加载数据
@@ -103,6 +91,17 @@ class _SummaryDashboardViewState extends ConsumerState<SummaryDashboardView>
     }
 
     setState(() => _isLoading = true);
+    
+    // 等待 SummarySyncService 的全量扫描（如果有正在进行的扫描）
+    // 防止底层由于 Vault 切换还在重建索引时，我们拉取到空数据
+    try {
+      final syncService = ref.read(summarySyncServiceProvider.notifier);
+      await syncService.waitForScan();
+    } catch (_) {
+      // SummarySyncService 可能尚未初始化，静默忽略
+    }
+
+
     try {
       // 加载全量统计（不受月份过滤）
       final summaryRepo = ref.read(summaryRepositoryProvider);
@@ -191,12 +190,11 @@ class _SummaryDashboardViewState extends ConsumerState<SummaryDashboardView>
   Widget build(BuildContext context) {
     final refreshVersion = ref.watch(dataRefreshProvider);
 
-    // 【关键】监听 summaryRepositoryProvider 的重建：
     // Vault 切换 → appDatabaseProvider 重建 → summaryRepositoryProvider 跟着重建
-    // → listen 感知到变化 → 等 fullScanArchives 完成后再重新拉取数据
+    // → listen 感知到变化 → 触发 _loadAllData (内部会等 fullScanArchives 完成再拉取)
     ref.listen(summaryRepositoryProvider, (prev, next) {
       if (prev != next) {
-        _onSummaryRepoChanged();
+        _loadAllData();
       }
     });
 
