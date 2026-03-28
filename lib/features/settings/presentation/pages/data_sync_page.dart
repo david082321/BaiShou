@@ -287,7 +287,6 @@ class _DataSyncPageState extends ConsumerState<DataSyncPage> {
                       spacing: 8,
                       runSpacing: 8,
                       children: [
-                        if (_records.isNotEmpty) ...[
                           if (_isManageMode) ...[
                             TextButton(
                               onPressed: () => setState(() {
@@ -309,12 +308,13 @@ class _DataSyncPageState extends ConsumerState<DataSyncPage> {
                             ),
                           ] else ...[
                             OutlinedButton.icon(
-                              onPressed: () => setState(() => _isManageMode = true),
+                              onPressed: _records.isEmpty || _isLoadingRecords
+                                  ? null
+                                  : () => setState(() => _isManageMode = true),
                               icon: const Icon(Icons.checklist, size: 18),
                               label: const Text('批量管理'),
                             ),
                           ],
-                        ],
                         OutlinedButton.icon(
                           onPressed: () {
                             Navigator.push(
