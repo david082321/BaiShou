@@ -100,8 +100,12 @@ class DiarySearchTool extends AgentTool {
         params.add(startDate);
       }
       if (endDate != null) {
+        String finalEndDate = endDate;
+        if (endDate.length == 10 && endDate.contains('-')) {
+          finalEndDate += 'T23:59:59.999';
+        }
         dateFilter += ' AND ji.date <= ?';
-        params.add(endDate);
+        params.add(finalEndDate);
       }
       params.add(limit);
 
