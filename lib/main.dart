@@ -93,11 +93,14 @@ class _GracefulExitListener extends WindowListener {
 
     // 2. 给异步操作一个极短的排空窗口
     //    让尚在飞行中的 Future（如 DB write、Stream listener callback）有机会完成
-    await Future.delayed(const Duration(milliseconds: 100));
+    await Future.delayed(const Duration(milliseconds: 50));
 
-    debugPrint('GracefulExit: All resources cleaned up, destroying window.');
+    debugPrint('GracefulExit: All resources cleaned up, terminating process.');
 
-    // 3. 真正销毁窗口（此后进程退出，Riverpod 的 onDispose 会自动触发 DB close）
-    await windowManager.destroy();
+    // 3. 直接终止进程
+    //    不使用 windowManager.destroy()，因为它仍会触发 Flutter engine teardown，
+    //    Riverpod 并行 dispose 时访问已关闭的 SQLite native handle 导致崩溃。
+    //    exit(0) 立即终止进程，操作系统自动释放所有资源（文件句柄、内存等）。
+    exit(0);
   }
 }

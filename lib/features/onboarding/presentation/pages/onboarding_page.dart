@@ -85,13 +85,12 @@ class OnboardingPage extends ConsumerStatefulWidget {
 }
 
 class _OnboardingPageState extends ConsumerState<OnboardingPage>
-    with TickerProviderStateMixin {
+    with SingleTickerProviderStateMixin {
   final PageController _pageController = PageController();
   final TextEditingController _apiKeyController = TextEditingController();
   static const int _numPages = 6;
 
   int _currentPage = 0;
-  late AnimationController _fadeController;
   late AnimationController _floatController;
 
   @override
@@ -100,11 +99,6 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage>
 
     final geminiProvider = ref.read(apiConfigServiceProvider).getProvider('gemini');
     _apiKeyController.text = geminiProvider?.apiKey ?? '';
-
-    _fadeController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 600),
-    )..forward();
 
     _floatController = AnimationController(
       vsync: this,
@@ -116,16 +110,12 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage>
   void dispose() {
     _pageController.dispose();
     _apiKeyController.dispose();
-    _fadeController.dispose();
     _floatController.dispose();
     super.dispose();
   }
 
   void _onPageChanged(int index) {
     setState(() => _currentPage = index);
-    // 使用 forward(from: 0) 代替 reset()+forward()，
-    // 避免 reset() 产生的中间帧闪烁（opacity 瞬间跳到 0 再动画回来）
-    _fadeController.forward(from: 0);
   }
 
   void _nextPage() {
@@ -297,29 +287,17 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage>
   // ─────────────────────────── 页面内容构建 ───────────────────────────
 
   Widget _slideWrapper({required List<Widget> children}) {
-    return FadeTransition(
-      opacity: CurvedAnimation(
-        parent: _fadeController,
-        curve: Curves.easeOut,
-      ),
-      child: SlideTransition(
-        position: Tween<Offset>(
-          begin: const Offset(0, 0.05),
-          end: Offset.zero,
-        ).animate(CurvedAnimation(
-          parent: _fadeController,
-          curve: Curves.easeOutCubic,
-        )),
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 480),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: children,
-              ),
-            ),
+    // 不使用入场动画（FadeTransition/SlideTransition），
+    // PageView 自身的滑动过渡已经足够流畅，额外的入场动画反而会闪烁。
+    // 只保留图标的浮动呼吸效果（_floatController）。
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 480),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: children,
           ),
         ),
       ),
@@ -661,46 +639,51 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage>
 
   Widget _buildBottomControls() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(28, 12, 28, 28),
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
       child: Row(
         children: [
-          // 胶囊指示条
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: List.generate(_numPages, (i) {
-              final isActive = _currentPage == i;
-              return AnimatedContainer(
-                duration: const Duration(milliseconds: 300),
-                curve: Curves.easeOutCubic,
-                margin: const EdgeInsets.only(right: 6),
-                width: isActive ? 24 : 8,
-                height: 8,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(4),
-                  color: isActive
-                      ? _slideThemes[_currentPage].iconColor
-                      : Colors.grey.shade300,
-                ),
-              );
-            }),
+          // 胶囊指示条（允许收缩）
+          Flexible(
+            flex: 0,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: List.generate(_numPages, (i) {
+                final isActive = _currentPage == i;
+                return AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeOutCubic,
+                  margin: const EdgeInsets.only(right: 5),
+                  width: isActive ? 20 : 7,
+                  height: 7,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(4),
+                    color: isActive
+                        ? _slideThemes[_currentPage].iconColor
+                        : Colors.grey.shade300,
+                  ),
+                );
+              }),
+            ),
           ),
           const Spacer(),
           // 返回按钮
           if (_currentPage > 0)
             Padding(
-              padding: const EdgeInsets.only(right: 8),
+              padding: const EdgeInsets.only(right: 4),
               child: TextButton(
                 onPressed: _previousPage,
                 style: TextButton.styleFrom(
                   foregroundColor: Colors.grey.shade600,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.arrow_back_ios_rounded, size: 14, color: Colors.grey.shade500),
-                    const SizedBox(width: 4),
-                    Text(t.common.back),
+                    Icon(Icons.arrow_back_ios_rounded, size: 12, color: Colors.grey.shade500),
+                    const SizedBox(width: 2),
+                    Text(t.common.back, style: const TextStyle(fontSize: 13)),
                   ],
                 ),
               ),
