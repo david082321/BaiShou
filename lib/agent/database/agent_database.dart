@@ -1,5 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
+import 'dart:typed_data';
 
 import 'package:baishou/agent/database/agent_tables.dart';
 import 'package:baishou/i18n/strings.g.dart';
@@ -236,7 +238,7 @@ class AgentDatabase extends _$AgentDatabase {
     }
   }
 
-  /// 使用原生 vector_as_f32 插入向量嵌入
+  /// 插入向量嵌入（兼容华为等不支持 sqlite-vec 原生扩展的设备）
   Future<void> insertEmbedding({
     required String id,
     required String sourceType,
@@ -249,8 +251,11 @@ class AgentDatabase extends _$AgentDatabase {
     required String modelId,
     int? sourceCreatedAt,
   }) async {
-    // 将 List<double> 转为 JSON 数组字符串，供 vector_as_f32() 解析
-    final vectorJson = '[${embedding.join(',')}]';
+    // 直接在 Dart 中生成 32-bit 小端序浮点数组，绕过对 vector_as_f32() 的依赖
+    // 该字节格式与 sqlite-vec 完全一致，原生索引也可以完美挂载
+    final floatList = Float32List.fromList(embedding);
+    final blob = floatList.buffer.asUint8List();
+    
     final now = DateTime.now().millisecondsSinceEpoch;
 
     try {
@@ -258,7 +263,7 @@ class AgentDatabase extends _$AgentDatabase {
         '''INSERT OR REPLACE INTO memory_embeddings
            (embedding_id, source_type, source_id, group_id, chunk_index, chunk_text,
             metadata_json, embedding, dimension, model_id, created_at, source_created_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, vector_as_f32(?), ?, ?, ?, ?)''',
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
         [
           id,
           sourceType,
@@ -267,7 +272,7 @@ class AgentDatabase extends _$AgentDatabase {
           chunkIndex,
           chunkText,
           metadataJson,
-          vectorJson,
+          blob,
           embedding.length,
           modelId,
           now,
@@ -345,8 +350,67 @@ class AgentDatabase extends _$AgentDatabase {
         };
       }).toList();
     } catch (e) {
-      debugPrint('searchSimilar vector_full_scan failed: $e');
-      return [];
+      debugPrint('searchSimilar vector_full_scan failed: $e. Using Dart Fallback...');
+      
+      // ---------- 纯 Dart 退避降级方案 ----------
+      try {
+        final allRows = await customSelect(
+          '''
+          SELECT
+            embedding_id, source_type, source_id, group_id, chunk_index,
+            chunk_text, metadata_json, dimension, model_id, embedding,
+            created_at, source_created_at
+          FROM memory_embeddings
+          WHERE dimension = ?
+          ''',
+          variables: [Variable.withInt(effectiveDimension)],
+        ).get();
+
+        final resultsWithScore = <Map<String, dynamic>>[];
+        for (final row in allRows) {
+          final blob = row.read<Uint8List>('embedding');
+          final floatList = Float32List.view(blob.buffer);
+          
+          if (floatList.length != effectiveDimension) continue;
+
+          // 计算余弦相似度并转换为 sqlite-vec 兼容的 COSINE Distance: (1.0 - CosSimilarity)
+          double dot = 0.0, normA = 0.0, normB = 0.0;
+          for (int i = 0; i < effectiveDimension; i++) {
+            dot += queryEmbedding[i] * floatList[i];
+            normA += queryEmbedding[i] * queryEmbedding[i];
+            normB += floatList[i] * floatList[i];
+          }
+          
+          double distance = 1.0;
+          if (normA != 0 && normB != 0) {
+            distance = 1.0 - (dot / (sqrt(normA) * sqrt(normB)));
+          }
+
+          resultsWithScore.add({
+            'embedding_id': row.read<String>('embedding_id'),
+            'source_type': row.read<String>('source_type'),
+            'source_id': row.read<String>('source_id'),
+            'group_id': row.read<String>('group_id'),
+            'chunk_index': row.read<int>('chunk_index'),
+            'chunk_text': row.read<String>('chunk_text'),
+            'metadata_json': row.read<String>('metadata_json'),
+            'dimension': row.read<int>('dimension'),
+            'model_id': row.read<String>('model_id'),
+            'distance': distance,
+            'created_at': row.read<int>('created_at'),
+          });
+        }
+        
+        // 按距离从小到大排序（0 为完全相同）
+        resultsWithScore.sort((a, b) => (a['distance'] as double).compareTo(b['distance'] as double));
+        
+        final finalResults = resultsWithScore.take(topK).toList();
+        debugPrint('searchSimilar (Dart Fallback): got ${finalResults.length} results');
+        return finalResults;
+      } catch (fallbackErr) {
+        debugPrint('searchSimilar Dart Fallback failed: $fallbackErr');
+        return [];
+      }
     }
   }
 
@@ -725,7 +789,14 @@ QueryExecutor _openAgentConnection(
       isolateSetup: () {
         // 必须在数据库打开前注册 auto-extension
         // setup 回调在 DB 打开后执行，已注册的 auto-extension 不会应用到当前连接
-        sql.sqlite3.loadSqliteVectorExtension();
+        try {
+          sql.sqlite3.loadSqliteVectorExtension();
+        } catch (e) {
+          // 向量扩展在部分设备上可能不可用（如某些华为 HarmonyOS 设备的 linker 限制）
+          // 降级处理：伙伴基础 CRUD 正常，仅 RAG 向量搜索不可用
+          // ignore: avoid_print
+          print('[AgentDB] sqlite-vec extension load failed: $e');
+        }
       },
     );
   });

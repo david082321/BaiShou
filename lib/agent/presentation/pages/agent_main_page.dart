@@ -12,6 +12,7 @@ import 'package:baishou/agent/presentation/notifiers/assistant_notifier.dart';
 import 'package:baishou/agent/presentation/pages/agent_chat_page.dart';
 import 'package:baishou/agent/presentation/widgets/agent_sidebar.dart';
 import 'package:baishou/core/storage/vault_service.dart';
+import 'package:baishou/core/widgets/app_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -36,18 +37,27 @@ class _AgentMainPageState extends ConsumerState<AgentMainPage> {
   }
 
   Future<void> _initAssistantAndSessions() async {
-    final service = ref.read(assistantServiceProvider);
-    final assistant = await service.ensureDefaultAssistant();
-    
-    // 强制刷新相关 Provider 以通知整个应用状态已更新（解决首次创建或旧版升级空状态下，即使有了助手但列表由于之前的 Future 数据缓存还是为空的问题）
-    ref.invalidate(assistantListProvider);
-    ref.invalidate(assistantListStreamProvider);
-    ref.invalidate(defaultAssistantProvider);
+    try {
+      final service = ref.read(assistantServiceProvider);
+      final assistant = await service.ensureDefaultAssistant()
+          .timeout(const Duration(seconds: 15));
+      
+      // 强制刷新相关 Provider 以通知整个应用状态已更新（解决首次创建或旧版升级空状态下，即使有了助手但列表由于之前的 Future 数据缓存还是为空的问题）
+      ref.invalidate(assistantListProvider);
+      ref.invalidate(assistantListStreamProvider);
+      ref.invalidate(defaultAssistantProvider);
 
-    if (mounted) {
-      setState(() => _currentAssistant = assistant);
-      ref.read(agentChatProvider.notifier).setCurrentAssistantId(assistant.id);
-      await _loadSessions();
+      if (mounted) {
+        setState(() => _currentAssistant = assistant);
+        ref.read(agentChatProvider.notifier).setCurrentAssistantId(assistant.id);
+        await _loadSessions();
+      }
+    } catch (e) {
+      debugPrint('[AgentMainPage] _initAssistantAndSessions failed: $e');
+      if (mounted) {
+        setState(() => _isLoading = false);
+        AppToast.showError(context, '伙伴初始化失败: $e');
+      }
     }
   }
 
