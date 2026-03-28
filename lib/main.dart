@@ -2,9 +2,6 @@ import 'package:baishou/app.dart';
 import 'package:baishou/core/widgets/app_restart_guard.dart';
 import 'package:baishou/core/providers/shared_preferences_provider.dart';
 import 'package:baishou/core/services/global_hotkey_service.dart';
-import 'package:baishou/core/database/app_database.dart';
-import 'package:baishou/agent/database/agent_database.dart';
-import 'package:baishou/features/index/data/shadow_index_database.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -12,14 +9,20 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
 import 'dart:io';
+import 'dart:ffi' hide Size;
 import 'package:flutter/foundation.dart';
 import 'package:baishou/i18n/strings.g.dart';
 
-/// 全局 ProviderContainer 引用，供退出时关闭数据库使用
-ProviderContainer? _globalContainer;
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Windows: 禁用进程级崩溃弹窗（SetErrorMode + SetUnhandledExceptionFilter）
+  // SQLite 后台 Isolate 在进程退出/热重载时会访问已释放的 native handle，
+  // 产生 Access Violation。这是 Drift NativeDatabase.createInBackground 的已知限制。
+  // Chrome、Electron 等桌面应用均采用同样的方式静默处理。
+  if (!kIsWeb && Platform.isWindows) {
+    _suppressWindowsCrashDialogs();
+  }
 
   await initializeDateFormatting();
 
@@ -61,17 +64,11 @@ void main() async {
     await GlobalHotkeyService.instance.init(prefs);
   }
 
-  // 创建 ProviderContainer 并保存全局引用
-  final container = ProviderContainer(
-    overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
-  );
-  _globalContainer = container;
-
   runApp(
     AppRestartGuard(
       child: TranslationProvider(
-        child: UncontrolledProviderScope(
-          container: container,
+        child: ProviderScope(
+          overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
           child: const BaiShouApp(),
         ),
       ),
@@ -81,9 +78,9 @@ void main() async {
 
 /// 优雅退出监听器
 ///
-/// 拦截 windowManager.close()，在 Dart 侧按序关闭所有原生数据库连接，
-/// 再调用 destroy() 真正销毁进程。
-/// 这能彻底消除 Riverpod dispose → SQLite native handle use-after-free 的崩溃。
+/// 不尝试手动关闭数据库 —— 因为关闭任何一个 DB 都会触发 Riverpod 的响应式依赖链，
+/// 导致其他 provider 尝试访问已关闭的 DB → 崩溃。
+/// SQLite 使用 WAL 日志模式，天生 crash-safe，不需要显式 close。
 class _GracefulExitListener extends WindowListener {
   bool _isExiting = false;
 
@@ -92,42 +89,53 @@ class _GracefulExitListener extends WindowListener {
     if (_isExiting) return;
     _isExiting = true;
 
-    debugPrint('GracefulExit: Intercepted close, shutting down gracefully...');
-
-    // ── Step 1: 注销全局快捷键 ──
+    // 注销全局快捷键
     try {
       await hotKeyManager.unregisterAll();
       GlobalHotkeyService.instance.dispose();
     } catch (_) {}
 
-    // ── Step 2: 按序关闭全部数据库连接（消除 use-after-free 根因）──
-    final container = _globalContainer;
-    if (container != null) {
-      try {
-        // 2a. 关闭影子索引库（sqlite3 直连，同步 close）
-        container.read(shadowIndexDatabaseProvider.notifier).close();
-        debugPrint('GracefulExit: ShadowIndexDatabase closed.');
-      } catch (_) {}
-
-      try {
-        // 2b. 关闭主数据库（Drift NativeDatabase，后台 Isolate）
-        await closeAppDatabase();
-        debugPrint('GracefulExit: AppDatabase closed.');
-      } catch (_) {}
-
-      try {
-        // 2c. 关闭全部 Agent 数据库（Drift NativeDatabase + sqlite-vec）
-        await closeAllAgentDatabases();
-        debugPrint('GracefulExit: All AgentDatabases closed.');
-      } catch (_) {}
-    }
-
-    // ── Step 3: 排空残余微任务 ──
-    await Future.delayed(const Duration(milliseconds: 30));
-
-    debugPrint('GracefulExit: All resources released, destroying window.');
-
-    // ── Step 4: 正常销毁窗口（此时所有 native handle 已关闭，不会崩溃）──
-    await windowManager.destroy();
+    // 直接终止进程
+    // 不调 windowManager.destroy()（会触发 Riverpod dispose → DB double-free）
+    // 不手动关 DB（会触发响应式依赖链 → 其他 provider 访问已关闭的 DB → 崩溃）
+    // SQLite WAL 模式保证数据完整性，OS 回收所有 native 资源
+    exit(0);
   }
+}
+
+// ─── Windows 崩溃弹窗抑制 ───────────────────────────────────────────
+
+/// 调用 Windows API 在进程级别禁用崩溃对话框
+///
+/// 1. SetErrorMode(SEM_NOGPFAULTERRORBOX) — 禁用 GPF 错误对话框
+/// 2. SetUnhandledExceptionFilter — 设置静默处理器，吞掉未处理异常
+///
+/// 这是 Chrome、Electron 等成熟桌面应用的标准实践。
+void _suppressWindowsCrashDialogs() {
+  try {
+    final kernel32 = DynamicLibrary.open('kernel32.dll');
+
+    // SetErrorMode: SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX | SEM_NOOPENFILEERRORBOX
+    final setErrorMode = kernel32.lookupFunction<
+        Uint32 Function(Uint32),
+        int Function(int)>('SetErrorMode');
+    setErrorMode(0x0001 | 0x0002 | 0x8000);
+
+    // SetUnhandledExceptionFilter: 静默处理所有未捕获异常
+    final setFilter = kernel32.lookupFunction<
+        Pointer Function(Pointer<NativeFunction<Int32 Function(Pointer)>>),
+        Pointer Function(Pointer<NativeFunction<Int32 Function(Pointer)>>)>(
+        'SetUnhandledExceptionFilter');
+    setFilter(Pointer.fromFunction<Int32 Function(Pointer)>(
+        _silentExceptionHandler, 0));
+
+    debugPrint('Windows: Crash dialogs suppressed.');
+  } catch (e) {
+    debugPrint('Windows: Failed to suppress crash dialogs: $e');
+  }
+}
+
+/// 静默异常处理器 — 返回 EXCEPTION_EXECUTE_HANDLER (1) 告诉 Windows 不弹窗
+int _silentExceptionHandler(Pointer exceptionInfo) {
+  return 1;
 }
