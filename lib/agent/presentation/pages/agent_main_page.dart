@@ -131,8 +131,12 @@ class _AgentMainPageState extends ConsumerState<AgentMainPage> {
 
     // 监听 sessionId 变化
     ref.listen<AgentChatState>(agentChatProvider, (prev, next) {
-      if (prev?.sessionId != next.sessionId && next.sessionId != null) {
-        if (_selectedSessionId == null) {
+      if (prev?.sessionId != next.sessionId) {
+        if (next.sessionId == null) {
+          if (_selectedSessionId != null) {
+            setState(() => _selectedSessionId = null);
+          }
+        } else if (_selectedSessionId == null) {
           setState(() => _selectedSessionId = next.sessionId);
           _refreshSessionList();
         }
