@@ -54,7 +54,7 @@ class DiarySearchTool extends AgentTool {
     'properties': {
       'query': {
         'type': 'string',
-        'description': 'The search keyword or phrase to find in diary entries.',
+        'description': 'The search keyword. You can provide multiple synonyms separated by spaces (e.g. "concert livehouse music" to find ANY of these words).',
       },
       'start_date': {
         'type': 'string',
@@ -92,9 +92,15 @@ class DiarySearchTool extends AgentTool {
     try {
       final db = _indexDb.database;
 
-      String dateFilter = '';
-      final params = <Object>['%$query%'];
+      final keywords = query.trim().split(RegExp(r'\s+')).where((k) => k.isNotEmpty).toList();
+      if (keywords.isEmpty) {
+        return ToolResult.error('Query contains no valid keywords');
+      }
 
+      String keywordFilter = '(' + keywords.map((_) => 'jf.content LIKE ?').join(' OR ') + ')';
+      final params = <Object>[...keywords.map((k) => '%$k%')];
+
+      String dateFilter = '';
       if (startDate != null) {
         dateFilter += ' AND ji.date >= ?';
         params.add(startDate);
@@ -109,7 +115,7 @@ class DiarySearchTool extends AgentTool {
       }
       params.add(limit);
 
-      // 使用 LIKE 语法替代 MATCH 解决 FTS5 不支持 CJK 分词的问题
+      // 使用 LIKE OR 语法支持多关键词（同义词）的搜索
       final results = db.select('''
         SELECT 
           ji.date,
@@ -119,7 +125,7 @@ class DiarySearchTool extends AgentTool {
           jf.content
         FROM journals_fts jf
         JOIN journals_index ji ON jf.rowid = ji.id
-        WHERE jf.content LIKE ?$dateFilter
+        WHERE $keywordFilter $dateFilter
         ORDER BY ji.date DESC
         LIMIT ?
         ''', params);
@@ -146,19 +152,27 @@ class DiarySearchTool extends AgentTool {
         // 手动生成 snippet
         String snippet = '';
         final lowerContent = content.toLowerCase();
-        final lowerQuery = query.toLowerCase();
-        final matchIndex = lowerContent.indexOf(lowerQuery);
 
-        if (matchIndex != -1) {
-          final start = (matchIndex - 30).clamp(0, content.length);
-          final end = (matchIndex + query.length + 30).clamp(0, content.length);
-          
-          snippet = (start > 0 ? '...' : '') + 
-                    content.substring(start, matchIndex) + 
-                    '**' + content.substring(matchIndex, matchIndex + query.length) + '**' + 
-                    content.substring(matchIndex + query.length, end) + 
-                    (end < content.length ? '...' : '');
-        } else {
+        bool snippetGenerated = false;
+        for (final k in keywords) {
+          final lowerQuery = k.toLowerCase();
+          final matchIndex = lowerContent.indexOf(lowerQuery);
+
+          if (matchIndex != -1) {
+            final start = (matchIndex - 30).clamp(0, content.length);
+            final end = (matchIndex + k.length + 30).clamp(0, content.length);
+            
+            snippet = (start > 0 ? '...' : '') + 
+                      content.substring(start, matchIndex) + 
+                      '**' + content.substring(matchIndex, matchIndex + k.length) + '**' + 
+                      content.substring(matchIndex + k.length, end) + 
+                      (end < content.length ? '...' : '');
+            snippetGenerated = true;
+            break;
+          }
+        }
+
+        if (!snippetGenerated) {
           snippet = content.length > 100 ? '\${content.substring(0, 100)}...' : content;
         }
 
