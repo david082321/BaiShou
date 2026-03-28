@@ -9,6 +9,7 @@ import 'package:baishou/agent/tools/agent_tool.dart';
 import 'package:baishou/agent/tools/tool_repository.dart';
 import 'package:baishou/core/services/api_config_service.dart';
 import 'package:baishou/features/settings/domain/services/user_profile_service.dart';
+import 'package:baishou/agent/models/ai_provider_model.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class AgentRunPreparation {
@@ -61,6 +62,11 @@ class AgentContextBuilder {
 
     if (!hasAssistant) resolvedPersona = persona ?? apiConfig.agentPersona;
     final userProfile = ref.read(userProfileProvider);
+    final activeProvider = apiConfig.getActiveProvider();
+    final searchMode = activeProvider?.webSearchMode ?? WebSearchMode.off;
+
+    // 根据 provider 设置传递 built-in 搜索标识
+    final enableBuiltinSearch = searchMode == WebSearchMode.builtin;
 
     final systemPrompt = SystemPromptBuilder.build(
       persona: resolvedPersona,
@@ -70,6 +76,7 @@ class AgentContextBuilder {
       userProfileBlock: userProfile.toMarkdownBlock(),
       vaultName: vaultName,
       tools: tools,
+      enableBuiltinSearch: enableBuiltinSearch,
     );
 
     // 滑动窗口上下文

@@ -183,11 +183,23 @@ class OpenAiClient extends BaseAiClient {
           .toList();
     }
 
-    // 注入 OpenAI 内置搜索工具
+    // 注入提供商原生内置搜索参数
     if (enableWebSearch) {
-      final toolsList = (body['tools'] as List?) ?? [];
-      toolsList.add({'type': 'web_search_preview'});
-      body['tools'] = toolsList;
+      if (provider.type == ProviderType.kimi) {
+        final toolsList = (body['tools'] as List?) ?? [];
+        toolsList.add({
+          'type': 'builtin_function',
+          'function': {'name': '\$web_search'},
+        });
+        body['tools'] = toolsList;
+      } else if (provider.type == ProviderType.dashscope) {
+        body['enable_search'] = true; // 阿里云通义千问兼容参数
+      } else {
+        // 部分兼容的外部供应端 (如 SiliconFlow) หรือ标准
+        final toolsList = (body['tools'] as List?) ?? [];
+        toolsList.add({'type': 'web_search_preview'});
+        body['tools'] = toolsList;
+      }
     }
 
     if (temperature != null) {
