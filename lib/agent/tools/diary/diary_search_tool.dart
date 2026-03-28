@@ -92,9 +92,8 @@ class DiarySearchTool extends AgentTool {
     try {
       final db = _indexDb.database;
 
-      // 构建日期过滤条件
       String dateFilter = '';
-      final params = <Object>[query.trim()];
+      final params = <Object>['%$query%'];
 
       if (startDate != null) {
         dateFilter += ' AND ji.date >= ?';
@@ -106,18 +105,17 @@ class DiarySearchTool extends AgentTool {
       }
       params.add(limit);
 
-      // 使用 FTS5 MATCH 语法搜索
-      // snippet() 函数返回匹配上下文，方便 Agent 理解内容
+      // 使用 LIKE 语法替代 MATCH 解决 FTS5 不支持 CJK 分词的问题
       final results = db.select('''
         SELECT 
           ji.date,
           ji.mood,
           ji.weather,
           ji.location,
-          snippet(journals_fts, 0, '**', '**', '...', 64) AS snippet
-        FROM journals_fts 
-        JOIN journals_index ji ON journals_fts.rowid = ji.id
-        WHERE journals_fts MATCH ?$dateFilter
+          jf.content
+        FROM journals_fts jf
+        JOIN journals_index ji ON jf.rowid = ji.id
+        WHERE jf.content LIKE ?$dateFilter
         ORDER BY ji.date DESC
         LIMIT ?
         ''', params);
@@ -136,10 +134,29 @@ class DiarySearchTool extends AgentTool {
 
       for (final row in results) {
         final date = row['date'] as String;
-        final snippet = row['snippet'] as String? ?? '';
+        final content = row['content'] as String? ?? '';
         final mood = row['mood'] as String?;
         final weather = row['weather'] as String?;
         final location = row['location'] as String?;
+
+        // 手动生成 snippet
+        String snippet = '';
+        final lowerContent = content.toLowerCase();
+        final lowerQuery = query.toLowerCase();
+        final matchIndex = lowerContent.indexOf(lowerQuery);
+
+        if (matchIndex != -1) {
+          final start = (matchIndex - 30).clamp(0, content.length);
+          final end = (matchIndex + query.length + 30).clamp(0, content.length);
+          
+          snippet = (start > 0 ? '...' : '') + 
+                    content.substring(start, matchIndex) + 
+                    '**' + content.substring(matchIndex, matchIndex + query.length) + '**' + 
+                    content.substring(matchIndex + query.length, end) + 
+                    (end < content.length ? '...' : '');
+        } else {
+          snippet = content.length > 100 ? '\${content.substring(0, 100)}...' : content;
+        }
 
         buffer.writeln('## $date');
         if (mood != null || weather != null || location != null) {
@@ -162,67 +179,6 @@ class DiarySearchTool extends AgentTool {
           'count': results.length,
           'dates': results.map((r) => r['date']).toList(),
         },
-      );
-    } catch (e) {
-      // FTS5 不可用时降级为 LIKE 查询
-      return _fallbackSearch(query, limit, context);
-    }
-  }
-
-  /// 降级方案：FTS5 不可用时使用 LIKE 查询
-  Future<ToolResult> _fallbackSearch(
-    String query,
-    int limit,
-    ToolContext context,
-  ) async {
-    try {
-      final db = _indexDb.database;
-
-      final results = db.select(
-        '''
-        SELECT 
-          ji.date,
-          ji.mood,
-          jf.content
-        FROM journals_fts jf
-        JOIN journals_index ji ON jf.rowid = ji.id
-        WHERE jf.content LIKE ?
-        ORDER BY ji.date DESC
-        LIMIT ?
-        ''',
-        ['%$query%', limit],
-      );
-
-      if (results.isEmpty) {
-        return ToolResult(
-          output: 'No diary entries found matching "$query".',
-          success: true,
-          metadata: {'query': query, 'count': 0},
-        );
-      }
-
-      final buffer = StringBuffer()
-        ..writeln(
-          'Found ${results.length} diary entries matching "$query" (fuzzy):',
-        )
-        ..writeln();
-
-      for (final row in results) {
-        final date = row['date'] as String;
-        final content = row['content'] as String? ?? '';
-        // 截取前 200 字作为摘要
-        final preview = content.length > 200
-            ? '${content.substring(0, 200)}...'
-            : content;
-        buffer.writeln('## $date');
-        buffer.writeln(preview);
-        buffer.writeln();
-      }
-
-      return ToolResult(
-        output: buffer.toString(),
-        success: true,
-        metadata: {'query': query, 'count': results.length},
       );
     } catch (e) {
       return ToolResult.error('Search failed: $e');
