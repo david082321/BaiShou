@@ -70,8 +70,13 @@ class LanTransferNotifier extends Notifier<LanTransferState> {
   BonsoirDiscovery? _discovery;
   HttpServer? _server;
 
+  bool _isDisposed = false;
+
   @override
   LanTransferState build() {
+    ref.onDispose(() {
+      _isDisposed = true;
+    });
     return const LanTransferState();
   }
 
@@ -301,6 +306,16 @@ class LanTransferNotifier extends Notifier<LanTransferState> {
       await stopBroadcasting();
       await stopDiscovery();
     });
+  }
+
+  /// 安全重启双向模式（带防崩延迟）
+  /// 在用户点击刷新时调用。立即的 stop+start 极易引发 Windows 上的 bonsoir c++ 插件发生指针异常或 Socket 抢占崩溃。
+  Future<void> restartDualMode() async {
+    await stopDualMode();
+    // 强制休眠 1 秒，等待底层完全释放端口和句柄
+    await Future.delayed(const Duration(milliseconds: 1000));
+    if (_isDisposed) return;
+    await startDualMode();
   }
 
   // --- 接收端逻辑 (发现) ---

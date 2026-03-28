@@ -119,7 +119,7 @@ class _LanTransferPageState extends ConsumerState<LanTransferPage>
             tooltip: t.common.refresh,
             onPressed: () {
               final notifier = ref.read(lanTransferServiceProvider.notifier);
-              notifier.stopDualMode().then((_) => notifier.startDualMode());
+              notifier.restartDualMode();
             },
           ),
         ],
