@@ -8,6 +8,7 @@ import 'package:baishou/features/index/data/shadow_index_database.dart';
 import 'package:baishou/features/summary/data/repositories/summary_repository_impl.dart';
 import 'package:baishou/features/summary/domain/entities/summary.dart';
 import 'package:baishou/features/summary/domain/services/context_builder.dart';
+import 'package:baishou/features/summary/domain/services/summary_sync_service.dart';
 import 'package:baishou/features/summary/presentation/widgets/missing_summary_list.dart';
 import 'package:baishou/i18n/strings.g.dart';
 import 'package:flutter/material.dart';
@@ -79,6 +80,18 @@ class _SummaryDashboardViewState extends ConsumerState<SummaryDashboardView>
     _galleryTabController.dispose();
     _monthsController.dispose();
     super.dispose();
+  }
+
+  /// Vault 切换后 summaryRepositoryProvider 重建时调用
+  /// 等待 SummarySyncService 的 fullScanArchives 完成后再重新加载数据
+  Future<void> _onSummaryRepoChanged() async {
+    try {
+      final syncService = ref.read(summarySyncServiceProvider.notifier);
+      await syncService.waitForScan();
+    } catch (_) {
+      // SummarySyncService 可能尚未初始化，静默忽略
+    }
+    if (mounted) _loadAllData();
   }
 
   /// 加载全量统计 + 共同回忆
@@ -177,6 +190,16 @@ class _SummaryDashboardViewState extends ConsumerState<SummaryDashboardView>
   @override
   Widget build(BuildContext context) {
     final refreshVersion = ref.watch(dataRefreshProvider);
+
+    // 【关键】监听 summaryRepositoryProvider 的重建：
+    // Vault 切换 → appDatabaseProvider 重建 → summaryRepositoryProvider 跟着重建
+    // → listen 感知到变化 → 等 fullScanArchives 完成后再重新拉取数据
+    ref.listen(summaryRepositoryProvider, (prev, next) {
+      if (prev != next) {
+        _onSummaryRepoChanged();
+      }
+    });
+
     // 监听影子索引库状态，初始化完成后加载数据
     ref.listen(shadowIndexDatabaseProvider, (previous, next) {
       if (next is AsyncData) {

@@ -123,8 +123,9 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage>
 
   void _onPageChanged(int index) {
     setState(() => _currentPage = index);
-    _fadeController.reset();
-    _fadeController.forward();
+    // 使用 forward(from: 0) 代替 reset()+forward()，
+    // 避免 reset() 产生的中间帧闪烁（opacity 瞬间跳到 0 再动画回来）
+    _fadeController.forward(from: 0);
   }
 
   void _nextPage() {
@@ -309,11 +310,16 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage>
           parent: _fadeController,
           curve: Curves.easeOutCubic,
         )),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 32),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: children,
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 480),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: children,
+              ),
+            ),
           ),
         ),
       ),
@@ -493,7 +499,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage>
         const SizedBox(height: 8),
         _slideBody(t.onboarding.compression_desc),
         const SizedBox(height: 24),
-        const Expanded(child: CompressionChart()),
+        const SizedBox(height: 240, child: CompressionChart()),
         const SizedBox(height: 16),
       ],
     );
