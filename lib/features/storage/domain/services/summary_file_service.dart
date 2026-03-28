@@ -91,8 +91,12 @@ class SummaryFileService extends _$SummaryFileService {
     if (!file.existsSync()) return null;
 
     final content = await file.readAsString();
-    final regex = RegExp(r'^---\r?\n(.*?)\r?\n---\r?\n(.*)$', dotAll: true);
-    final match = regex.firstMatch(content);
+    // 移除可能存在的 BOM 字符
+    final cleanContent = content.startsWith('\uFEFF') ? content.substring(1) : content;
+    
+    // 放宽正则：不强制要求 --- 必须在绝对开头，容忍潜在的空白字符
+    final regex = RegExp(r'---\r?\n(.*?)\r?\n---\r?\n(.*)$', dotAll: true);
+    final match = regex.firstMatch(cleanContent);
 
     if (match == null) return null;
 

@@ -124,13 +124,14 @@ class SummarySyncService extends _$SummarySyncService {
         );
         return;
       }
+    }
 
-      if (_isScanning) {
-        debugPrint(
-          'SummarySyncService: Skipped full scan because another scan is already in progress.',
-        );
-        return;
-      }
+    if (_isScanning && _currentScanCompleter != null) {
+      debugPrint(
+        'SummarySyncService: Waiting for ongoing scan to complete before starting a new one...',
+      );
+      await _currentScanCompleter!.future;
+      if (_isDisposed) return;
     }
 
     _isScanning = true;
