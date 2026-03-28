@@ -71,6 +71,7 @@ class GenerationStateService {
           generator: generator,
           repository: repository,
           cancelCheck: () => _cancelRequested,
+          onSuccess: () => refreshNotifier.refresh(),
         );
       }
     }
@@ -112,6 +113,7 @@ class GenerationStateService {
     required SummaryGeneratorService generator,
     required SummaryRepository repository,
     bool Function()? cancelCheck,
+    void Function()? onSuccess,
   }) async {
     final key = item.label;
 
@@ -157,6 +159,7 @@ class GenerationStateService {
           content: finalContent,
         );
         removeStatus(key);
+        onSuccess?.call();
       } else {
         setStatus(key, t.summary.tap_to_retry);
       }
