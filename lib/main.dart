@@ -77,30 +77,27 @@ class _GracefulExitListener extends WindowListener {
 
   @override
   void onWindowClose() async {
-    // 防止重入（用户疯狂点关闭按钮）
     if (_isExiting) return;
     _isExiting = true;
 
-    debugPrint('GracefulExit: Intercepted close, cleaning up resources...');
+    debugPrint('GracefulExit: Intercepted close, hiding window...');
 
+    // 1. 立即隐藏窗口 —— 即使后续析构阶段 native 层崩溃弹出错误框，用户也看不到
     try {
-      // 1. 注销全局快捷键（避免进程残留时仍拦截系统热键）
+      await windowManager.setSkipTaskbar(true);
+      await windowManager.hide();
+    } catch (_) {}
+
+    // 2. 注销全局快捷键
+    try {
       await hotKeyManager.unregisterAll();
       GlobalHotkeyService.instance.dispose();
-    } catch (e) {
-      debugPrint('GracefulExit: Hotkey cleanup failed (non-fatal): $e');
-    }
+    } catch (_) {}
 
-    // 2. 给异步操作一个极短的排空窗口
-    //    让尚在飞行中的 Future（如 DB write、Stream listener callback）有机会完成
+    // 3. 极短的排空窗口，让飞行中的异步操作落地
     await Future.delayed(const Duration(milliseconds: 50));
 
-    debugPrint('GracefulExit: All resources cleaned up, terminating process.');
-
-    // 3. 直接终止进程
-    //    不使用 windowManager.destroy()，因为它仍会触发 Flutter engine teardown，
-    //    Riverpod 并行 dispose 时访问已关闭的 SQLite native handle 导致崩溃。
-    //    exit(0) 立即终止进程，操作系统自动释放所有资源（文件句柄、内存等）。
+    // 4. 直接终止进程，由 OS 回收所有资源
     exit(0);
   }
 }
