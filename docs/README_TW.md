@@ -32,7 +32,7 @@
   - 日記自動嵌入，搜尋結果自動存入 RAG。
   - Agent 主動儲存重要對話資訊到記憶庫。
 - **🌐 網路搜尋**：
-  - DuckDuckGo / Bing / Tavily 多引擎搜尋。供應商內建 grounding 搜尋支援。
+  - DuckDuckGo / Tavily 多引擎搜尋。供應商內建 grounding 搜尋支援。
 - **🔌 MCP 協定**：
   - 標準 SSE 傳輸協定，可被外部 AI 客戶端（如 Claude Desktop）調用。
 - **📦 多工作區**：

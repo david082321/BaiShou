@@ -32,7 +32,7 @@ Latte のキャラクター設定については [Latte/角色設定.md](https:/
   - 日記の自動エンベディング、検索結果の自動RAG格納。
   - Agentが重要な会話情報をメモリストアに積極的に保存。
 - **🌐 ウェブ検索**：
-  - DuckDuckGo / Bing / Tavily マルチエンジン検索。プロバイダーネイティブの grounding 検索サポート。
+  - DuckDuckGo / Tavily マルチエンジン検索。プロバイダーネイティブの grounding 検索サポート。
 - **🔌 MCPプロトコル**：
   - 標準SSEトランスポートプロトコル。外部AIクライアント（Claude Desktopなど）から呼び出し可能。
 - **📦 マルチワークスペース**：
@@ -44,13 +44,13 @@ Latte のキャラクター設定については [Latte/角色設定.md](https:/
 
 #### 技術スタック
 
-| レイヤー | 技術 |
-|---------|------|
-| フロントエンド | Flutter (Dart) |
-| 状態管理 | Riverpod |
-| ローカルDB | SQLite (Drift) + sqlite-vec ベクトルエンジン |
-| AI統合 | HTTP REST API (Gemini / OpenAI / Anthropic) |
-| ファイル保存 | Markdown + YAML Front Matter |
+| レイヤー       | 技術                                         |
+| -------------- | -------------------------------------------- |
+| フロントエンド | Flutter (Dart)                               |
+| 状態管理       | Riverpod                                     |
+| ローカルDB     | SQLite (Drift) + sqlite-vec ベクトルエンジン |
+| AI統合         | HTTP REST API (Gemini / OpenAI / Anthropic)  |
+| ファイル保存   | Markdown + YAML Front Matter                 |
 
 #### クイックスタート
 

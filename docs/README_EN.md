@@ -32,7 +32,7 @@ A locally-run, privacy-focused diary and life-recording application with AI-assi
   - Automatic diary embedding; search results automatically stored in RAG.
   - Agent proactively stores important conversation information to the memory store.
 - **🌐 Web Search**:
-  - DuckDuckGo / Bing / Tavily multi-engine search. Provider-native grounding search support.
+  - DuckDuckGo / Tavily multi-engine search. Provider-native grounding search support.
 - **🔌 MCP Protocol**:
   - Standard SSE transport protocol, callable by external AI clients (e.g., Claude Desktop).
 - **📦 Multi-Workspace**:
@@ -44,13 +44,13 @@ A locally-run, privacy-focused diary and life-recording application with AI-assi
 
 #### Tech Stack
 
-| Layer | Technology |
-|-------|-----------|
-| Frontend | Flutter (Dart) |
-| State Management | Riverpod |
-| Local Database | SQLite (Drift) + sqlite-vec Vector Engine |
-| AI Integration | HTTP REST API (Gemini / OpenAI / Anthropic) |
-| File Storage | Markdown + YAML Front Matter |
+| Layer            | Technology                                  |
+| ---------------- | ------------------------------------------- |
+| Frontend         | Flutter (Dart)                              |
+| State Management | Riverpod                                    |
+| Local Database   | SQLite (Drift) + sqlite-vec Vector Engine   |
+| AI Integration   | HTTP REST API (Gemini / OpenAI / Anthropic) |
+| File Storage     | Markdown + YAML Front Matter                |
 
 #### Quick Start
 

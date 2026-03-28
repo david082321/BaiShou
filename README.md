@@ -32,7 +32,7 @@
   - 日记自动嵌入，搜索结果自动存入 RAG。
   - Agent 主动存储重要对话信息到记忆库。
 - **🌐 网络搜索**：
-  - DuckDuckGo / Bing / Tavily 多引擎搜索。供应商内置 grounding 搜索支持。
+  - DuckDuckGo / Tavily 多引擎搜索。供应商内置 grounding 搜索支持。
 - **🔌 MCP 协议**：
   - 标准 SSE 传输协议，可被外部 AI 客户端（如 Claude Desktop）调用。
 - **📦 多工作区**：
